@@ -1,7 +1,7 @@
 /* gdsqlite.cpp */
 
 #include "gdsqlite.h"
-#include "globals.h"
+#include "global_config.h"
 #include "os/os.h"
 
 SQLite::SQLite() {
