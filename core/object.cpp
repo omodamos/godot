@@ -1036,7 +1036,7 @@ void Object::set_script(const RefPtr& p_script) {
 	Ref<Script> s(script);
 
 	if (!s.is_null() && s->can_instance() ) {
-		OBJ_DEBUG_LOCK
+		// OBJ_DEBUG_LOCK
 		script_instance = s->instance_create(this);
 
 	}
