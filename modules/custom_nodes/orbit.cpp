@@ -3,16 +3,21 @@
 #include "orbit.h"
 
 void Orbit::set_properties(const Dictionary& p_dict) {
+	ERR_FAIL_COND(!p_dict.has("entity_id"));
 	ERR_FAIL_COND(!p_dict.has("semi_major_axis"));
 	ERR_FAIL_COND(!p_dict.has("eccentricity"));
 	ERR_FAIL_COND(!p_dict.has("longitude_of_periapsis"));
 	ERR_FAIL_COND(!p_dict.has("true_anomaly"));
 
+	entity_id = p_dict["entity_id"];
+	if (p_dict.has("parent_id")) {
+		parent_id = p_dict["parent_id"];
+	}
+
 	set_semi_major_axis(p_dict["semi_major_axis"]);
 	set_eccentricity(p_dict["eccentricity"]);
 	set_longitude_of_periapsis_in_degrees(p_dict["longitude_of_periapsis"]);
 	set_true_anomaly_in_degrees(p_dict["true_anomaly"]);
-	// set_position(get_cartesian_pos());
 }
 
 int Orbit::get_entity_id() {
@@ -22,6 +27,14 @@ int Orbit::get_entity_id() {
 void Orbit::set_entity_id(int p_id) {
 	// somehow check for conflicts?
 	entity_id = p_id;
+}
+
+int Orbit::get_parent_id() {
+	return parent_id;
+}
+
+void Orbit::set_parent_id(int p_id) {
+	parent_id = p_id;
 }
 
 void Orbit::_notification(int p_what) {
@@ -85,6 +98,8 @@ void Orbit::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("set_properties","dict"),&Orbit::set_properties);
 	ClassDB::bind_method(D_METHOD("get_entity_id"),&Orbit::get_entity_id);
 	ClassDB::bind_method(D_METHOD("set_entity_id","id"),&Orbit::set_entity_id);
+	ClassDB::bind_method(D_METHOD("get_parent_id"),&Orbit::get_parent_id);
+	ClassDB::bind_method(D_METHOD("set_parent_id","id"),&Orbit::set_parent_id);
 	ClassDB::bind_method(D_METHOD("get_cartesian_pos"),&Orbit::get_cartesian_pos);
 	ClassDB::bind_method(D_METHOD("get_distance_from_primary"),&Orbit::get_distance_from_primary);
 	ClassDB::bind_method(D_METHOD("get_semi_major_axis"),&Orbit::get_semi_major_axis);
@@ -99,6 +114,7 @@ void Orbit::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("set_true_anomaly_in_degrees","true_anomaly"),&Orbit::set_true_anomaly_in_degrees);
 
 	ADD_PROPERTYNZ(PropertyInfo(Variant::INT,"entity_id"),"set_entity_id","get_entity_id");
+	ADD_PROPERTYNZ(PropertyInfo(Variant::INT,"parent_id"),"set_parent_id","get_parent_id");
 	ADD_PROPERTYNZ(PropertyInfo(Variant::REAL,"semi_major_axis"),"set_semi_major_axis","get_semi_major_axis");
 	ADD_PROPERTYNZ(PropertyInfo(Variant::REAL,"eccentricity"),"set_eccentricity","get_eccentricity");
 	ADD_PROPERTYNZ(PropertyInfo(Variant::REAL,"longitude_of_periapsis"),"set_longitude_of_periapsis","get_longitude_of_periapsis");
@@ -106,8 +122,8 @@ void Orbit::_bind_methods() {
 }
 
 Orbit::Orbit() {
-	entity_id = 0
-	primary_pos = Vector2(0,0);
+	entity_id = 0;
+	parent_id = 0;
 	semi_major_axis = 1;
 	eccentricity = 0;
 	longitude_of_periapsis = 0;

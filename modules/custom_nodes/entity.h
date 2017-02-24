@@ -10,6 +10,7 @@ class Entity : public Node2D {
 	GDCLASS( Entity, Node2D );
 
 	int entity_id;
+	int parent_id;
 	Dictionary properties;
 
 public:
@@ -17,6 +18,8 @@ public:
 	void set_properties(const Dictionary& p_dict);
 	int get_entity_id();
 	void set_entity_id(int p_id);
+	int get_parent_id();
+	void set_parent_id(int p_id);
 	Entity();
 
 protected:

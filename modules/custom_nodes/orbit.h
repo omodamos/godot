@@ -10,6 +10,7 @@ class Orbit : public Node2D {
 	GDCLASS( Orbit, Node2D );
 
 	int entity_id;
+	int parent_id;
 	double semi_major_axis;
 	double eccentricity;
 	double longitude_of_periapsis;
@@ -19,6 +20,8 @@ public:
 	void set_properties(const Dictionary& p_dict);
 	int get_entity_id();
 	void set_entity_id(int p_id);
+	int get_parent_id();
+	void set_parent_id(int p_id);
 
 	Vector2 get_cartesian_pos();
 	double get_distance_from_primary();
