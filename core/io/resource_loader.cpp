@@ -193,7 +193,8 @@ RES ResourceLoader::load(const String &p_path, const String& p_type_hint, bool p
 	for (int i=0;i<loader_count;i++) {
 
 		if (!loader[i]->recognize_path(local_path,p_type_hint)) {
-			print_line("Path not recognized at: " + local_path);
+			if (OS::get_singleton()->is_stdout_verbose())
+				print_line("Path not recognized at: " + local_path);
 			continue;
 		}
 		found=true;
