@@ -40,7 +40,13 @@ void Orbit::set_parent_id(int p_id) {
 void Orbit::_notification(int p_what) {
 
 	switch(p_what) {
-
+		case NOTIFICATION_DRAW: {
+			// if (semi_major_axis <= 0 or eccentricity < 0)
+			// 	return;
+			// Vector<Vector2> points;
+			// Vector<Vector2> uvs;
+			// VS::get_singleton()->canvas_item_add_circle(get_canvas_item(), get_rect(), )
+		}
 	}
 }
 
@@ -94,6 +100,14 @@ void Orbit::set_true_anomaly_in_degrees(double p_degrees) {
 	set_true_anomaly(Math::deg2rad(p_degrees));
 }
 
+void Orbit::set_texture(const Ref<Texture>& p_texture){
+	texture=p_texture;
+	update();
+}
+Ref<Texture> Orbit::get_texture() const{
+	return texture;
+}
+
 void Orbit::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("set_properties","dict"),&Orbit::set_properties);
 	ClassDB::bind_method(D_METHOD("get_entity_id"),&Orbit::get_entity_id);
@@ -119,6 +133,9 @@ void Orbit::_bind_methods() {
 	ADD_PROPERTYNZ(PropertyInfo(Variant::REAL,"eccentricity"),"set_eccentricity","get_eccentricity");
 	ADD_PROPERTYNZ(PropertyInfo(Variant::REAL,"longitude_of_periapsis"),"set_longitude_of_periapsis","get_longitude_of_periapsis");
 	ADD_PROPERTYNZ(PropertyInfo(Variant::REAL,"true_anomaly"),"set_true_anomaly","get_true_anomaly");
+
+	ADD_GROUP("Texture","");
+	ADD_PROPERTY( PropertyInfo(Variant::OBJECT,"texture",PROPERTY_HINT_RESOURCE_TYPE,"Texture"),"set_texture","get_texture");
 }
 
 Orbit::Orbit() {

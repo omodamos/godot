@@ -9,6 +9,8 @@ class Orbit : public Node2D {
 
 	GDCLASS( Orbit, Node2D );
 
+	Ref<Texture> texture;
+
 	int entity_id;
 	int parent_id;
 	double semi_major_axis;
@@ -36,6 +38,9 @@ public:
 	void set_longitude_of_periapsis_in_degrees(double p_degrees);
 	void set_true_anomaly(double p_radians);
 	void set_true_anomaly_in_degrees(double p_degrees);
+
+	void set_texture(const Ref<Texture>& p_texture);
+	Ref<Texture> get_texture() const;
 
 	Orbit();
 
