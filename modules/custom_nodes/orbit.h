@@ -26,7 +26,8 @@ public:
 	void set_parent_id(int p_id);
 
 	Vector2 get_cartesian_pos();
-	double get_distance_from_primary();
+	Vector2 get_cartesian_pos_at_angle(double p_radians);
+	double get_distance_from_primary(double p_radians);
 
 	double get_semi_major_axis();
 	double get_eccentricity();

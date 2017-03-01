@@ -41,22 +41,35 @@ void Orbit::_notification(int p_what) {
 
 	switch(p_what) {
 		case NOTIFICATION_DRAW: {
-			// if (semi_major_axis <= 0 or eccentricity < 0)
-			// 	return;
-			// Vector<Vector2> points;
-			// Vector<Vector2> uvs;
-			// VS::get_singleton()->canvas_item_add_circle(get_canvas_item(), get_rect(), )
-		}
+			if (semi_major_axis <= 0 || eccentricity < 0)
+				return;
+			Vector<Vector2> points;
+			int num_points = 100;
+			double angle_increment = 2 * Math_PI / double(num_points);
+			double angle = 0;
+			for(int i=0;i<num_points+1;i++) {
+				points.push_back(get_cartesian_pos_at_angle(angle));
+				angle += angle_increment;
+			}
+			for(int i=0;i<num_points;i++) {
+				VS::get_singleton()->canvas_item_add_line(get_canvas_item(), points[i], points[i+1], get_modulate(), 10, true);
+			}
+		} break;
 	}
 }
 
 Vector2 Orbit::get_cartesian_pos() {
-	double distance = get_distance_from_primary();
+	double distance = get_distance_from_primary(true_anomaly);
 	return distance * Vector2(Math::cos(true_anomaly), Math::sin(true_anomaly));
 }
 
-double Orbit::get_distance_from_primary() {
-	return semi_major_axis * (1 - eccentricity * eccentricity) / (1 + eccentricity * Math::cos(true_anomaly));
+Vector2 Orbit::get_cartesian_pos_at_angle(double p_radians) {
+	double distance = get_distance_from_primary(p_radians);
+	return distance * Vector2(Math::cos(p_radians), Math::sin(p_radians));
+}
+
+double Orbit::get_distance_from_primary(double p_radians) {
+	return semi_major_axis * (1 - eccentricity * eccentricity) / (1 + eccentricity * Math::cos(p_radians));
 }
 
 double Orbit::get_semi_major_axis() {
@@ -78,14 +91,17 @@ double Orbit::get_true_anomaly() {
 void Orbit::set_semi_major_axis(double p_au) {
 	// TODO: set limits
 	semi_major_axis = p_au;
+	update();
 }
 
 void Orbit::set_eccentricity(double p_val) {
 	eccentricity = p_val;
+	update();
 }
 
 void Orbit::set_longitude_of_periapsis(double p_radians) {
 	longitude_of_periapsis = p_radians;
+	update();
 }
 
 void Orbit::set_longitude_of_periapsis_in_degrees(double p_degrees) {
@@ -94,6 +110,7 @@ void Orbit::set_longitude_of_periapsis_in_degrees(double p_degrees) {
 
 void Orbit::set_true_anomaly(double p_radians) {
 	true_anomaly = p_radians;
+	update();
 }
 
 void Orbit::set_true_anomaly_in_degrees(double p_degrees) {
@@ -115,6 +132,7 @@ void Orbit::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("get_parent_id"),&Orbit::get_parent_id);
 	ClassDB::bind_method(D_METHOD("set_parent_id","id"),&Orbit::set_parent_id);
 	ClassDB::bind_method(D_METHOD("get_cartesian_pos"),&Orbit::get_cartesian_pos);
+	ClassDB::bind_method(D_METHOD("get_cartesian_pos_at_angle","radians"),&Orbit::get_cartesian_pos_at_angle);
 	ClassDB::bind_method(D_METHOD("get_distance_from_primary"),&Orbit::get_distance_from_primary);
 	ClassDB::bind_method(D_METHOD("get_semi_major_axis"),&Orbit::get_semi_major_axis);
 	ClassDB::bind_method(D_METHOD("get_eccentricity"),&Orbit::get_eccentricity);
@@ -135,6 +153,8 @@ void Orbit::_bind_methods() {
 	ADD_PROPERTYNZ(PropertyInfo(Variant::REAL,"true_anomaly"),"set_true_anomaly","get_true_anomaly");
 
 	ADD_GROUP("Texture","");
+	ClassDB::bind_method(D_METHOD("set_texture","texture:Texture"),&Orbit::set_texture);
+	ClassDB::bind_method(D_METHOD("get_texture:Texture"),&Orbit::get_texture);
 	ADD_PROPERTY( PropertyInfo(Variant::OBJECT,"texture",PROPERTY_HINT_RESOURCE_TYPE,"Texture"),"set_texture","get_texture");
 }
 
