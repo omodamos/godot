@@ -9,7 +9,7 @@ class Orbit : public Node2D {
 
 	GDCLASS( Orbit, Node2D );
 
-	Ref<Texture> texture;
+	bool initialized;
 
 	int entity_id;
 	int parent_id;
