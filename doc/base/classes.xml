@@ -35451,6 +35451,13 @@
 				Returns true if this SceneTree's [NetworkedMultiplayerPeer] is in server mode (listening for connections).
 			</description>
 		</method>
+		<method name="has_network_peer" qualifiers="const">
+			<return type="bool">
+			</return>
+			<description>
+				Returns true if there is a [NetworkedMultiplayerPeer] set (with [method SceneTree.set_network_peer]).
+			</description>
+		</method>
 		<method name="is_paused" qualifiers="const">
 			<return type="bool">
 			</return>
@@ -40626,9 +40633,16 @@
 			<return type="int">
 			</return>
 			<description>
-				Return the current tab that is being showed.
+				Return the current tab index that is being shown.
 			</description>
 		</method>
+		<method name="get_previous_tab" qualifiers="const">
+			<return type="int">
+			</return>
+			<description>
+				Return the previous tab index that was being shown.
+ 			</description>
+ 		</method>
 		<method name="get_current_tab_control" qualifiers="const">
 			<return type="Control">
 			</return>
@@ -40654,6 +40668,7 @@
 			<argument index="0" name="idx" type="int">
 			</argument>
 			<description>
+				Return the current tab control that is being shown.
 			</description>
 		</method>
 		<method name="get_tab_count" qualifiers="const">
@@ -40735,7 +40750,14 @@
 			<argument index="0" name="tab" type="int">
 			</argument>
 			<description>
-				Emitted when the current tab changes.
+				Emitted only when the current tab changes.
+			</description>
+		</signal>
+			<signal name="tab_selected">
+			<argument index="0" name="tab" type="int">
+			</argument>
+			<description>
+				Emitted when a tab is being selected, even if it is the same tab.
 			</description>
 		</signal>
 	</signals>
