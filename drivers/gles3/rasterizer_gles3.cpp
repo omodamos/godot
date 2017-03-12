@@ -79,10 +79,9 @@ RasterizerScene *RasterizerGLES3::get_scene() {
 
 static void GLAPIENTRY _gl_debug_print(GLenum source, GLenum type, GLuint id, GLenum severity, GLsizei length, const GLchar *message, const GLvoid *userParam) {
 
-	if (type == _EXT_DEBUG_TYPE_OTHER_ARB)
+/*	if (type == _EXT_DEBUG_TYPE_OTHER_ARB)
 		return;
 
-	print_line("mesege");
 	char debSource[256], debType[256], debSev[256];
 	if (source == _EXT_DEBUG_SOURCE_API_ARB)
 		strcpy(debSource, "OpenGL");
@@ -119,7 +118,7 @@ static void GLAPIENTRY _gl_debug_print(GLenum source, GLenum type, GLuint id, GL
 
 	String output = String() + "GL ERROR: Source: " + debSource + "\tType: " + debType + "\tID: " + itos(id) + "\tSeverity: " + debSev + "\tMessage: " + message;
 
-	ERR_PRINTS(output);
+	ERR_PRINTS(output);*/
 }
 
 typedef void (*DEBUGPROCARB)(GLenum source,
