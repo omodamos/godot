@@ -367,7 +367,26 @@ String ShaderCompilerGLES3::_dump_node_code(SL::Node *p_node, int p_level, Gener
 			//code for functions
 			for (int i = 0; i < pnode->functions.size(); i++) {
 				SL::FunctionNode *fnode = pnode->functions[i].function;
-				function_code[fnode->name] = _dump_node_code(fnode->body, p_level + 1, r_gen_code, p_actions, p_default_actions);
+				String funcname = fnode->name;
+
+				if (funcname == "vertex" || funcname == "fragment" || funcname == "light") {
+					function_code[fnode->name] = _dump_node_code(fnode->body, p_level + 1, r_gen_code, p_actions, p_default_actions);
+				}
+				else {
+					String newfuncname = _mkid(funcname);
+
+					String fcode;
+					fcode = _typestr(fnode->return_type) + " " + newfuncname + "(";
+					for (int i = 0; i < fnode->arguments.size(); i++) {
+						if (i > 0)
+							fcode += ", ";
+						fcode += _typestr(fnode->arguments[i].type) + " " + _mkid(fnode->arguments[i].name);
+					}
+
+					fcode += ")\n";
+					fcode += _dump_node_code(fnode->body, p_level + 1, r_gen_code, p_actions, p_default_actions);
+					r_gen_code.fragment_global += fcode;
+				}
 			}
 
 			//place functions in actual code
@@ -546,10 +565,10 @@ String ShaderCompilerGLES3::_dump_node_code(SL::Node *p_node, int p_level, Gener
 
 			} else if (cfnode->flow_op == SL::FLOW_OP_RETURN) {
 
-				if (cfnode->blocks.size()) {
-					code = "return " + _dump_node_code(cfnode->blocks[0], p_level, r_gen_code, p_actions, p_default_actions);
+				if (cfnode->expressions.size()) {
+					code = "return " + _dump_node_code(cfnode->expressions[0], p_level, r_gen_code, p_actions, p_default_actions) + ";";
 				} else {
-					code = "return";
+					code = "return;";
 				}
 			}
 
