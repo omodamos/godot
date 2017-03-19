@@ -13,8 +13,8 @@ class Entity : public Node2D {
 	int primary_id;
 	Dictionary properties;
 
-	Node *primary;
-	Array satellites;
+	// Node* primary;
+	// Dictionary satellites;
 	
 	double semi_major_axis;
 	double eccentricity;
@@ -31,10 +31,12 @@ public:
 	void set_primary_id(int p_id);
 
 	// References
-	void set_primary(Node* p_primary);
-	Node* get_primary();
-	void set_satellites(const Array& p_satellites);
-	Array get_satellites();
+	// void set_primary(Node* p_primary);
+	// Node* get_primary();
+	// void set_satellites(const Array& p_satellites);
+	// Array get_satellites();
+	// void add_satellite()
+	// void move_satellite
 
 	// Orbit
 	double get_semi_major_axis();

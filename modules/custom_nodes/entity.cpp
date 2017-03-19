@@ -54,21 +54,21 @@ void Entity::_notification(int p_what) {
 	}
 }
 
-void Entity::set_primary(Node* p_primary) {
-	primary = p_primary;
-}
+// void Entity::set_primary(Node* p_primary) {
+// 	primary = p_primary;
+// }
 
-Node* Entity::get_primary() {
-	return primary;
-}
+// Node* Entity::get_primary() {
+// 	return primary;
+// }
 
-void Entity::set_satellites(const Array& p_satellites) {
-	satellites = p_satellites;
-}
+// void Entity::set_satellites(const Array& p_satellites) {
+// 	satellites = p_satellites;
+// }
 
-Array Entity::get_satellites() {
-	return satellites;
-}
+// Array Entity::get_satellites() {
+// 	return satellites;
+// }
 
 double Entity::get_semi_major_axis() {
 	return semi_major_axis;
@@ -124,16 +124,14 @@ void Entity::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("set_entity_id","id"),&Entity::set_entity_id);
 	ClassDB::bind_method(D_METHOD("get_primary_id"),&Entity::get_primary_id);
 	ClassDB::bind_method(D_METHOD("set_primary_id","id"),&Entity::set_primary_id);
-	ClassDB::bind_method(D_METHOD("get_primary"),&Entity::get_primary);
-	ClassDB::bind_method(D_METHOD("set_primary","primary"),&Entity::set_primary);
-	ClassDB::bind_method(D_METHOD("get_satellites"),&Entity::get_satellites);
-	ClassDB::bind_method(D_METHOD("set_satellites","satellites"),&Entity::set_satellites);
+	// ClassDB::bind_method(D_METHOD("get_primary"),&Entity::get_primary);
+	// ClassDB::bind_method(D_METHOD("set_primary","primary"),&Entity::set_primary);
+	// ClassDB::bind_method(D_METHOD("get_satellites"),&Entity::get_satellites);
+	// ClassDB::bind_method(D_METHOD("set_satellites","satellites"),&Entity::set_satellites);
 
 	ADD_PROPERTYNZ(PropertyInfo(Variant::DICTIONARY,"properties"),"set_properties","get_properties");
 	ADD_PROPERTYNZ(PropertyInfo(Variant::INT,"entity_id"),"set_entity_id","get_entity_id");
 	ADD_PROPERTYNZ(PropertyInfo(Variant::INT,"primary_id"),"set_primary_id","get_primary_id");
-	ADD_PROPERTYNZ(PropertyInfo(Variant::ARRAY,"satellites"),"set_satellites","get_satellites");
-	ADD_PROPERTYNZ(PropertyInfo(Variant::OBJECT,"primary"),"set_primary","get_primary");
 
 	ClassDB::bind_method(D_METHOD("get_semi_major_axis"),&Entity::get_semi_major_axis);
 	ClassDB::bind_method(D_METHOD("get_eccentricity"),&Entity::get_eccentricity);
