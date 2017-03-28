@@ -1201,78 +1201,9 @@ void EditorNode::_dialog_action(String p_file) {
 			}
 		} break;
 
-		case SETTINGS_LOAD_EXPORT_TEMPLATES: {
+		//		case SETTINGS_LOAD_EXPORT_TEMPLATES: {
 
-			FileAccess *fa = NULL;
-			zlib_filefunc_def io = zipio_create_io_from_file(&fa);
-
-			unzFile pkg = unzOpen2(p_file.utf8().get_data(), &io);
-			if (!pkg) {
-
-				current_option = -1;
-				//confirmation->get_cancel()->hide();
-				accept->get_ok()->set_text(TTR("I see.."));
-				accept->set_text(TTR("Can't open export templates zip."));
-				accept->popup_centered_minsize();
-				return;
-			}
-			int ret = unzGoToFirstFile(pkg);
-
-			int fc = 0; //count them
-
-			while (ret == UNZ_OK) {
-				fc++;
-				ret = unzGoToNextFile(pkg);
-			}
-
-			ret = unzGoToFirstFile(pkg);
-
-			EditorProgress p("ltask", TTR("Loading Export Templates"), fc);
-
-			fc = 0;
-
-			while (ret == UNZ_OK) {
-
-				//get filename
-				unz_file_info info;
-				char fname[16384];
-				ret = unzGetCurrentFileInfo(pkg, &info, fname, 16384, NULL, 0, NULL, 0);
-
-				String file = fname;
-
-				Vector<uint8_t> data;
-				data.resize(info.uncompressed_size);
-
-				//read
-				ret = unzOpenCurrentFile(pkg);
-				ret = unzReadCurrentFile(pkg, data.ptr(), data.size());
-				unzCloseCurrentFile(pkg);
-
-				print_line(fname);
-				/*
-				for(int i=0;i<512;i++) {
-					print_line(itos(data[i]));
-				}
-				*/
-
-				file = file.get_file();
-
-				p.step(TTR("Importing:") + " " + file, fc);
-
-				FileAccess *f = FileAccess::open(EditorSettings::get_singleton()->get_settings_path() + "/templates/" + file, FileAccess::WRITE);
-
-				ERR_CONTINUE(!f);
-				f->store_buffer(data.ptr(), data.size());
-
-				memdelete(f);
-
-				ret = unzGoToNextFile(pkg);
-				fc++;
-			}
-
-			unzClose(pkg);
-
-		} break;
+		//		} break;
 
 		case RESOURCE_SAVE:
 		case RESOURCE_SAVE_AS: {
@@ -2604,9 +2535,9 @@ void EditorNode::_menu_option_confirm(int p_option, bool p_confirmed) {
 
 			//optimized_presets->popup_centered_ratio();
 		} break;
-		case SETTINGS_LOAD_EXPORT_TEMPLATES: {
+		case SETTINGS_MANAGE_EXPORT_TEMPLATES: {
 
-			file_templates->popup_centered_ratio();
+			export_template_manager->popup_manager();
 
 		} break;
 		case SETTINGS_TOGGLE_FULLSCREN: {
@@ -2675,7 +2606,7 @@ void EditorNode::_menu_option_confirm(int p_option, bool p_confirmed) {
 					current_option=-1;
 					//accept->get_cancel()->hide();
 					accept->get_ok()->set_text("I see..");
-					accept->set_text("Can't import if edited scene was not saved."); //i dont think this code will ever run
+					accept->set_text("Can't import if edited scene was not saved."); //i don't think this code will ever run
 					accept->popup_centered(Size2(300,70));
 					break;
 
@@ -4759,6 +4690,11 @@ void EditorNode::_dim_timeout() {
 	}
 }
 
+void EditorNode::open_export_template_manager() {
+
+	export_template_manager->popup_manager();
+}
+
 void EditorNode::_bind_methods() {
 
 	ClassDB::bind_method("_menu_option", &EditorNode::_menu_option);
@@ -4885,14 +4821,10 @@ EditorNode::EditorNode() {
 	if (!EditorSettings::get_singleton())
 		EditorSettings::create();
 
-	bool use_single_dock_column = false;
 	{
 		int dpi_mode = EditorSettings::get_singleton()->get("interface/hidpi_mode");
 		if (dpi_mode == 0) {
-			editor_set_scale(OS::get_singleton()->get_screen_dpi(0) > 150 && OS::get_singleton()->get_screen_size(OS::get_singleton()->get_current_screen()).x > 2000 ? 2.0 : 1.0);
-
-			use_single_dock_column = OS::get_singleton()->get_screen_size(OS::get_singleton()->get_current_screen()).x < 1200;
-
+			editor_set_scale(OS::get_singleton()->get_screen_dpi(0) >= 192 && OS::get_singleton()->get_screen_size(OS::get_singleton()->get_current_screen()).x > 2000 ? 2.0 : 1.0);
 		} else if (dpi_mode == 1) {
 			editor_set_scale(0.75);
 		} else if (dpi_mode == 2) {
@@ -4914,7 +4846,7 @@ EditorNode::EditorNode() {
 	ResourceLoader::set_timestamp_on_load(true);
 	ResourceSaver::set_timestamp_on_save(true);
 
-	{ //register importers at the begining, so dialogs are created with the right extensions
+	{ //register importers at the beginning, so dialogs are created with the right extensions
 		Ref<ResourceImporterTexture> import_texture;
 		import_texture.instance();
 		ResourceFormatImporter::get_singleton()->add_importer(import_texture);
@@ -5529,7 +5461,7 @@ EditorNode::EditorNode() {
 	p->add_shortcut(ED_SHORTCUT("editor/fullscreen_mode", TTR("Toggle Fullscreen"), KEY_MASK_SHIFT | KEY_F11), SETTINGS_TOGGLE_FULLSCREN);
 
 	p->add_separator();
-	p->add_item(TTR("Install Export Templates"), SETTINGS_LOAD_EXPORT_TEMPLATES);
+	p->add_item(TTR("Manage Export Templates"), SETTINGS_MANAGE_EXPORT_TEMPLATES);
 	p->add_separator();
 	p->add_item(TTR("About"), SETTINGS_ABOUT);
 
@@ -5718,6 +5650,8 @@ EditorNode::EditorNode() {
 	dock_slot[DOCK_SLOT_RIGHT_UL]->add_child(import_dock);
 	import_dock->set_name(TTR("Import"));
 
+	bool use_single_dock_column = (OS::get_singleton()->get_screen_size(OS::get_singleton()->get_current_screen()).x < 1200);
+
 	node_dock = memnew(NodeDock);
 	//node_dock->set_undoredo(&editor_data.get_undo_redo());
 	if (use_single_dock_column) {
@@ -5854,6 +5788,9 @@ EditorNode::EditorNode() {
 
 	run_settings_dialog = memnew(RunSettingsDialog);
 	gui_base->add_child(run_settings_dialog);
+
+	export_template_manager = memnew(ExportTemplateManager);
+	gui_base->add_child(export_template_manager);
 
 	about = memnew(AcceptDialog);
 	about->set_title(TTR("Thanks from the Godot community!"));

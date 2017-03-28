@@ -94,7 +94,6 @@ void OS_X11::initialize(const VideoMode &p_desired, int p_video_driver, int p_au
 	last_button_state = 0;
 
 	xmbstring = NULL;
-	event_id = 0;
 	x11_window = 0;
 	last_click_ms = 0;
 	args = OS::get_singleton()->get_cmdline_args();
@@ -1019,7 +1018,7 @@ void OS_X11::handle_key_event(XKeyEvent *p_event, bool p_echo) {
 	// XKeycodeToKeysym to obtain internationalized
 	// input.. WRONG!!
 	// you must use XLookupString (???) which not only wastes
-	// cycles generating an unnecesary string, but also
+	// cycles generating an unnecessary string, but also
 	// still works in half the cases. (won't handle deadkeys)
 	// For more complex input methods (deadkeys and more advanced)
 	// you have to use XmbLookupString (??).
@@ -1075,7 +1074,7 @@ void OS_X11::handle_key_event(XKeyEvent *p_event, bool p_echo) {
 	/* Phase 4, determine if event must be filtered */
 
 	// This seems to be a side-effect of using XIM.
-	// XEventFilter looks like a core X11 funciton,
+	// XEventFilter looks like a core X11 function,
 	// but it's actually just used to see if we must
 	// ignore a deadkey, or events XIM determines
 	// must not reach the actual gui.
@@ -1143,7 +1142,6 @@ void OS_X11::handle_key_event(XKeyEvent *p_event, bool p_echo) {
 	/* Phase 7, send event to Window */
 
 	InputEvent event;
-	event.ID = ++event_id;
 	event.type = InputEvent::KEY;
 	event.device = 0;
 	event.key.mod = state;
@@ -1157,7 +1155,7 @@ void OS_X11::handle_key_event(XKeyEvent *p_event, bool p_echo) {
 	event.key.echo = p_echo;
 
 	if (event.key.scancode == KEY_BACKTAB) {
-		//make it consistent accross platforms.
+		//make it consistent across platforms.
 		event.key.scancode = KEY_TAB;
 		event.key.mod.shift = true;
 	}
@@ -1334,7 +1332,6 @@ void OS_X11::process_xevents() {
 				}
 
 				InputEvent mouse_event;
-				mouse_event.ID = ++event_id;
 				mouse_event.type = InputEvent::MOUSE_BUTTON;
 				mouse_event.device = 0;
 				mouse_event.mouse_button.mod = get_key_modifier_state(event.xbutton.state);
@@ -1360,7 +1357,6 @@ void OS_X11::process_xevents() {
 						last_click_ms = 0;
 						last_click_pos = Point2(-100, -100);
 						mouse_event.mouse_button.doubleclick = true;
-						mouse_event.ID = ++event_id;
 
 					} else {
 						last_click_ms += diff;
@@ -1447,7 +1443,6 @@ void OS_X11::process_xevents() {
 				Point2i rel = pos - last_mouse_pos;
 
 				InputEvent motion_event;
-				motion_event.ID = ++event_id;
 				motion_event.type = InputEvent::MOUSE_MOTION;
 				motion_event.device = 0;
 
@@ -1916,7 +1911,7 @@ void OS_X11::run() {
 
 		process_xevents(); // get rid of pending events
 #ifdef JOYDEV_ENABLED
-		event_id = joypad->process_joypads(event_id);
+		joypad->process_joypads();
 #endif
 		if (Main::iteration() == true)
 			break;
