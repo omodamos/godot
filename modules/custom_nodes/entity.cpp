@@ -8,7 +8,10 @@ Dictionary Entity::get_properties() {
 
 void Entity::set_properties(const Dictionary& p_dict) {
 	ERR_FAIL_COND(!p_dict.has("entity_id"));
+	ERR_FAIL_COND(!p_dict.has("entity_type_id"));
 	entity_id = p_dict["entity_id"];
+	set_entity_type_id(p_dict["entity_type_id"]);
+
 	if (p_dict.has("primary_id")) {
 		set_primary_id(p_dict["primary_id"]);
 	}
@@ -37,6 +40,15 @@ int Entity::get_entity_id() {
 void Entity::set_entity_id(int p_id) {
 	// somehow check for conflicts?
 	entity_id = p_id;
+}
+
+int Entity::get_entity_type_id() {
+	return entity_type_id;
+}
+
+void Entity::set_entity_type_id(int p_id) {
+	// somehow check for conflicts?
+	entity_type_id = p_id;
 }
 
 int Entity::get_primary_id() {
@@ -122,6 +134,8 @@ void Entity::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("set_properties","dict"),&Entity::set_properties);
 	ClassDB::bind_method(D_METHOD("get_entity_id"),&Entity::get_entity_id);
 	ClassDB::bind_method(D_METHOD("set_entity_id","id"),&Entity::set_entity_id);
+	ClassDB::bind_method(D_METHOD("get_entity_type_id"),&Entity::get_entity_type_id);
+	ClassDB::bind_method(D_METHOD("set_entity_type_id","id"),&Entity::set_entity_type_id);
 	ClassDB::bind_method(D_METHOD("get_primary_id"),&Entity::get_primary_id);
 	ClassDB::bind_method(D_METHOD("set_primary_id","id"),&Entity::set_primary_id);
 	// ClassDB::bind_method(D_METHOD("get_primary"),&Entity::get_primary);
@@ -131,6 +145,7 @@ void Entity::_bind_methods() {
 
 	ADD_PROPERTYNZ(PropertyInfo(Variant::DICTIONARY,"properties"),"set_properties","get_properties");
 	ADD_PROPERTYNZ(PropertyInfo(Variant::INT,"entity_id"),"set_entity_id","get_entity_id");
+	ADD_PROPERTYNZ(PropertyInfo(Variant::INT,"entity_type_id"),"set_entity_type_id","get_entity_type_id");
 	ADD_PROPERTYNZ(PropertyInfo(Variant::INT,"primary_id"),"set_primary_id","get_primary_id");
 
 	ClassDB::bind_method(D_METHOD("get_semi_major_axis"),&Entity::get_semi_major_axis);
@@ -155,6 +170,7 @@ void Entity::_bind_methods() {
 
 Entity::Entity() {
 	entity_id = 0;
+	entity_type_id = 0;
 	primary_id = 0;
 	semi_major_axis = 0;
 	eccentricity = 0;

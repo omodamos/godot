@@ -11,6 +11,7 @@ class Entity : public Node2D {
 
 	int entity_id;
 	int primary_id;
+	int entity_type_id;
 	Dictionary properties;
 
 	// Node* primary;
@@ -27,6 +28,8 @@ public:
 	void set_properties(const Dictionary& p_dict);
 	int get_entity_id();
 	void set_entity_id(int p_id);
+	int get_entity_type_id();
+	void set_entity_type_id(int p_id);
 	int get_primary_id();
 	void set_primary_id(int p_id);
 
