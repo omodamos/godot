@@ -533,7 +533,7 @@ Error SceneState::_parse_node(Node *p_owner, Node *p_node, int p_parent_idx, Map
 
 			if (E->get().usage & PROPERTY_USAGE_NO_INSTANCE_STATE || E->get().name == "__meta__") {
 				//property has requested that no instance state is saved, sorry
-				//also, meta won't be overriden or saved
+				//also, meta won't be overridden or saved
 				continue;
 			}
 
@@ -995,12 +995,12 @@ int SceneState::find_node_by_path(const NodePath &p_node) const {
 		if (_get_base_scene_state().is_valid()) {
 			int idx = _get_base_scene_state()->find_node_by_path(p_node);
 			if (idx >= 0) {
-				if (!base_scene_node_remap.has(idx)) {
-					int ridx = nodes.size() + base_scene_node_remap.size();
-					base_scene_node_remap[ridx] = idx;
+				int rkey = _find_base_scene_node_remap_key(idx);
+				if (rkey == -1) {
+					rkey = nodes.size() + base_scene_node_remap.size();
+					base_scene_node_remap[rkey] = idx;
 				}
-
-				return base_scene_node_remap[idx];
+				return rkey;
 			}
 		}
 		return -1;
@@ -1013,11 +1013,24 @@ int SceneState::find_node_by_path(const NodePath &p_node) const {
 		//the node in the instanced scene, as a property may be missing
 		//from the local one
 		int idx = _get_base_scene_state()->find_node_by_path(p_node);
-		base_scene_node_remap[nid] = idx;
+		if (idx != -1) {
+			base_scene_node_remap[nid] = idx;
+		}
 	}
 
 	return nid;
 }
+
+int SceneState::_find_base_scene_node_remap_key(int p_idx) const {
+
+	for (Map<int, int>::Element *E = base_scene_node_remap.front(); E; E = E->next()) {
+		if (E->value() == p_idx) {
+			return E->key();
+		}
+	}
+	return -1;
+}
+
 Variant SceneState::get_property_value(int p_node, const StringName &p_property, bool &found) const {
 
 	found = false;
@@ -1503,34 +1516,41 @@ Array SceneState::get_connection_binds(int p_idx) const {
 	return binds;
 }
 
-bool SceneState::has_connection(const NodePath &p_node_from, const StringName &p_signal, const NodePath &p_node_to, const StringName &p_method) const {
+bool SceneState::has_connection(const NodePath &p_node_from, const StringName &p_signal, const NodePath &p_node_to, const StringName &p_method) {
 
-	for (int i = 0; i < connections.size(); i++) {
-		const ConnectionData &c = connections[i];
+	// this method cannot be const because of this
+	Ref<SceneState> ss = this;
 
-		NodePath np_from;
+	do {
+		for (int i = 0; i < ss->connections.size(); i++) {
+			const ConnectionData &c = ss->connections[i];
 
-		if (c.from & FLAG_ID_IS_PATH) {
-			np_from = node_paths[c.from & FLAG_MASK];
-		} else {
-			np_from = get_node_path(c.from);
+			NodePath np_from;
+
+			if (c.from & FLAG_ID_IS_PATH) {
+				np_from = ss->node_paths[c.from & FLAG_MASK];
+			} else {
+				np_from = ss->get_node_path(c.from);
+			}
+
+			NodePath np_to;
+
+			if (c.to & FLAG_ID_IS_PATH) {
+				np_to = ss->node_paths[c.to & FLAG_MASK];
+			} else {
+				np_to = ss->get_node_path(c.to);
+			}
+
+			StringName sn_signal = ss->names[c.signal];
+			StringName sn_method = ss->names[c.method];
+
+			if (np_from == p_node_from && sn_signal == p_signal && np_to == p_node_to && sn_method == p_method) {
+				return true;
+			}
 		}
 
-		NodePath np_to;
-
-		if (c.to & FLAG_ID_IS_PATH) {
-			np_to = node_paths[c.to & FLAG_MASK];
-		} else {
-			np_to = get_node_path(c.to);
-		}
-
-		StringName sn_signal = names[c.signal];
-		StringName sn_method = names[c.method];
-
-		if (np_from == p_node_from && sn_signal == p_signal && np_to == p_node_to && sn_method == p_method) {
-			return true;
-		}
-	}
+		ss = ss->_get_base_scene_state();
+	} while (ss.is_valid());
 
 	return false;
 }

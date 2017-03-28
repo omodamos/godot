@@ -925,6 +925,11 @@ void EditorNode::_save_scene(String p_file, int idx) {
 		return;
 	}
 
+	// force creation of node path cache
+	// (hacky but needed for the tree to update properly)
+	Node *dummy_scene = sdata->instance(PackedScene::GEN_EDIT_STATE_INSTANCE);
+	memdelete(dummy_scene);
+
 	int flg = 0;
 	if (EditorSettings::get_singleton()->get("filesystem/on_save/compress_binary_resources"))
 		flg |= ResourceSaver::FLAG_COMPRESS;
@@ -1196,78 +1201,9 @@ void EditorNode::_dialog_action(String p_file) {
 			}
 		} break;
 
-		case SETTINGS_LOAD_EXPORT_TEMPLATES: {
+		//		case SETTINGS_LOAD_EXPORT_TEMPLATES: {
 
-			FileAccess *fa = NULL;
-			zlib_filefunc_def io = zipio_create_io_from_file(&fa);
-
-			unzFile pkg = unzOpen2(p_file.utf8().get_data(), &io);
-			if (!pkg) {
-
-				current_option = -1;
-				//confirmation->get_cancel()->hide();
-				accept->get_ok()->set_text(TTR("I see.."));
-				accept->set_text(TTR("Can't open export templates zip."));
-				accept->popup_centered_minsize();
-				return;
-			}
-			int ret = unzGoToFirstFile(pkg);
-
-			int fc = 0; //count them
-
-			while (ret == UNZ_OK) {
-				fc++;
-				ret = unzGoToNextFile(pkg);
-			}
-
-			ret = unzGoToFirstFile(pkg);
-
-			EditorProgress p("ltask", TTR("Loading Export Templates"), fc);
-
-			fc = 0;
-
-			while (ret == UNZ_OK) {
-
-				//get filename
-				unz_file_info info;
-				char fname[16384];
-				ret = unzGetCurrentFileInfo(pkg, &info, fname, 16384, NULL, 0, NULL, 0);
-
-				String file = fname;
-
-				Vector<uint8_t> data;
-				data.resize(info.uncompressed_size);
-
-				//read
-				ret = unzOpenCurrentFile(pkg);
-				ret = unzReadCurrentFile(pkg, data.ptr(), data.size());
-				unzCloseCurrentFile(pkg);
-
-				print_line(fname);
-				/*
-				for(int i=0;i<512;i++) {
-					print_line(itos(data[i]));
-				}
-				*/
-
-				file = file.get_file();
-
-				p.step(TTR("Importing:") + " " + file, fc);
-
-				FileAccess *f = FileAccess::open(EditorSettings::get_singleton()->get_settings_path() + "/templates/" + file, FileAccess::WRITE);
-
-				ERR_CONTINUE(!f);
-				f->store_buffer(data.ptr(), data.size());
-
-				memdelete(f);
-
-				ret = unzGoToNextFile(pkg);
-				fc++;
-			}
-
-			unzClose(pkg);
-
-		} break;
+		//		} break;
 
 		case RESOURCE_SAVE:
 		case RESOURCE_SAVE_AS: {
@@ -2289,7 +2225,7 @@ void EditorNode::_menu_option_confirm(int p_option, bool p_confirmed) {
 #endif
 		case RESOURCE_NEW: {
 
-			create_dialog->popup(true);
+			create_dialog->popup_create(true);
 		} break;
 		case RESOURCE_LOAD: {
 
@@ -2599,9 +2535,9 @@ void EditorNode::_menu_option_confirm(int p_option, bool p_confirmed) {
 
 			//optimized_presets->popup_centered_ratio();
 		} break;
-		case SETTINGS_LOAD_EXPORT_TEMPLATES: {
+		case SETTINGS_MANAGE_EXPORT_TEMPLATES: {
 
-			file_templates->popup_centered_ratio();
+			export_template_manager->popup_manager();
 
 		} break;
 		case SETTINGS_TOGGLE_FULLSCREN: {
@@ -2670,7 +2606,7 @@ void EditorNode::_menu_option_confirm(int p_option, bool p_confirmed) {
 					current_option=-1;
 					//accept->get_cancel()->hide();
 					accept->get_ok()->set_text("I see..");
-					accept->set_text("Can't import if edited scene was not saved."); //i dont think this code will ever run
+					accept->set_text("Can't import if edited scene was not saved."); //i don't think this code will ever run
 					accept->popup_centered(Size2(300,70));
 					break;
 
@@ -4716,6 +4652,49 @@ void EditorNode::_open_imported() {
 	load_scene(open_import_request, true, false, true, true);
 }
 
+void EditorNode::dim_editor(bool p_dimming) {
+	static int dim_count = 0;
+	bool dim_ui = EditorSettings::get_singleton()->get("interface/dim_editor_on_dialog_popup");
+	if (p_dimming) {
+		if (dim_ui && dim_count == 0)
+			_start_dimming(true);
+		dim_count++;
+	} else {
+		dim_count--;
+		if (dim_count < 1)
+			_start_dimming(false);
+	}
+}
+
+void EditorNode::_start_dimming(bool p_dimming) {
+	_dimming = p_dimming;
+	_dim_time = 0.0f;
+	_dim_timer->start();
+}
+
+void EditorNode::_dim_timeout() {
+
+	_dim_time += _dim_timer->get_wait_time();
+	float wait_time = EditorSettings::get_singleton()->get("interface/dim_transition_time");
+
+	float c = 1.0f - (float)EditorSettings::get_singleton()->get("interface/dim_amount");
+
+	Color base = _dimming ? Color(1, 1, 1) : Color(c, c, c);
+	Color final = _dimming ? Color(c, c, c) : Color(1, 1, 1);
+
+	if (_dim_time + _dim_timer->get_wait_time() >= wait_time) {
+		gui_base->set_modulate(final);
+		_dim_timer->stop();
+	} else {
+		gui_base->set_modulate(base.linear_interpolate(final, _dim_time / wait_time));
+	}
+}
+
+void EditorNode::open_export_template_manager() {
+
+	export_template_manager->popup_manager();
+}
+
 void EditorNode::_bind_methods() {
 
 	ClassDB::bind_method("_menu_option", &EditorNode::_menu_option);
@@ -4792,6 +4771,7 @@ void EditorNode::_bind_methods() {
 
 	ClassDB::bind_method(D_METHOD("_open_imported"), &EditorNode::_open_imported);
 	ClassDB::bind_method(D_METHOD("_inherit_imported"), &EditorNode::_inherit_imported);
+	ClassDB::bind_method(D_METHOD("_dim_timeout"), &EditorNode::_dim_timeout);
 
 	ADD_SIGNAL(MethodInfo("play_pressed"));
 	ADD_SIGNAL(MethodInfo("pause_pressed"));
@@ -4841,14 +4821,10 @@ EditorNode::EditorNode() {
 	if (!EditorSettings::get_singleton())
 		EditorSettings::create();
 
-	bool use_single_dock_column = false;
 	{
 		int dpi_mode = EditorSettings::get_singleton()->get("interface/hidpi_mode");
 		if (dpi_mode == 0) {
-			editor_set_scale(OS::get_singleton()->get_screen_dpi(0) > 150 && OS::get_singleton()->get_screen_size(OS::get_singleton()->get_current_screen()).x > 2000 ? 2.0 : 1.0);
-
-			use_single_dock_column = OS::get_singleton()->get_screen_size(OS::get_singleton()->get_current_screen()).x < 1200;
-
+			editor_set_scale(OS::get_singleton()->get_screen_dpi(0) >= 192 && OS::get_singleton()->get_screen_size(OS::get_singleton()->get_current_screen()).x > 2000 ? 2.0 : 1.0);
 		} else if (dpi_mode == 1) {
 			editor_set_scale(0.75);
 		} else if (dpi_mode == 2) {
@@ -4870,7 +4846,7 @@ EditorNode::EditorNode() {
 	ResourceLoader::set_timestamp_on_load(true);
 	ResourceSaver::set_timestamp_on_save(true);
 
-	{ //register importers at the begining, so dialogs are created with the right extensions
+	{ //register importers at the beginning, so dialogs are created with the right extensions
 		Ref<ResourceImporterTexture> import_texture;
 		import_texture.instance();
 		ResourceFormatImporter::get_singleton()->add_importer(import_texture);
@@ -5485,7 +5461,7 @@ EditorNode::EditorNode() {
 	p->add_shortcut(ED_SHORTCUT("editor/fullscreen_mode", TTR("Toggle Fullscreen"), KEY_MASK_SHIFT | KEY_F11), SETTINGS_TOGGLE_FULLSCREN);
 
 	p->add_separator();
-	p->add_item(TTR("Install Export Templates"), SETTINGS_LOAD_EXPORT_TEMPLATES);
+	p->add_item(TTR("Manage Export Templates"), SETTINGS_MANAGE_EXPORT_TEMPLATES);
 	p->add_separator();
 	p->add_item(TTR("About"), SETTINGS_ABOUT);
 
@@ -5674,6 +5650,8 @@ EditorNode::EditorNode() {
 	dock_slot[DOCK_SLOT_RIGHT_UL]->add_child(import_dock);
 	import_dock->set_name(TTR("Import"));
 
+	bool use_single_dock_column = (OS::get_singleton()->get_screen_size(OS::get_singleton()->get_current_screen()).x < 1200);
+
 	node_dock = memnew(NodeDock);
 	//node_dock->set_undoredo(&editor_data.get_undo_redo());
 	if (use_single_dock_column) {
@@ -5811,20 +5789,22 @@ EditorNode::EditorNode() {
 	run_settings_dialog = memnew(RunSettingsDialog);
 	gui_base->add_child(run_settings_dialog);
 
+	export_template_manager = memnew(ExportTemplateManager);
+	gui_base->add_child(export_template_manager);
+
 	about = memnew(AcceptDialog);
 	about->set_title(TTR("Thanks from the Godot community!"));
-	//about->get_cancel()->hide();
 	about->get_ok()->set_text(TTR("Thanks!"));
 	about->set_hide_on_ok(true);
+	gui_base->add_child(about);
+	HBoxContainer *hbc = memnew(HBoxContainer);
+	about->add_child(hbc);
 	Label *about_text = memnew(Label);
 	about_text->set_text(VERSION_FULL_NAME "\n(c) 2008-2017 Juan Linietsky, Ariel Manzur.\n");
-	about_text->set_pos(Point2(gui_base->get_icon("Logo", "EditorIcons")->get_size().width + 30, 20));
-	gui_base->add_child(about);
-	about->add_child(about_text);
 	TextureRect *logo = memnew(TextureRect);
-	about->add_child(logo);
-	logo->set_pos(Point2(20, 20));
 	logo->set_texture(gui_base->get_icon("Logo", "EditorIcons"));
+	hbc->add_child(logo);
+	hbc->add_child(about_text);
 
 	warning = memnew(AcceptDialog);
 	gui_base->add_child(warning);
@@ -6102,6 +6082,13 @@ EditorNode::EditorNode() {
 	FileAccess::set_file_close_fail_notify_callback(_file_access_close_error_notify);
 
 	waiting_for_first_scan = true;
+
+	_dimming = false;
+	_dim_time = 0.0f;
+	_dim_timer = memnew(Timer);
+	_dim_timer->set_wait_time(0.01666f);
+	_dim_timer->connect("timeout", this, "_dim_timeout");
+	add_child(_dim_timer);
 }
 
 EditorNode::~EditorNode() {

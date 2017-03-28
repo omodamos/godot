@@ -602,30 +602,7 @@ bool CanvasItemEditor::_select(CanvasItem *item, Point2 p_click_pos, bool p_appe
 		}
 
 		if (p_drag) {
-			//prepare to move!
-
-			List<Node *> &selection = editor_selection->get_selected_node_list();
-
-			for (List<Node *>::Element *E = selection.front(); E; E = E->next()) {
-
-				CanvasItem *canvas_item = E->get()->cast_to<CanvasItem>();
-				if (!canvas_item || !canvas_item->is_visible_in_tree())
-					continue;
-				if (canvas_item->get_viewport() != EditorNode::get_singleton()->get_scene_root())
-					continue;
-
-				CanvasItemEditorSelectedItem *se = editor_selection->get_node_editor_data<CanvasItemEditorSelectedItem>(canvas_item);
-				if (!se)
-					continue;
-
-				se->undo_state = canvas_item->edit_get_state();
-				if (canvas_item->cast_to<Node2D>())
-					se->undo_pivot = canvas_item->cast_to<Node2D>()->edit_get_pivot();
-			}
-
-			drag = DRAG_ALL;
-			drag_from = transform.affine_inverse().xform(p_click_pos);
-			drag_point_from = _find_topleftmost_point();
+			_prepare_drag(p_click_pos);
 		}
 
 		viewport->update();
@@ -841,6 +818,37 @@ CanvasItemEditor::DragType CanvasItemEditor::_find_drag_type(const Transform2D &
 	//try draggers
 
 	return DRAG_NONE;
+}
+
+void CanvasItemEditor::_prepare_drag(const Point2 &p_click_pos) {
+
+	List<Node *> &selection = editor_selection->get_selected_node_list();
+
+	for (List<Node *>::Element *E = selection.front(); E; E = E->next()) {
+
+		CanvasItem *canvas_item = E->get()->cast_to<CanvasItem>();
+		if (!canvas_item || !canvas_item->is_visible_in_tree())
+			continue;
+		if (canvas_item->get_viewport() != EditorNode::get_singleton()->get_scene_root())
+			continue;
+
+		CanvasItemEditorSelectedItem *se = editor_selection->get_node_editor_data<CanvasItemEditorSelectedItem>(canvas_item);
+		if (!se)
+			continue;
+
+		se->undo_state = canvas_item->edit_get_state();
+		if (canvas_item->cast_to<Node2D>())
+			se->undo_pivot = canvas_item->cast_to<Node2D>()->edit_get_pivot();
+	}
+
+	if (selection.size() == 1 && selection[0]->cast_to<Node2D>()) {
+		drag = DRAG_NODE_2D;
+		drag_point_from = selection[0]->cast_to<Node2D>()->get_global_position();
+	} else {
+		drag = DRAG_ALL;
+		drag_point_from = _find_topleftmost_point();
+	}
+	drag_from = transform.affine_inverse().xform(p_click_pos);
 }
 
 void CanvasItemEditor::incbeg(float &beg, float &end, float inc, float minsize, bool p_symmetric) {
@@ -1380,29 +1388,7 @@ void CanvasItemEditor::_viewport_gui_input(const InputEvent &p_event) {
 		Point2 click = Point2(b.x, b.y);
 
 		if ((b.mod.alt || tool == TOOL_MOVE) && get_item_count()) {
-
-			List<Node *> &selection = editor_selection->get_selected_node_list();
-
-			for (List<Node *>::Element *E = selection.front(); E; E = E->next()) {
-
-				CanvasItem *canvas_item = E->get()->cast_to<CanvasItem>();
-				if (!canvas_item || !canvas_item->is_visible_in_tree())
-					continue;
-				if (canvas_item->get_viewport() != EditorNode::get_singleton()->get_scene_root())
-					continue;
-
-				CanvasItemEditorSelectedItem *se = editor_selection->get_node_editor_data<CanvasItemEditorSelectedItem>(canvas_item);
-				if (!se)
-					continue;
-
-				se->undo_state = canvas_item->edit_get_state();
-				if (canvas_item->cast_to<Node2D>())
-					se->undo_pivot = canvas_item->cast_to<Node2D>()->edit_get_pivot();
-			}
-
-			drag = DRAG_ALL;
-			drag_from = transform.affine_inverse().xform(click);
-			drag_point_from = _find_topleftmost_point();
+			_prepare_drag(click);
 			viewport->update();
 			return;
 		}
@@ -1471,8 +1457,16 @@ void CanvasItemEditor::_viewport_gui_input(const InputEvent &p_event) {
 		if (drag == DRAG_NONE) {
 
 			if ((m.button_mask & BUTTON_MASK_LEFT && tool == TOOL_PAN) || m.button_mask & BUTTON_MASK_MIDDLE || (m.button_mask & BUTTON_MASK_LEFT && Input::get_singleton()->is_key_pressed(KEY_SPACE))) {
-				h_scroll->set_value(h_scroll->get_value() - m.relative_x / zoom);
-				v_scroll->set_value(v_scroll->get_value() - m.relative_y / zoom);
+
+				Point2i relative;
+				if (bool(EditorSettings::get_singleton()->get("editors/2d/warped_mouse_panning"))) {
+					relative = Input::get_singleton()->warp_mouse_motion(m, viewport->get_global_rect());
+				} else {
+					relative = Point2i(m.relative_x, m.relative_y);
+				}
+
+				h_scroll->set_value(h_scroll->get_value() - relative.x / zoom);
+				v_scroll->set_value(v_scroll->get_value() - relative.y / zoom);
 			}
 
 			return;
@@ -1538,9 +1532,9 @@ void CanvasItemEditor::_viewport_gui_input(const InputEvent &p_event) {
 			bool uniform = m.mod.shift;
 			bool symmetric = m.mod.alt;
 
-			dto = dto - (drag == DRAG_ALL ? drag_from - drag_point_from : Vector2(0, 0));
+			dto = dto - (drag == DRAG_ALL || drag == DRAG_NODE_2D ? drag_from - drag_point_from : Vector2(0, 0));
 
-			if (uniform && drag == DRAG_ALL) {
+			if (uniform && (drag == DRAG_ALL || drag == DRAG_NODE_2D)) {
 				if (ABS(dto.x - drag_point_from.x) > ABS(dto.y - drag_point_from.y)) {
 					dto.y = drag_point_from.y;
 				} else {
@@ -1635,6 +1629,12 @@ void CanvasItemEditor::_viewport_gui_input(const InputEvent &p_event) {
 						Node2D *n2d = canvas_item->cast_to<Node2D>();
 						n2d->edit_set_pivot(se->undo_pivot + drag_vector);
 					}
+					continue;
+				} break;
+				case DRAG_NODE_2D: {
+
+					ERR_FAIL_COND(!canvas_item->cast_to<Node2D>());
+					canvas_item->cast_to<Node2D>()->set_global_position(dto);
 					continue;
 				} break;
 
@@ -3478,20 +3478,19 @@ void CanvasItemEditorViewport::_create_preview(const Vector<String> &files) cons
 	for (int i = 0; i < files.size(); i++) {
 		String path = files[i];
 		RES res = ResourceLoader::load(path);
-		String type = res->get_class();
-		if (type == "ImageTexture" || type == "PackedScene") {
-			if (type == "ImageTexture") {
-				Ref<ImageTexture> texture = Ref<ImageTexture>(ResourceCache::get(path)->cast_to<ImageTexture>());
+		Ref<Texture> texture = Ref<Texture>(res->cast_to<Texture>());
+		Ref<PackedScene> scene = Ref<PackedScene>(res->cast_to<PackedScene>());
+		if (texture != NULL || scene != NULL) {
+			if (texture != NULL) {
 				Sprite *sprite = memnew(Sprite);
 				sprite->set_texture(texture);
 				sprite->set_modulate(Color(1, 1, 1, 0.7f));
 				preview->add_child(sprite);
 				label->show();
 				label_desc->show();
-			} else if (type == "PackedScene") {
-				Ref<PackedScene> scn = ResourceLoader::load(path);
-				if (scn.is_valid()) {
-					Node *instance = scn->instance();
+			} else {
+				if (scene.is_valid()) {
+					Node *instance = scene->instance();
 					if (instance) {
 						preview->add_child(instance);
 					}
@@ -3531,7 +3530,7 @@ bool CanvasItemEditorViewport::_cyclical_dependency_exists(const String &p_targe
 
 void CanvasItemEditorViewport::_create_nodes(Node *parent, Node *child, String &path, const Point2 &p_point) {
 	child->set_name(path.get_file().get_basename());
-	Ref<ImageTexture> texture = Ref<ImageTexture>(ResourceCache::get(path)->cast_to<ImageTexture>());
+	Ref<Texture> texture = Ref<Texture>(ResourceCache::get(path)->cast_to<Texture>());
 	Size2 texture_size = texture->get_size();
 
 	editor_data->get_undo_redo().add_do_method(parent, "add_child", child);
@@ -3584,7 +3583,9 @@ void CanvasItemEditorViewport::_create_nodes(Node *parent, Node *child, String &
 	if (default_type == "Polygon2D" || default_type == "TouchScreenButton" || default_type == "TextureRect" || default_type == "Patch9Rect") {
 		target_pos -= texture_size / 2;
 	}
-	editor_data->get_undo_redo().add_do_method(child, "set_pos", target_pos);
+	// there's nothing to be used as source position so snapping will work as absolute if enabled
+	target_pos = canvas->snap_point(target_pos, Vector2());
+	editor_data->get_undo_redo().add_do_method(child, "set_position", target_pos);
 }
 
 bool CanvasItemEditorViewport::_create_instance(Node *parent, String &path, const Point2 &p_point) {
@@ -3628,7 +3629,11 @@ bool CanvasItemEditorViewport::_create_instance(Node *parent, String &path, cons
 		}
 	}
 	Transform2D trans = canvas->get_canvas_transform();
-	editor_data->get_undo_redo().add_do_method(instanced_scene, "set_pos", (p_point - trans.get_origin()) / trans.get_scale().x - pos);
+	Vector2 target_pos = (p_point - trans.get_origin()) / trans.get_scale().x - pos;
+	// in relative snapping it may be useful for the user to take the original node position into account
+	Vector2 start_pos = instanced_scene->cast_to<Node2D>() ? instanced_scene->cast_to<Node2D>()->get_position() : target_pos;
+	target_pos = canvas->snap_point(target_pos, start_pos);
+	editor_data->get_undo_redo().add_do_method(instanced_scene, "set_position", target_pos);
 
 	return true;
 }
@@ -3646,8 +3651,9 @@ void CanvasItemEditorViewport::_perform_drop_data() {
 		if (res.is_null()) {
 			continue;
 		}
-		String type = res->get_class();
-		if (type == "ImageTexture") {
+		Ref<Texture> texture = Ref<Texture>(res->cast_to<Texture>());
+		Ref<PackedScene> scene = Ref<PackedScene>(res->cast_to<PackedScene>());
+		if (texture != NULL) {
 			Node *child;
 			if (default_type == "Light2D")
 				child = memnew(Light2D);
@@ -3665,7 +3671,7 @@ void CanvasItemEditorViewport::_perform_drop_data() {
 				child = memnew(Sprite); // default
 
 			_create_nodes(target_node, child, path, drop_pos);
-		} else if (type == "PackedScene") {
+		} else if (scene != NULL) {
 			bool success = _create_instance(target_node, path, drop_pos);
 			if (!success) {
 				error_files.push_back(path);
@@ -3823,11 +3829,11 @@ CanvasItemEditorViewport::CanvasItemEditorViewport(EditorNode *p_node, CanvasIte
 
 	btn_group = memnew(VBoxContainer);
 	btn_group->set_h_size_flags(0);
-	btn_group->connect("button_selected", this, "_on_select_type");
 
 	for (int i = 0; i < types.size(); i++) {
 		CheckBox *check = memnew(CheckBox);
 		check->set_text(types[i]);
+		check->connect("button_selected", this, "_on_select_type", varray(check));
 		btn_group->add_child(check);
 		check->set_button_group(button_group);
 	}
@@ -3851,8 +3857,8 @@ CanvasItemEditorViewport::CanvasItemEditorViewport(EditorNode *p_node, CanvasIte
 
 	label_desc = memnew(Label);
 	label_desc->set_text(TTR("Drag & drop + Shift : Add node as sibling\nDrag & drop + Alt : Change node type"));
-	label_desc->add_color_override("font_color", Color(0.6, 0.6, 0.6, 1));
-	label_desc->add_color_override("font_color_shadow", Color(0.2, 0.2, 0.2, 1));
+	label_desc->add_color_override("font_color", Color(0.6f, 0.6f, 0.6f, 1));
+	label_desc->add_color_override("font_color_shadow", Color(0.2f, 0.2f, 0.2f, 1));
 	label_desc->add_constant_override("shadow_as_outline", 1 * EDSCALE);
 	label_desc->add_constant_override("line_spacing", 0);
 	label_desc->hide();

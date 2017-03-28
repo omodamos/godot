@@ -276,7 +276,7 @@ void SceneTreeDock::_tool_selected(int p_tool, bool p_confirm_override) {
 			if (!_validate_no_foreign())
 				break;
 			*/
-			create_dialog->popup(true);
+			create_dialog->popup_create(true);
 		} break;
 		case TOOL_INSTANCE: {
 
@@ -316,7 +316,7 @@ void SceneTreeDock::_tool_selected(int p_tool, bool p_confirm_override) {
 		} break;
 		case TOOL_REPLACE: {
 
-			create_dialog->popup(false);
+			create_dialog->popup_create(false);
 		} break;
 		case TOOL_CONNECT: {
 
@@ -1570,7 +1570,7 @@ void SceneTreeDock::_normalize_drop(Node *&to_node, int &to_pos, int p_type) {
 		//drop at below selected node
 		if (to_node == EditorNode::get_singleton()->get_edited_scene()) {
 			//if at lower sibling of root node
-			to_pos = 0; //just insert at begining of root node
+			to_pos = 0; //just insert at beginning of root node
 			return;
 		}
 

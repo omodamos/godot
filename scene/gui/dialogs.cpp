@@ -31,6 +31,10 @@
 #include "print_string.h"
 #include "translation.h"
 
+#ifdef TOOLS_ENABLED
+#include "editor/editor_node.h"
+#endif
+
 void WindowDialog::_post_popup() {
 
 	drag_type = DRAG_NONE; // just in case
@@ -38,7 +42,7 @@ void WindowDialog::_post_popup() {
 
 void WindowDialog::_fix_size() {
 
-	// Perhaps this should be called when the viewport resizes aswell or windows go out of bounds...
+	// Perhaps this should be called when the viewport resizes as well or windows go out of bounds...
 
 	// Ensure the whole window is visible.
 	Point2i pos = get_global_pos();
@@ -199,6 +203,16 @@ void WindowDialog::_notification(int p_what) {
 					set_default_cursor_shape(CURSOR_ARROW);
 			}
 		} break;
+#ifdef TOOLS_ENABLED
+		case NOTIFICATION_POST_POPUP: {
+			if (get_tree() && get_tree()->is_editor_hint() && EditorNode::get_singleton())
+				EditorNode::get_singleton()->dim_editor(true);
+		} break;
+		case NOTIFICATION_POPUP_HIDE: {
+			if (get_tree() && get_tree()->is_editor_hint() && EditorNode::get_singleton())
+				EditorNode::get_singleton()->dim_editor(false);
+		} break;
+#endif
 	}
 }
 

@@ -26,7 +26,7 @@ def get_opts():
     return [
         ('ANDROID_NDK_ROOT', 'the path to Android NDK',
          os.environ.get("ANDROID_NDK_ROOT", 0)),
-        ('ndk_platform', 'compile for platform: (android-<api> , example: android-14)', "android-14"),
+	('ndk_platform', 'compile for platform: (android-<api> , example: android-18)', "android-18"),
         ('android_arch', 'select compiler architecture: (armv7/armv6/x86)', "armv7"),
         ('android_neon', 'enable neon (armv7 only)', "yes"),
         ('android_stl', 'enable STL support in android port (for modules)', "no")
@@ -168,9 +168,7 @@ def configure(env):
 
     env.Append(CPPFLAGS=["-isystem", sysroot + "/usr/include"])
     env.Append(CPPFLAGS=string.split(
-        '-Wno-invalid-command-line-argument -Wno-unused-command-line-argument'))
-    env.Append(CPPFLAGS=string.split(
-        '-fpic -ffunction-sections -funwind-tables -fstack-protector-strong -fvisibility=hidden -fno-strict-aliasing -Wa,--noexecstack'))
+        '-fpic -ffunction-sections -funwind-tables -fstack-protector-strong -fvisibility=hidden -fno-strict-aliasing'))
     env.Append(CPPFLAGS=string.split('-DANDROID -DNO_STATVFS -DGLES2_ENABLED'))
 
     env['neon_enabled'] = False
@@ -198,7 +196,7 @@ def configure(env):
 
     env.Append(LIBS=['OpenSLES'])
     env.Append(LIBS=['EGL', 'OpenSLES', 'android'])
-    env.Append(LIBS=['log', 'GLESv1_CM', 'GLESv2', 'z'])
+    env.Append(LIBS=['log', 'GLESv1_CM', 'GLESv2', 'GLESv3','z'])
 
     if (sys.platform.startswith("darwin")):
         env['SHLIBSUFFIX'] = '.so'

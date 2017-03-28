@@ -1381,6 +1381,11 @@ def android_add_jni_dir(self, subpath):
     base_path = self.Dir(".").abspath + "/modules/" + self.current_module + "/" + subpath
     self.android_jni_dirs.append(base_path)
 
+def android_add_gradle_plugin(self, plugin):
+    self.android_gradle_plugins.append(plugin)
+
+def android_add_gradle_classpath(self, classpath):
+    self.android_gradle_classpath.append(classpath)
 
 def android_add_default_config(self, config):
     self.android_default_config.append(config)
@@ -1568,9 +1573,9 @@ def no_verbose(sys, env):
 def detect_visual_c_compiler_version(tools_env):
     # tools_env is the variable scons uses to call tools that execute tasks, SCons's env['ENV'] that executes tasks...
     # (see the SCons documentation for more information on what it does)...
-    # in order for this function to be well encapsulated i choose to force it to recieve SCons's TOOLS env (env['ENV']
+    # in order for this function to be well encapsulated i choose to force it to receive SCons's TOOLS env (env['ENV']
     # and not scons setup environment (env)... so make sure you call the right environment on it or it will fail to detect
-    # the propper vc version that will be called
+    # the proper vc version that will be called
 
     # These is no flag to give to visual c compilers to set the architecture, ie scons bits argument (32,64,ARM etc)
     # There are many different cl.exe files that are run, and each one compiles & links to a different architecture
