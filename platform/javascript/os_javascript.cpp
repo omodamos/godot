@@ -6,6 +6,7 @@
 /*                    http://www.godotengine.org                         */
 /*************************************************************************/
 /* Copyright (c) 2007-2017 Juan Linietsky, Ariel Manzur.                 */
+/* Copyright (c) 2014-2017 Godot Engine contributors (cf. AUTHORS.md)    */
 /*                                                                       */
 /* Permission is hereby granted, free of charge, to any person obtaining */
 /* a copy of this software and associated documentation files (the       */
@@ -331,9 +332,9 @@ bool OS_JavaScript::is_mouse_grab_enabled() const {
 	return false;
 }
 
-Point2 OS_JavaScript::get_mouse_pos() const {
+Point2 OS_JavaScript::get_mouse_position() const {
 
-	return input->get_mouse_pos();
+	return input->get_mouse_position();
 }
 
 int OS_JavaScript::get_mouse_button_state() const {
@@ -521,7 +522,7 @@ void OS_JavaScript::push_input(const InputEvent &p_ev) {
 
 	InputEvent ev = p_ev;
 	if (ev.type == InputEvent::MOUSE_MOTION) {
-		input->set_mouse_pos(Point2(ev.mouse_motion.x, ev.mouse_motion.y));
+		input->set_mouse_position(Point2(ev.mouse_motion.x, ev.mouse_motion.y));
 	} else if (ev.type == InputEvent::MOUSE_BUTTON) {
 		last_button_mask = ev.mouse_button.button_mask;
 	}
@@ -603,7 +604,7 @@ void OS_JavaScript::process_touch(int p_what, int p_pointer, const Vector<TouchP
 				ev.mouse_motion.button_mask = BUTTON_MASK_LEFT;
 				ev.mouse_motion.x = p_points[0].pos.x;
 				ev.mouse_motion.y = p_points[0].pos.y;
-				input->set_mouse_pos(Point2(ev.mouse_motion.x, ev.mouse_motion.y));
+				input->set_mouse_position(Point2(ev.mouse_motion.x, ev.mouse_motion.y));
 				ev.mouse_motion.speed_x = input->get_last_mouse_speed().x;
 				ev.mouse_motion.speed_y = input->get_last_mouse_speed().y;
 				ev.mouse_motion.relative_x = p_points[0].pos.x - last_mouse.x;
@@ -750,7 +751,7 @@ String OS_JavaScript::get_data_dir() const {
 
 String OS_JavaScript::get_executable_path() const {
 
-	return String();
+	return OS::get_executable_path();
 }
 
 void OS_JavaScript::_close_notification_funcs(const String &p_file, int p_flags) {
@@ -828,7 +829,8 @@ int OS_JavaScript::get_power_percent_left() {
 	return power_manager->get_power_percent_left();
 }
 
-OS_JavaScript::OS_JavaScript(GFXInitFunc p_gfx_init_func, void *p_gfx_init_ud, GetDataDirFunc p_get_data_dir_func) {
+OS_JavaScript::OS_JavaScript(const char *p_execpath, GFXInitFunc p_gfx_init_func, void *p_gfx_init_ud, GetDataDirFunc p_get_data_dir_func) {
+	set_cmdline(p_execpath, get_cmdline_args());
 	gfx_init_func = p_gfx_init_func;
 	gfx_init_ud = p_gfx_init_ud;
 	last_button_mask = 0;

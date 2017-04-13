@@ -6,6 +6,7 @@
 /*                    http://www.godotengine.org                         */
 /*************************************************************************/
 /* Copyright (c) 2007-2017 Juan Linietsky, Ariel Manzur.                 */
+/* Copyright (c) 2014-2017 Godot Engine contributors (cf. AUTHORS.md)    */
 /*                                                                       */
 /* Permission is hereby granted, free of charge, to any person obtaining */
 /* a copy of this software and associated documentation files (the       */
@@ -27,6 +28,7 @@
 /* SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                */
 /*************************************************************************/
 #include "main.h"
+#include "app_icon.h"
 #include "core/register_core_types.h"
 #include "drivers/register_driver_types.h"
 #include "global_config.h"
@@ -94,8 +96,10 @@ static bool init_maximized = false;
 static bool init_windowed = false;
 static bool init_fullscreen = false;
 static bool init_use_custom_pos = false;
+#ifdef DEBUG_ENABLED
 static bool debug_collisions = false;
 static bool debug_navigation = false;
+#endif
 static int frame_delay = 0;
 static Vector2 init_custom_pos;
 static int video_driver_idx = -1;
@@ -498,10 +502,12 @@ Error Main::setup(const char *execpath, int argc, char *argv[], bool p_second_ph
 
 		} else if (I->get() == "-debug" || I->get() == "-d") {
 			debug_mode = "local";
+#ifdef DEBUG_ENABLED
 		} else if (I->get() == "-debugcol" || I->get() == "-dc") {
 			debug_collisions = true;
 		} else if (I->get() == "-debugnav" || I->get() == "-dn") {
 			debug_navigation = true;
+#endif
 		} else if (I->get() == "-editor_scene") {
 
 			if (I->next()) {
@@ -880,6 +886,9 @@ Error Main::setup2() {
 	} else if (init_fullscreen) {
 		OS::get_singleton()->set_window_fullscreen(true);
 	}
+
+	register_server_types();
+
 	MAIN_PRINT("Main: Load Remaps");
 
 	Color clear = GLOBAL_DEF("rendering/viewport/default_clear_color", Color(0.3, 0.3, 0.3));
@@ -948,7 +957,6 @@ Error Main::setup2() {
 	MAIN_PRINT("Main: Load Scene Types");
 
 	register_scene_types();
-	register_server_types();
 
 	GLOBAL_DEF("display/mouse_cursor/custom_image", String());
 	GLOBAL_DEF("display/mouse_cursor/custom_image_hotspot", Vector2());
@@ -1194,12 +1202,15 @@ bool Main::start() {
 
 		SceneTree *sml = main_loop->cast_to<SceneTree>();
 
+#ifdef DEBUG_ENABLED
 		if (debug_collisions) {
 			sml->set_debug_collisions_hint(true);
 		}
 		if (debug_navigation) {
 			sml->set_debug_navigation_hint(true);
 		}
+#endif
+
 #ifdef TOOLS_ENABLED
 
 		EditorNode *editor_node = NULL;

@@ -6,6 +6,7 @@
 /*                    http://www.godotengine.org                         */
 /*************************************************************************/
 /* Copyright (c) 2007-2017 Juan Linietsky, Ariel Manzur.                 */
+/* Copyright (c) 2014-2017 Godot Engine contributors (cf. AUTHORS.md)    */
 /*                                                                       */
 /* Permission is hereby granted, free of charge, to any person obtaining */
 /* a copy of this software and associated documentation files (the       */
@@ -86,7 +87,7 @@ void OptionButton::_selected(int p_which) {
 void OptionButton::pressed() {
 
 	Size2 size = get_size();
-	popup->set_global_pos(get_global_pos() + Size2(0, size.height));
+	popup->set_global_position(get_global_position() + Size2(0, size.height));
 	popup->set_size(Size2(size.width, 0));
 
 	popup->popup();

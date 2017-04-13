@@ -6,6 +6,7 @@
 /*                    http://www.godotengine.org                         */
 /*************************************************************************/
 /* Copyright (c) 2007-2017 Juan Linietsky, Ariel Manzur.                 */
+/* Copyright (c) 2014-2017 Godot Engine contributors (cf. AUTHORS.md)    */
 /*                                                                       */
 /* Permission is hereby granted, free of charge, to any person obtaining */
 /* a copy of this software and associated documentation files (the       */
@@ -137,14 +138,35 @@ void ShaderTextEditor::_load_theme_settings() {
 	}*/
 }
 
+void ShaderTextEditor::_check_shader_mode() {
+
+	String type = ShaderLanguage::get_shader_type(get_text_edit()->get_text());
+
+	print_line("type is: " + type);
+	Shader::Mode mode;
+
+	if (type == "canvas_item") {
+		mode = Shader::MODE_CANVAS_ITEM;
+	} else if (type == "particles") {
+		mode = Shader::MODE_PARTICLES;
+	} else {
+		mode = Shader::MODE_SPATIAL;
+	}
+
+	if (shader->get_mode() != mode) {
+		shader->set_code(get_text_edit()->get_text());
+		_load_theme_settings();
+	}
+}
+
 void ShaderTextEditor::_code_complete_script(const String &p_code, List<String> *r_options) {
 
-	print_line("code complete");
+	_check_shader_mode();
 
 	ShaderLanguage sl;
 	String calltip;
 
-	Error err = sl.complete(p_code, ShaderTypes::get_singleton()->get_functions(VisualServer::ShaderMode(shader->get_mode())), ShaderTypes::get_singleton()->get_modes(VisualServer::ShaderMode(shader->get_mode())), r_options, calltip);
+	Error err = sl.complete(p_code, ShaderTypes::get_singleton()->get_functions(VisualServer::ShaderMode(shader->get_mode())), ShaderTypes::get_singleton()->get_modes(VisualServer::ShaderMode(shader->get_mode())), ShaderTypes::get_singleton()->get_types(), r_options, calltip);
 
 	if (calltip != "") {
 		get_text_edit()->set_code_hint(calltip);
@@ -153,13 +175,15 @@ void ShaderTextEditor::_code_complete_script(const String &p_code, List<String> 
 
 void ShaderTextEditor::_validate_script() {
 
+	_check_shader_mode();
+
 	String code = get_text_edit()->get_text();
 	//List<StringName> params;
 	//shader->get_param_list(&params);
 
 	ShaderLanguage sl;
 
-	Error err = sl.compile(code, ShaderTypes::get_singleton()->get_functions(VisualServer::ShaderMode(shader->get_mode())), ShaderTypes::get_singleton()->get_modes(VisualServer::ShaderMode(shader->get_mode())));
+	Error err = sl.compile(code, ShaderTypes::get_singleton()->get_functions(VisualServer::ShaderMode(shader->get_mode())), ShaderTypes::get_singleton()->get_modes(VisualServer::ShaderMode(shader->get_mode())), ShaderTypes::get_singleton()->get_types());
 
 	if (err != OK) {
 		String error_text = "error(" + itos(sl.get_error_line()) + "): " + sl.get_error_text();
@@ -421,7 +445,7 @@ ShaderEditor::ShaderEditor() {
 
 	edit_menu = memnew(MenuButton);
 	hbc->add_child(edit_menu);
-	edit_menu->set_pos(Point2(5, -1));
+	edit_menu->set_position(Point2(5, -1));
 	edit_menu->set_text(TTR("Edit"));
 	edit_menu->get_popup()->add_shortcut(ED_SHORTCUT("script_editor/undo", TTR("Undo"), KEY_MASK_CMD | KEY_Z), EDIT_UNDO);
 	edit_menu->get_popup()->add_shortcut(ED_SHORTCUT("script_editor/redo", TTR("Redo"), KEY_MASK_CMD | KEY_Y), EDIT_REDO);
@@ -435,7 +459,7 @@ ShaderEditor::ShaderEditor() {
 
 	search_menu = memnew(MenuButton);
 	hbc->add_child(search_menu);
-	search_menu->set_pos(Point2(38, -1));
+	search_menu->set_position(Point2(38, -1));
 	search_menu->set_text(TTR("Search"));
 	search_menu->get_popup()->add_shortcut(ED_SHORTCUT("script_editor/find", TTR("Find.."), KEY_MASK_CMD | KEY_F), SEARCH_FIND);
 	search_menu->get_popup()->add_shortcut(ED_SHORTCUT("script_editor/find_next", TTR("Find Next"), KEY_F3), SEARCH_FIND_NEXT);

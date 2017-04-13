@@ -6,6 +6,7 @@
 /*                    http://www.godotengine.org                         */
 /*************************************************************************/
 /* Copyright (c) 2007-2017 Juan Linietsky, Ariel Manzur.                 */
+/* Copyright (c) 2014-2017 Godot Engine contributors (cf. AUTHORS.md)    */
 /*                                                                       */
 /* Permission is hereby granted, free of charge, to any person obtaining */
 /* a copy of this software and associated documentation files (the       */
@@ -73,7 +74,9 @@
 #include "plugins/collision_shape_2d_editor_plugin.h"
 #include "plugins/color_ramp_editor_plugin.h"
 #include "plugins/cube_grid_theme_editor_plugin.h"
+#include "plugins/curve_editor_plugin.h"
 #include "plugins/gi_probe_editor_plugin.h"
+#include "plugins/gradient_texture_editor_plugin.h"
 #include "plugins/item_list_editor_plugin.h"
 #include "plugins/light_occluder_2d_editor_plugin.h"
 #include "plugins/line_2d_editor_plugin.h"
@@ -233,7 +236,7 @@ void EditorNode::_notification(int p_what) {
 			Rect2 grect = scene_root_base->get_global_rect();
 			Rect2 grectsrp = scene_root_parent->get_global_rect();
 			if (grect!=grectsrp) {
-				scene_root_parent->set_pos(grect.pos);
+				scene_root_parent->set_position(grect.pos);
 				scene_root_parent->set_size(grect.size);
 			}
 		}
@@ -1088,7 +1091,7 @@ void EditorNode::_dialog_action(String p_file) {
 
 			GlobalConfig::get_singleton()->set("application/main_scene", p_file);
 			GlobalConfig::get_singleton()->save();
-			//would be nice to show the project manager opened with the hilighted field..
+			//would be nice to show the project manager opened with the highlighted field..
 		} break;
 		case FILE_SAVE_OPTIMIZED: {
 
@@ -2812,7 +2815,7 @@ void EditorNode::set_addon_plugin_enabled(const String &p_addon, bool p_enabled)
 	}
 
 	if (!script->is_tool()) {
-		show_warning("Unable to load addon script from path: '" + path + "' Script is does not support tool mode.");
+		show_warning("Unable to load addon script from path: '" + path + "' Script is not in tool mode.");
 		return;
 	}
 
@@ -4466,7 +4469,7 @@ Variant EditorNode::drag_resource(const Ref<Resource> &p_res, Control *p_from) {
 
 	p_from->set_drag_preview(drag_control); //wait until it enters scene
 
-	label->set_pos(Point2((preview->get_width() - label->get_minimum_size().width) / 2, preview->get_height()));
+	label->set_position(Point2((preview->get_width() - label->get_minimum_size().width) / 2, preview->get_height()));
 
 	Dictionary drag_data;
 	drag_data["type"] = "resource";
@@ -5149,7 +5152,7 @@ EditorNode::EditorNode() {
 	//left_menu_hb->add_child( prev_scene );
 	prev_scene->connect("pressed", this, "_menu_option", make_binds(FILE_OPEN_PREV));
 	gui_base->add_child(prev_scene);
-	prev_scene->set_pos(Point2(3, 24));
+	prev_scene->set_position(Point2(3, 24));
 	prev_scene->hide();
 
 	ED_SHORTCUT("editor/next_tab", TTR("Next tab"), KEY_MASK_CMD + KEY_TAB);
@@ -5229,7 +5232,7 @@ EditorNode::EditorNode() {
 #if 0
 	node_menu = memnew( MenuButton );
 	node_menu->set_text("Node");
-	node_menu->set_pos( Point2( 50,0) );
+	node_menu->set_position( Point2( 50,0) );
 	menu_panel->add_child( node_menu );
 
 	p=node_menu->get_popup();
@@ -5250,7 +5253,7 @@ EditorNode::EditorNode() {
 
 	resource_menu = memnew( MenuButton );
 	resource_menu->set_text("Resource");
-	resource_menu->set_pos( Point2( 90,0) );
+	resource_menu->set_position( Point2( 90,0) );
 	menu_panel->add_child( resource_menu );
 #endif
 
@@ -5285,7 +5288,7 @@ EditorNode::EditorNode() {
 
 	//Separator *s1 = memnew( VSeparator );
 	//menu_panel->add_child(s1);
-	//s1->set_pos(Point2(210,4));
+	//s1->set_position(Point2(210,4));
 	//s1->set_size(Point2(10,15));
 
 	play_cc = memnew(CenterContainer);
@@ -5400,7 +5403,7 @@ EditorNode::EditorNode() {
 	/*
 	run_settings_button = memnew( ToolButton );
 	menu_panel->add_child(run_settings_button);
-	run_settings_button->set_pos(Point2(305,0));
+	run_settings_button->set_position(Point2(305,0));
 	run_settings_button->set_focus_mode(Control::FOCUS_NONE);
 	run_settings_button->set_icon(gui_base->get_icon("Run","EditorIcons"));
 	run_settings_button->connect("pressed", this,"_menu_option",make_binds(RUN_SETTINGS));
@@ -5493,7 +5496,7 @@ EditorNode::EditorNode() {
 	/*
 	Separator *s2 = memnew( VSeparator );
 	menu_panel->add_child(s2);
-	s2->set_pos(Point2(338,4));
+	s2->set_position(Point2(338,4));
 	s2->set_size(Point2(10,15));
 */
 
@@ -5681,7 +5684,7 @@ EditorNode::EditorNode() {
 	overridden_default_layout = -1;
 	default_layout.instance();
 	default_layout->set_value(docks_section, "dock_3", TTR("FileSystem"));
-	default_layout->set_value(docks_section, "dock_5", TTR("Scene"));
+	default_layout->set_value(docks_section, "dock_5", TTR("Scene") + "," + TTR("Import"));
 	default_layout->set_value(docks_section, "dock_6", TTR("Inspector") + "," + TTR("Node"));
 
 	for (int i = 0; i < DOCK_SLOT_MAX / 2; i++)
@@ -5725,7 +5728,7 @@ EditorNode::EditorNode() {
 
 	/*
 	animation_menu = memnew( ToolButton );
-	animation_menu->set_pos(Point2(500,0));
+	animation_menu->set_position(Point2(500,0));
 	animation_menu->set_size(Size2(20,20));
 	animation_menu->set_toggle_mode(true);
 	animation_menu->set_focus_mode(Control::FOCUS_NONE);
@@ -5909,7 +5912,7 @@ EditorNode::EditorNode() {
 	//add_editor_plugin( memnew( MeshLibraryEditorPlugin(this) ) );
 	//add_editor_plugin( memnew( StreamEditorPlugin(this) ) );
 	add_editor_plugin(memnew(StyleBoxEditorPlugin(this)));
-	//add_editor_plugin( memnew( ParticlesEditorPlugin(this) ) );
+	add_editor_plugin(memnew(ParticlesEditorPlugin(this)));
 	add_editor_plugin(memnew(ResourcePreloaderEditorPlugin(this)));
 	add_editor_plugin(memnew(ItemListEditorPlugin(this)));
 	//add_editor_plugin( memnew( RichTextEditorPlugin(this) ) );
@@ -5929,7 +5932,9 @@ EditorNode::EditorNode() {
 	add_editor_plugin(memnew(LightOccluder2DEditorPlugin(this)));
 	add_editor_plugin(memnew(NavigationPolygonEditorPlugin(this)));
 	add_editor_plugin(memnew(ColorRampEditorPlugin(this)));
+	add_editor_plugin(memnew(GradientTextureEditorPlugin(this)));
 	add_editor_plugin(memnew(CollisionShape2DEditorPlugin(this)));
+	add_editor_plugin(memnew(CurveTextureEditorPlugin(this)));
 	add_editor_plugin(memnew(TextureEditorPlugin(this)));
 	add_editor_plugin(memnew(AudioBusesEditorPlugin(audio_bus_editor)));
 	//add_editor_plugin( memnew( MaterialEditorPlugin(this) ) );

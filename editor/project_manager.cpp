@@ -6,6 +6,7 @@
 /*                    http://www.godotengine.org                         */
 /*************************************************************************/
 /* Copyright (c) 2007-2017 Juan Linietsky, Ariel Manzur.                 */
+/* Copyright (c) 2014-2017 Godot Engine contributors (cf. AUTHORS.md)    */
 /*                                                                       */
 /* Permission is hereby granted, free of charge, to any person obtaining */
 /* a copy of this software and associated documentation files (the       */
@@ -404,7 +405,7 @@ public:
 
 		l = memnew(Label);
 		l->set_text(TTR("Project Name:"));
-		l->set_pos(Point2(5, 50));
+		l->set_position(Point2(5, 50));
 		vb->add_child(l);
 		pn = l;
 
@@ -623,7 +624,7 @@ void ProjectManager::_unhandled_input(const InputEvent &p_ev) {
 							selected_list.clear();
 							selected_list.insert(current, hb->get_meta("main_scene"));
 
-							int offset_diff = scroll->get_v_scroll() - hb->get_pos().y;
+							int offset_diff = scroll->get_v_scroll() - hb->get_position().y;
 
 							if (offset_diff > 0)
 								scroll->set_v_scroll(scroll->get_v_scroll() - offset_diff);
@@ -661,7 +662,7 @@ void ProjectManager::_unhandled_input(const InputEvent &p_ev) {
 						selected_list.insert(current, hb->get_meta("main_scene"));
 
 						int last_y_visible = scroll->get_v_scroll() + scroll->get_size().y;
-						int offset_diff = (hb->get_pos().y + hb->get_size().y) - last_y_visible;
+						int offset_diff = (hb->get_position().y + hb->get_size().y) - last_y_visible;
 
 						if (offset_diff > 0)
 							scroll->set_v_scroll(scroll->get_v_scroll() + offset_diff);
@@ -911,7 +912,7 @@ void ProjectManager::_update_scroll_pos(const String &dir) {
 			selected_list.insert(hb->get_meta("name"), hb->get_meta("main_scene"));
 			_update_project_buttons();
 			int last_y_visible = scroll->get_v_scroll() + scroll->get_size().y;
-			int offset_diff = (hb->get_pos().y + hb->get_size().y) - last_y_visible;
+			int offset_diff = (hb->get_position().y + hb->get_size().y) - last_y_visible;
 
 			if (offset_diff > 0)
 				scroll->set_v_scroll(scroll->get_v_scroll() + offset_diff);

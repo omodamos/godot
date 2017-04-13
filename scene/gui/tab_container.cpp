@@ -6,6 +6,7 @@
 /*                    http://www.godotengine.org                         */
 /*************************************************************************/
 /* Copyright (c) 2007-2017 Juan Linietsky, Ariel Manzur.                 */
+/* Copyright (c) 2014-2017 Godot Engine contributors (cf. AUTHORS.md)    */
 /*                                                                       */
 /* Permission is hereby granted, free of charge, to any person obtaining */
 /* a copy of this software and associated documentation files (the       */
@@ -78,11 +79,11 @@ void TabContainer::_gui_input(const InputEvent &p_event) {
 		if (popup && pos.x > size.width - menu->get_width()) {
 			emit_signal("pre_popup_pressed");
 
-			Vector2 popup_pos = get_global_pos();
+			Vector2 popup_pos = get_global_position();
 			popup_pos.x += size.width - popup->get_size().width;
 			popup_pos.y += menu->get_height();
 
-			popup->set_global_pos(popup_pos);
+			popup->set_global_position(popup_pos);
 			popup->popup();
 			return;
 		}

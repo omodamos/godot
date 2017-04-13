@@ -1,11 +1,12 @@
 /*************************************************************************/
-/*  register_types.cpp                                                   */
+/*  godot_color.cpp                                                      */
 /*************************************************************************/
 /*                       This file is part of:                           */
 /*                           GODOT ENGINE                                */
 /*                    http://www.godotengine.org                         */
 /*************************************************************************/
 /* Copyright (c) 2007-2017 Juan Linietsky, Ariel Manzur.                 */
+/* Copyright (c) 2014-2017 Godot Engine contributors (cf. AUTHORS.md)    */
 /*                                                                       */
 /* Permission is hereby granted, free of charge, to any person obtaining */
 /* a copy of this software and associated documentation files (the       */
@@ -26,9 +27,37 @@
 /* TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE     */
 /* SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                */
 /*************************************************************************/
-#include "register_types.h"
+#include "godot_color.h"
 
-void register_cscript_types() {
+#include "color.h"
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+void _color_api_anchor() {
 }
-void unregister_cscript_types() {
+
+void GDAPI godot_color_new(godot_color *p_color) {
+	Color *color = (Color *)p_color;
+	*color = Color();
 }
+
+void GDAPI godot_color_new_rgba(godot_color *p_color, const godot_real r, const godot_real g, const godot_real b, const godot_real a) {
+	Color *color = (Color *)p_color;
+	*color = Color(r, g, b, a);
+}
+
+uint32_t GDAPI godot_color_get_32(const godot_color *p_color) {
+	const Color *color = (const Color *)p_color;
+	return color->to_32();
+}
+
+float GDAPI *godot_color_index(godot_color *p_color, const godot_int idx) {
+	Color *color = (Color *)p_color;
+	return &color->operator[](idx);
+}
+
+#ifdef __cplusplus
+}
+#endif

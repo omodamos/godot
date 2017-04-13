@@ -6,6 +6,7 @@
 /*                    http://www.godotengine.org                         */
 /*************************************************************************/
 /* Copyright (c) 2007-2017 Juan Linietsky, Ariel Manzur.                 */
+/* Copyright (c) 2014-2017 Godot Engine contributors (cf. AUTHORS.md)    */
 /*                                                                       */
 /* Permission is hereby granted, free of charge, to any person obtaining */
 /* a copy of this software and associated documentation files (the       */
@@ -59,6 +60,10 @@ Vector2 Vector2::normalized() const {
 	Vector2 v = *this;
 	v.normalize();
 	return v;
+}
+
+bool Vector2::is_normalized() const {
+	return Math::isequal_approx(length(), (real_t)1.0);
 }
 
 real_t Vector2::distance_to(const Vector2 &p_vector2) const {
@@ -274,13 +279,23 @@ Vector2 Vector2::cubic_interpolate(const Vector2 &p_b, const Vector2 &p_pre_a, c
 */
 }
 
-Vector2 Vector2::slide(const Vector2 &p_vec) const {
-
-	return p_vec - *this * this->dot(p_vec);
+// slide returns the component of the vector along the given plane, specified by its normal vector.
+Vector2 Vector2::slide(const Vector2 &p_n) const {
+#ifdef DEBUG_ENABLED
+	ERR_FAIL_COND_V(p_n.is_normalized() == false, Vector2());
+#endif
+	return *this - p_n * this->dot(p_n);
 }
-Vector2 Vector2::reflect(const Vector2 &p_vec) const {
 
-	return p_vec - *this * this->dot(p_vec) * 2.0;
+Vector2 Vector2::bounce(const Vector2 &p_n) const {
+	return -reflect(p_n);
+}
+
+Vector2 Vector2::reflect(const Vector2 &p_n) const {
+#ifdef DEBUG_ENABLED
+	ERR_FAIL_COND_V(p_n.is_normalized() == false, Vector2());
+#endif
+	return 2.0 * p_n * this->dot(p_n) - *this;
 }
 
 bool Rect2::intersects_segment(const Point2 &p_from, const Point2 &p_to, Point2 *r_pos, Point2 *r_normal) const {
@@ -449,7 +464,7 @@ real_t Transform2D::get_rotation() const {
 	real_t det = basis_determinant();
 	Transform2D m = orthonormalized();
 	if (det < 0) {
-		m.scale_basis(Size2(-1, -1));
+		m.scale_basis(Size2(1, -1)); // convention to separate rotation and reflection for 2D is to absorb a flip along y into scaling.
 	}
 	return Math::atan2(m[0].y, m[0].x);
 }
@@ -477,7 +492,7 @@ Transform2D::Transform2D(real_t p_rot, const Vector2 &p_pos) {
 
 Size2 Transform2D::get_scale() const {
 	real_t det_sign = basis_determinant() > 0 ? 1 : -1;
-	return det_sign * Size2(elements[0].length(), elements[1].length());
+	return Size2(elements[0].length(), det_sign * elements[1].length());
 }
 
 void Transform2D::scale(const Size2 &p_scale) {
