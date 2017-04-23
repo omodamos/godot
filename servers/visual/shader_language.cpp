@@ -3211,7 +3211,6 @@ Error ShaderLanguage::_parse_block(BlockNode *p_block, const Map<StringName, Dat
 			}
 
 		} else if (tk.type == TK_CF_RETURN) {
-<<<<<<< HEAD
 			FunctionNode *function = NULL;
 
 			BlockNode *parent = p_block;
@@ -3248,8 +3247,6 @@ Error ShaderLanguage::_parse_block(BlockNode *p_block, const Map<StringName, Dat
 				_set_error("Expected ';'");
 				return ERR_PARSE_ERROR;
 			}
-
-=======
 
 			//check return type
 			BlockNode *b = p_block;
@@ -3295,7 +3292,6 @@ Error ShaderLanguage::_parse_block(BlockNode *p_block, const Map<StringName, Dat
 
 			p_block->statements.push_back(flow);
 
->>>>>>> master
 		} else {
 
 			//nothng else, so expression
