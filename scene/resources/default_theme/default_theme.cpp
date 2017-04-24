@@ -284,16 +284,10 @@ void fill_default_theme(Ref<Theme> &t, const Ref<Font> &default_font, const Ref<
 
 	// ToolButton
 
-	Ref<StyleBox> tb_empty = memnew(StyleBoxEmpty);
-	tb_empty->set_default_margin(MARGIN_LEFT, 6 * scale);
-	tb_empty->set_default_margin(MARGIN_RIGHT, 6 * scale);
-	tb_empty->set_default_margin(MARGIN_TOP, 4 * scale);
-	tb_empty->set_default_margin(MARGIN_BOTTOM, 4 * scale);
-
-	t->set_stylebox("normal", "ToolButton", tb_empty);
-	t->set_stylebox("pressed", "ToolButton", make_stylebox(button_pressed_png, 4, 4, 4, 4));
-	t->set_stylebox("hover", "ToolButton", make_stylebox(button_normal_png, 4, 4, 4, 4));
-	t->set_stylebox("disabled", "ToolButton", make_empty_stylebox(4, 4, 4, 4));
+	t->set_stylebox("normal", "ToolButton", make_empty_stylebox(6, 4, 6, 4));
+	t->set_stylebox("pressed", "ToolButton", make_stylebox(button_pressed_png, 4, 4, 4, 4, 6, 4, 6, 4));
+	t->set_stylebox("hover", "ToolButton", make_stylebox(button_normal_png, 4, 4, 4, 4, 6, 4, 6, 4));
+	t->set_stylebox("disabled", "ToolButton", make_empty_stylebox(6, 4, 6, 4));
 	t->set_stylebox("focus", "ToolButton", focus);
 	t->set_font("font", "ToolButton", default_font);
 
@@ -538,10 +532,8 @@ void fill_default_theme(Ref<Theme> &t, const Ref<Font> &default_font, const Ref<
 
 	// WindowDialog
 
-	Ref<StyleBoxTexture> style_pp_win = sb_expand(make_stylebox(popup_window_png, 10, 26, 10, 8), 8, 24, 8, 6);
-	t->set_stylebox("panel", "WindowDialog", style_pp_win);
-	t->set_constant("titlebar_height", "WindowDialog", 20 * scale);
-	t->set_constant("scaleborder_size", "WindowDialog", 4);
+	t->set_stylebox("panel", "WindowDialog", sb_expand(make_stylebox(popup_window_png, 10, 26, 10, 8), 8, 24, 8, 6));
+	t->set_constant("scaleborder_size", "WindowDialog", 4 * scale);
 
 	t->set_font("title_font", "WindowDialog", large_font);
 	t->set_color("title_color", "WindowDialog", Color(0, 0, 0));

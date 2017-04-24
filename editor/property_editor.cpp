@@ -2388,6 +2388,10 @@ void PropertyEditor::set_item_text(TreeItem *p_item, int p_type, const String &p
 				RES res = obj->get(p_name).operator RefPtr();
 				if (res->is_class("Texture")) {
 					int tw = EditorSettings::get_singleton()->get("docks/property_editor/texture_preview_width");
+					Vector2 size(res->call("get_width"), res->call("get_height"));
+					if (size.width < size.height) {
+						tw = MAX((size.width / size.height) * tw, 1);
+					}
 					p_item->set_icon_max_width(1, tw);
 					p_item->set_icon(1, res);
 					p_item->set_text(1, "");
@@ -2427,7 +2431,9 @@ void PropertyEditor::set_item_text(TreeItem *p_item, int p_type, const String &p
 					}
 				}
 
-				if (!res->is_class("Texture")) {
+				if (res->is_class("Script")) {
+					p_item->set_text(1, res->get_path().get_file());
+				} else if (!res->is_class("Texture")) {
 					//texture already previews via itself
 					EditorResourcePreview::get_singleton()->queue_edited_resource_preview(res, this, "_resource_preview_done", p_item->get_instance_ID());
 				}
@@ -3618,6 +3624,10 @@ void PropertyEditor::update_tree() {
 
 					if (res->is_class("Texture")) {
 						int tw = EditorSettings::get_singleton()->get("docks/property_editor/texture_preview_width");
+						Vector2 size(res->call("get_width"), res->call("get_height"));
+						if (size.width < size.height) {
+							tw = MAX((size.width / size.height) * tw, 1);
+						}
 						item->set_icon_max_width(1, tw);
 						item->set_icon(1, res);
 						item->set_text(1, "");
@@ -3641,7 +3651,9 @@ void PropertyEditor::update_tree() {
 					} else if (res.is_valid()) {
 						item->set_tooltip(1, res->get_name() + " (" + res->get_class() + ")");
 					}
-					if (!res->is_class("Texture")) {
+					if (res->is_class("Script")) {
+						item->set_text(1, res->get_path().get_file());
+					} else if (!res->is_class("Texture")) {
 						//texture already previews via itself
 						EditorResourcePreview::get_singleton()->queue_edited_resource_preview(res, this, "_resource_preview_done", item->get_instance_ID());
 					}
@@ -4389,6 +4401,7 @@ PropertyEditor::PropertyEditor() {
 	capitalize_paths = true;
 	autoclear = false;
 	tree->set_column_titles_visible(false);
+	tree->add_constant_override("button_margin", 0);
 
 	keying = false;
 	read_only = false;
