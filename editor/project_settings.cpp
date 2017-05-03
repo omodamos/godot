@@ -78,7 +78,7 @@ void ProjectSettings::_notification(int p_what) {
 		case NOTIFICATION_ENTER_TREE: {
 			globals_editor->edit(GlobalConfig::get_singleton());
 
-			search_button->set_icon(get_icon("Zoom", "EditorIcons"));
+			search_button->set_icon(get_icon("Search", "EditorIcons"));
 			clear_button->set_icon(get_icon("Close", "EditorIcons"));
 
 			translation_list->connect("button_pressed", this, "_translation_delete");
@@ -481,9 +481,9 @@ void ProjectSettings::_update_actions() {
 		TreeItem *item = input_editor->create_item(root);
 		//item->set_cell_mode(0,TreeItem::CELL_MODE_CHECK);
 		item->set_text(0, name);
-		item->add_button(0, get_icon("Add", "EditorIcons"), 1);
+		item->add_button(0, get_icon("Add", "EditorIcons"), 1, false, TTR("Add Event"));
 		if (!GlobalConfig::get_singleton()->get_input_presets().find(pi.name)) {
-			item->add_button(0, get_icon("Remove", "EditorIcons"), 2);
+			item->add_button(0, get_icon("Remove", "EditorIcons"), 2, false, TTR("Remove"));
 			item->set_editable(0, true);
 		}
 		item->set_custom_bg_color(0, get_color("prop_subsection", "Editor"));
@@ -553,7 +553,7 @@ void ProjectSettings::_update_actions() {
 					action->set_icon(0, get_icon("JoyAxis", "EditorIcons"));
 				} break;
 			}
-			action->add_button(0, get_icon("Remove", "EditorIcons"), 2);
+			action->add_button(0, get_icon("Remove", "EditorIcons"), 2, false, TTR("Remove"));
 			action->set_metadata(0, i);
 			action->set_meta("__input", ie);
 		}
@@ -1012,7 +1012,7 @@ void ProjectSettings::_update_translations() {
 			t->set_text(0, translations[i].replace_first("res://", ""));
 			t->set_tooltip(0, translations[i]);
 			t->set_metadata(0, i);
-			t->add_button(0, get_icon("Del", "EditorIcons"), 0);
+			t->add_button(0, get_icon("Del", "EditorIcons"), 0, false, TTR("Remove"));
 		}
 	}
 
@@ -1058,7 +1058,7 @@ void ProjectSettings::_update_translations() {
 			t->set_text(0, keys[i].replace_first("res://", ""));
 			t->set_tooltip(0, keys[i]);
 			t->set_metadata(0, keys[i]);
-			t->add_button(0, get_icon("Del", "EditorIcons"), 0);
+			t->add_button(0, get_icon("Del", "EditorIcons"), 0, false, TTR("Remove"));
 			if (keys[i] == remap_selected) {
 				t->select(0);
 				translation_res_option_add_button->set_disabled(false);
@@ -1076,7 +1076,7 @@ void ProjectSettings::_update_translations() {
 					t2->set_text(0, path.replace_first("res://", ""));
 					t2->set_tooltip(0, path);
 					t2->set_metadata(0, j);
-					t2->add_button(0, get_icon("Del", "EditorIcons"), 0);
+					t2->add_button(0, get_icon("Del", "EditorIcons"), 0, false, TTR("Remove"));
 					t2->set_cell_mode(1, TreeItem::CELL_MODE_RANGE);
 					t2->set_text(1, langnames);
 					t2->set_editable(1, true);
@@ -1168,8 +1168,7 @@ void ProjectSettings::_bind_methods() {
 ProjectSettings::ProjectSettings(EditorData *p_data) {
 
 	singleton = this;
-	String project_file = "(" + GlobalConfig::get_singleton()->get_project_file_name() + ")";
-	set_title(TTR("Project Settings " + project_file));
+	set_title(TTR("Project Settings (project.godot)"));
 	set_resizable(true);
 	undo_redo = &p_data->get_undo_redo();
 	data = p_data;
@@ -1265,7 +1264,7 @@ ProjectSettings::ProjectSettings(EditorData *p_data) {
 	//globals_editor->hide_top_label();
 	globals_editor->set_v_size_flags(Control::SIZE_EXPAND_FILL);
 	globals_editor->get_property_editor()->register_text_enter(search_box);
-	globals_editor->get_property_editor()->set_capitalize_paths(false);
+	globals_editor->get_property_editor()->set_enable_capitalize_paths(false);
 	globals_editor->get_property_editor()->get_scene_tree()->connect("cell_selected", this, "_item_selected");
 	globals_editor->get_property_editor()->connect("property_toggled", this, "_item_checked", varray(), CONNECT_DEFERRED);
 	globals_editor->get_property_editor()->connect("property_edited", this, "_settings_prop_edited");

@@ -683,6 +683,8 @@ void SceneTreeDock::_notification(int p_what) {
 
 			filter_icon->set_texture(get_icon("Zoom", "EditorIcons"));
 
+			filter_icon->set_texture(get_icon("Search", "EditorIcons"));
+
 			EditorNode::get_singleton()->get_editor_selection()->connect("selection_changed", this, "_selection_changed");
 
 		} break;
@@ -1791,6 +1793,7 @@ SceneTreeDock::SceneTreeDock(EditorNode *p_editor, Node *p_scene_root, EditorSel
 	VBoxContainer *vbc = this;
 
 	HBoxContainer *filter_hbc = memnew(HBoxContainer);
+	filter_hbc->add_constant_override("separate", 0);
 	ToolButton *tb;
 
 	ED_SHORTCUT("scene_tree/add_child_node", TTR("Add Child Node"), KEY_MASK_CMD | KEY_A);

@@ -32,8 +32,9 @@
 #include "core/io/image_loader.h"
 #include "core/os/copymem.h"
 #include "hash_map.h"
-#include "hq2x.h"
 #include "print_string.h"
+
+#include "thirdparty/misc/hq2x.h"
 
 #include <stdio.h>
 
@@ -94,7 +95,7 @@ void Image::_get_pixelb(int p_x, int p_y, uint32_t p_pixelsize, const uint8_t *p
 	uint32_t ofs = (p_y * width + p_x) * p_pixelsize;
 
 	for (uint32_t i = 0; i < p_pixelsize; i++) {
-		p_dst[ofs] = p_src[ofs + i];
+		p_dst[i] = p_src[ofs + i];
 	}
 }
 
