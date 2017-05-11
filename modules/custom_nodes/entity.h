@@ -20,7 +20,9 @@ class Entity : public Node2D {
 	double semi_major_axis;
 	double eccentricity;
 	double longitude_of_periapsis;
+	double period;
 	double true_anomaly;
+	double epoch;
 
 public:
 	// ID
@@ -46,15 +48,21 @@ public:
 	double get_eccentricity();
 	double get_longitude_of_periapsis();
 	double get_true_anomaly();
+	double get_period();
+	double get_epoch();
 	void set_semi_major_axis(double p_km);
 	void set_eccentricity(double p_val);
 	void set_longitude_of_periapsis(double p_radians);
 	void set_true_anomaly(double p_radians);
+	void set_period(double p_seconds);
+	void set_epoch(double p_seconds);
 
 	// Orbit Equations
 	Vector2 get_cartesian_pos();
 	Vector2 get_cartesian_pos_at_angle(double p_radians);
-	double get_distance_from_primary(double p_radians);	
+	double get_distance_from_primary(double p_radians);
+	double get_angle_at_time(double p_seconds);
+	double get_time_at_angle(double p_radians);
 	
 	Entity();
 

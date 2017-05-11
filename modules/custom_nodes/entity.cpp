@@ -27,9 +27,9 @@ void Entity::set_properties(const Dictionary& p_dict) {
 	if (p_dict.has("longitude_of_periapsis")) {
 		set_longitude_of_periapsis(p_dict["longitude_of_periapsis"]);
 	}
-	if (p_dict.has("true_anomaly")) {
-		set_true_anomaly(p_dict["true_anomaly"]);
-	}
+	// if (p_dict.has("true_anomaly")) {
+	// 	set_true_anomaly(p_dict["true_anomaly"]);
+	// }
 	properties = p_dict;
 }
 
@@ -98,6 +98,14 @@ double Entity::get_true_anomaly() {
 	return true_anomaly;
 }
 
+double Entity::get_period() {
+	return period;
+}
+
+double Entity::get_epoch() {
+	return epoch;
+}
+
 void Entity::set_semi_major_axis(double p_km) {
 	// TODO: set limits
 	semi_major_axis = p_km;
@@ -115,6 +123,14 @@ void Entity::set_true_anomaly(double p_radians) {
 	true_anomaly = p_radians;
 }
 
+void Entity::set_period(double p_seconds) {
+	period = p_seconds;
+}
+
+void Entity::set_epoch(double p_seconds) {
+	epoch = p_seconds;
+}
+
 Vector2 Entity::get_cartesian_pos() {
 	double distance = get_distance_from_primary(true_anomaly);
 	return distance * Vector2(Math::cos(true_anomaly), Math::sin(true_anomaly));
@@ -127,6 +143,41 @@ Vector2 Entity::get_cartesian_pos_at_angle(double p_radians) {
 
 double Entity::get_distance_from_primary(double p_radians) {
 	return semi_major_axis * (1 - eccentricity * eccentricity) / (1 + eccentricity * Math::cos(p_radians));
+}
+
+double Entity::get_angle_at_time(double p_seconds) {
+	ERR_FAIL_COND_V(period <= 0, 0);
+
+	int maxIterations = 15;
+	double accuracy = 0.001;
+	double M = 2.0 * Math_PI * p_seconds / period;
+	double E = M;
+	double e = eccentricity;
+	double f;
+	for (int i = 0; i < maxIterations; i++)
+	{
+		f = E - e * Math::sin(E) - M;
+		if (f < accuracy)
+		{
+			break;
+		}
+		E = E - f / (1 - e * Math::cos(E));
+	}
+	// return 2.0 * Math::atan2(Math::sqrt(1 + eccentricity) * Math::sin(E / 2.0),
+	// 	Math::sqrt(1 - eccentricity) * Math::cos(E / 2.0));
+	double v = Math::atan2(Math::cos(E) - e, Math::sqrt(1 - e*e) * Math::sin(E));
+	if (v < 0)
+		v += 2.0 * Math_PI;
+	return v;
+
+}
+
+double Entity::get_time_at_angle(double p_radians) {
+	ERR_FAIL_COND_V(period <= 0, 0);
+
+
+	double eccentric_anomaly = Math::atan2(eccentricity + Math::cos(p_radians), Math::sqrt(1 - eccentricity * eccentricity) * Math::sin(p_radians));
+	return (period / (2.0 * Math_PI)) * (eccentric_anomaly - eccentricity * Math::sin(eccentric_anomaly));
 }
 
 void Entity::_bind_methods() {
@@ -152,19 +203,28 @@ void Entity::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("get_eccentricity"),&Entity::get_eccentricity);
 	ClassDB::bind_method(D_METHOD("get_longitude_of_periapsis"),&Entity::get_longitude_of_periapsis);
 	ClassDB::bind_method(D_METHOD("get_true_anomaly"),&Entity::get_true_anomaly);
+	ClassDB::bind_method(D_METHOD("get_period"),&Entity::get_period);
+	ClassDB::bind_method(D_METHOD("get_epoch"),&Entity::get_epoch);
+
 	ClassDB::bind_method(D_METHOD("set_semi_major_axis","semi_major_axis"),&Entity::set_semi_major_axis);
 	ClassDB::bind_method(D_METHOD("set_eccentricity","eccentricity"),&Entity::set_eccentricity);
 	ClassDB::bind_method(D_METHOD("set_longitude_of_periapsis","longitude_of_periapsis"),&Entity::set_longitude_of_periapsis);
 	ClassDB::bind_method(D_METHOD("set_true_anomaly","true_anomaly"),&Entity::set_true_anomaly);
+	ClassDB::bind_method(D_METHOD("set_period","period"),&Entity::set_period);
+	ClassDB::bind_method(D_METHOD("set_epoch","epoch"),&Entity::set_epoch);
 
 	ADD_PROPERTYNZ(PropertyInfo(Variant::REAL,"semi_major_axis"),"set_semi_major_axis","get_semi_major_axis");
 	ADD_PROPERTYNZ(PropertyInfo(Variant::REAL,"eccentricity"),"set_eccentricity","get_eccentricity");
 	ADD_PROPERTYNZ(PropertyInfo(Variant::REAL,"longitude_of_periapsis"),"set_longitude_of_periapsis","get_longitude_of_periapsis");
 	ADD_PROPERTYNZ(PropertyInfo(Variant::REAL,"true_anomaly"),"set_true_anomaly","get_true_anomaly");
+	ADD_PROPERTYNZ(PropertyInfo(Variant::REAL,"period"),"set_period","get_period");
+	ADD_PROPERTYNZ(PropertyInfo(Variant::REAL,"epoch"),"set_epoch","get_epoch");
 
 	ClassDB::bind_method(D_METHOD("get_cartesian_pos"),&Entity::get_cartesian_pos);
 	ClassDB::bind_method(D_METHOD("get_cartesian_pos_at_angle","radians"),&Entity::get_cartesian_pos_at_angle);
 	ClassDB::bind_method(D_METHOD("get_distance_from_primary"),&Entity::get_distance_from_primary);
+	ClassDB::bind_method(D_METHOD("get_angle_at_time", "seconds"),&Entity::get_angle_at_time);
+	ClassDB::bind_method(D_METHOD("get_time_at_angle", "p_radians"),&Entity::get_time_at_angle);
 
 }
 
@@ -176,6 +236,8 @@ Entity::Entity() {
 	eccentricity = 0;
 	longitude_of_periapsis = 0;
 	true_anomaly = 0;
+	period = 0;
+	epoch = 0;
 }
 
 
