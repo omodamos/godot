@@ -407,13 +407,12 @@ void EditorSettings::setup_network() {
 	IP::get_singleton()->get_local_addresses(&local_ip);
 	String lip;
 	String hint;
-	String current = has("network/debug_host") ? get("network/debug_host") : "";
+	String current = has("network/debug/remote_host") ? get("network/debug/remote_host") : "";
+	int port = has("network/debug/remote_port") ? (int)get("network/debug/remote_port") : 6007;
 
 	for (List<IP_Address>::Element *E = local_ip.front(); E; E = E->next()) {
 
 		String ip = E->get();
-		if (ip == "127.0.0.1")
-			continue;
 
 		if (lip == "")
 			lip = ip;
@@ -424,8 +423,11 @@ void EditorSettings::setup_network() {
 		hint += ip;
 	}
 
-	set("network/debug_host", lip);
-	add_property_hint(PropertyInfo(Variant::STRING, "network/debug_host", PROPERTY_HINT_ENUM, hint));
+	set("network/debug/remote_host", lip);
+	add_property_hint(PropertyInfo(Variant::STRING, "network/debug/remote_host", PROPERTY_HINT_ENUM, hint));
+
+	set("network/debug/remote_port", port);
+	add_property_hint(PropertyInfo(Variant::INT, "network/debug/remote_port", PROPERTY_HINT_RANGE, "1,65535,1"));
 }
 
 void EditorSettings::save() {
@@ -509,6 +511,8 @@ void EditorSettings::_load_defaults(Ref<ConfigFile> p_extra_config) {
 	set("interface/dim_transition_time", 0.08f);
 	hints["interface/dim_transition_time"] = PropertyInfo(Variant::REAL, "interface/dim_transition_time", PROPERTY_HINT_RANGE, "0,1,0.001", PROPERTY_USAGE_DEFAULT);
 
+	set("interface/separate_distraction_mode", false);
+
 	set("filesystem/directories/autoscan_project_path", "");
 	hints["filesystem/directories/autoscan_project_path"] = PropertyInfo(Variant::STRING, "filesystem/directories/autoscan_project_path", PROPERTY_HINT_GLOBAL_DIR);
 	set("filesystem/directories/default_project_path", "");
@@ -588,6 +592,9 @@ void EditorSettings::_load_defaults(Ref<ConfigFile> p_extra_config) {
 	set("editors/3d/emulate_numpad", false);
 	set("editors/3d/emulate_3_button_mouse", false);
 	set("editors/3d/warped_mouse_panning", true);
+
+	set("editors/3d/freelook_base_speed", 1);
+	set("editors/3d/freelook_modifier_speed_factor", 5.0);
 
 	set("editors/2d/bone_width", 5);
 	set("editors/2d/bone_color1", Color(1.0, 1.0, 1.0, 0.9));

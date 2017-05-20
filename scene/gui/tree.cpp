@@ -1518,6 +1518,7 @@ int Tree::propagate_mouse_event(const Point2i &p_pos, int x_ofs, int y_ofs, bool
 			if (p_doubleclick && (!c.editable || c.mode == TreeItem::CELL_MODE_CUSTOM || c.mode == TreeItem::CELL_MODE_ICON /*|| c.mode==TreeItem::CELL_MODE_CHECK*/)) { //it' s confusing for check
 
 				emit_signal("item_activated");
+				incr_search.clear();
 				return -1;
 			}
 
@@ -2071,6 +2072,7 @@ void Tree::_gui_input(InputEvent p_event) {
 						//bring up editor if possible
 						if (!edit_selected()) {
 							emit_signal("item_activated");
+							incr_search.clear();
 						}
 					}
 					accept_event();
@@ -2212,6 +2214,26 @@ void Tree::_gui_input(InputEvent p_event) {
 
 				if (b.button_index == BUTTON_LEFT) {
 
+					Ref<StyleBox> bg = cache.bg;
+
+					Point2 pos = Point2(b.x, b.y) - bg->get_offset();
+					if (show_column_titles) {
+						pos.y -= _get_title_button_height();
+
+						if (pos.y < 0) {
+							pos.x += cache.offset.x;
+							int len = 0;
+							for (int i = 0; i < columns.size(); i++) {
+
+								len += get_column_width(i);
+								if (pos.x < len) {
+									emit_signal("column_title_pressed", i);
+									break;
+								}
+							}
+						}
+					}
+
 					if (single_select_defer) {
 						select_single_item(single_select_defer, root, single_select_defer_column);
 						single_select_defer = NULL;
@@ -2339,11 +2361,11 @@ void Tree::_gui_input(InputEvent p_event) {
 				} break;
 				case BUTTON_WHEEL_UP: {
 
-					v_scroll->set_value(v_scroll->get_value() - v_scroll->get_page() / 8);
+					v_scroll->set_value(v_scroll->get_value() - v_scroll->get_page() * b.factor / 8);
 				} break;
 				case BUTTON_WHEEL_DOWN: {
 
-					v_scroll->set_value(v_scroll->get_value() + v_scroll->get_page() / 8);
+					v_scroll->set_value(v_scroll->get_value() + v_scroll->get_page() * b.factor / 8);
 				} break;
 			}
 
@@ -3454,6 +3476,7 @@ void Tree::_bind_methods() {
 	ADD_SIGNAL(MethodInfo("button_pressed", PropertyInfo(Variant::OBJECT, "item"), PropertyInfo(Variant::INT, "column"), PropertyInfo(Variant::INT, "id")));
 	ADD_SIGNAL(MethodInfo("custom_popup_edited", PropertyInfo(Variant::BOOL, "arrow_clicked")));
 	ADD_SIGNAL(MethodInfo("item_activated"));
+	ADD_SIGNAL(MethodInfo("column_title_pressed", PropertyInfo(Variant::INT, "column")));
 
 	BIND_CONSTANT(SELECT_SINGLE);
 	BIND_CONSTANT(SELECT_ROW);

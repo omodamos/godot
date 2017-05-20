@@ -488,8 +488,9 @@ void EditorFileDialog::update_file_list() {
 
 		if (!has_icon("ResizedFolder", "EditorIcons")) {
 			Ref<ImageTexture> folder = get_icon("FolderBig", "EditorIcons");
-			Image img = folder->get_data();
-			img.resize(thumbnail_size, thumbnail_size);
+			Ref<Image> img = folder->get_data();
+			img = img->duplicate();
+			img->resize(thumbnail_size, thumbnail_size);
 			Ref<ImageTexture> resized_folder = Ref<ImageTexture>(memnew(ImageTexture));
 			resized_folder->create_from_image(img, 0);
 			Theme::get_default()->set_icon("ResizedFolder", "EditorIcons", resized_folder);
@@ -499,8 +500,9 @@ void EditorFileDialog::update_file_list() {
 
 		if (!has_icon("ResizedFile", "EditorIcons")) {
 			Ref<ImageTexture> file = get_icon("FileBig", "EditorIcons");
-			Image img = file->get_data();
-			img.resize(thumbnail_size, thumbnail_size);
+			Ref<Image> img = file->get_data();
+			img = img->duplicate();
+			img->resize(thumbnail_size, thumbnail_size);
 			Ref<ImageTexture> resized_file = Ref<ImageTexture>(memnew(ImageTexture));
 			resized_file->create_from_image(img, 0);
 			Theme::get_default()->set_icon("ResizedFile", "EditorIcons", resized_file);
@@ -552,8 +554,8 @@ void EditorFileDialog::update_file_list() {
 		dirs.push_back("..");
 	}
 
-	dirs.sort_custom<NoCaseComparator>();
-	files.sort_custom<NoCaseComparator>();
+	dirs.sort_custom<NaturalNoCaseComparator>();
+	files.sort_custom<NaturalNoCaseComparator>();
 
 	while (!dirs.empty()) {
 		const String &dir_name = dirs.front()->get();

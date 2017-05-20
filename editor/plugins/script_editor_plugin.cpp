@@ -1037,7 +1037,7 @@ void ScriptEditor::_notification(int p_what) {
 
 		EditorSettings::get_singleton()->connect("settings_changed", this, "_editor_settings_changed");
 		help_search->set_icon(get_icon("Help", "EditorIcons"));
-		site_search->set_icon(get_icon("Godot", "EditorIcons"));
+		site_search->set_icon(get_icon("GodotDocs", "EditorIcons"));
 		class_search->set_icon(get_icon("ClassList", "EditorIcons"));
 
 		script_forward->set_icon(get_icon("Forward", "EditorIcons"));
@@ -1048,6 +1048,7 @@ void ScriptEditor::_notification(int p_what) {
 
 		get_tree()->connect("tree_changed", this, "_tree_changed");
 		editor->connect("request_help", this, "_request_help");
+		editor->connect("request_help_search", this, "_help_search");
 	}
 
 	if (p_what == NOTIFICATION_EXIT_TREE) {
