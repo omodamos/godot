@@ -43,12 +43,11 @@ void EditorRunNative::_notification(int p_what) {
 				continue;
 			Ref<ImageTexture> icon = eep->get_logo();
 			if (!icon.is_null()) {
-				Ref<Image> im = icon->get_data();
-				im = im->duplicate();
-				im->clear_mipmaps();
-				if (!im->empty()) {
+				Image im = icon->get_data();
+				im.clear_mipmaps();
+				if (!im.empty()) {
 
-					im->resize(16, 16);
+					im.resize(16, 16);
 					Ref<ImageTexture> small_icon;
 					small_icon.instance();
 					small_icon->create_from_image(im, 0);

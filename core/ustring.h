@@ -98,7 +98,6 @@ public:
 
 	signed char casecmp_to(const String &p_str) const;
 	signed char nocasecmp_to(const String &p_str) const;
-	signed char naturalnocasecmp_to(const String &p_str) const;
 
 	const CharType *c_str() const;
 	/* standard size stuff */
@@ -254,14 +253,6 @@ struct NoCaseComparator {
 	bool operator()(const String &p_a, const String &p_b) const {
 
 		return p_a.nocasecmp_to(p_b) < 0;
-	}
-};
-
-struct NaturalNoCaseComparator {
-
-	bool operator()(const String &p_a, const String &p_b) const {
-
-		return p_a.naturalnocasecmp_to(p_b) < 0;
 	}
 };
 

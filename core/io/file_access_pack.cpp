@@ -440,12 +440,13 @@ Error DirAccessPack::change_dir(String p_dir) {
 
 String DirAccessPack::get_current_dir() {
 
+	String p;
 	PackedData::PackedDir *pd = current;
-	String p = current->name;
-
 	while (pd->parent) {
-		pd = pd->parent;
-		p = pd->name + "/" + p;
+
+		if (pd != current)
+			p = "/" + p;
+		p = p + pd->name;
 	}
 
 	return "res://" + p;

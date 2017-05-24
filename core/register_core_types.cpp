@@ -108,8 +108,6 @@ void register_core_types() {
 	ClassDB::register_class<Reference>();
 	ClassDB::register_class<WeakRef>();
 	ClassDB::register_class<Resource>();
-	ClassDB::register_class<Image>();
-
 	ClassDB::register_class<FuncRef>();
 	ClassDB::register_virtual_class<StreamPeer>();
 	ClassDB::register_class<StreamPeerBuffer>();

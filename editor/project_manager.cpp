@@ -806,12 +806,11 @@ void ProjectManager::_load_recent_projects() {
 		if (cf->has_section_key("application", "icon")) {
 			String appicon = cf->get_value("application", "icon");
 			if (appicon != "") {
-				Ref<Image> img;
-				img.instance();
-				Error err = img->load(appicon.replace_first("res://", path + "/"));
+				Image img;
+				Error err = img.load(appicon.replace_first("res://", path + "/"));
 				if (err == OK) {
 
-					img->resize(64, 64);
+					img.resize(64, 64);
 					Ref<ImageTexture> it = memnew(ImageTexture);
 					it->create_from_image(img);
 					icon = it;

@@ -30,7 +30,6 @@
 #ifndef EDITOR_PLUGIN_H
 #define EDITOR_PLUGIN_H
 
-#include "editor/import/editor_import_plugin.h"
 #include "io/config_file.h"
 #include "scene/gui/tool_button.h"
 #include "scene/main/node.h"
@@ -146,8 +145,6 @@ public:
 
 	virtual void restore_global_state();
 	virtual void save_global_state();
-
-	void add_import_plugin(const Ref<EditorImportPlugin> &p_importer);
 
 	EditorPlugin();
 	virtual ~EditorPlugin();

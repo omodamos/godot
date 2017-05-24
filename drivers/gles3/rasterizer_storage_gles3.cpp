@@ -101,11 +101,11 @@
 
 GLuint RasterizerStorageGLES3::system_fbo = 0;
 
-Ref<Image> RasterizerStorageGLES3::_get_gl_image_and_format(const Ref<Image> &p_image, Image::Format p_format, uint32_t p_flags, GLenum &r_gl_format, GLenum &r_gl_internal_format, GLenum &r_gl_type, bool &r_compressed, bool &srgb) {
+Image RasterizerStorageGLES3::_get_gl_image_and_format(const Image &p_image, Image::Format p_format, uint32_t p_flags, GLenum &r_gl_format, GLenum &r_gl_internal_format, GLenum &r_gl_type, bool &r_compressed, bool &srgb) {
 
 	r_compressed = false;
 	r_gl_format = 0;
-	Ref<Image> image = p_image;
+	Image image = p_image;
 	srgb = false;
 
 	bool need_decompress = false;
@@ -538,17 +538,16 @@ Ref<Image> RasterizerStorageGLES3::_get_gl_image_and_format(const Ref<Image> &p_
 		} break;
 		default: {
 
-			ERR_FAIL_V(Ref<Image>());
+			ERR_FAIL_V(Image());
 		}
 	}
 
 	if (need_decompress) {
 
-		if (!image.is_null()) {
-			image = image->duplicate();
-			image->decompress();
-			ERR_FAIL_COND_V(image->is_compressed(), image);
-			image->convert(Image::FORMAT_RGBA8);
+		if (!image.empty()) {
+			image.decompress();
+			ERR_FAIL_COND_V(image.is_compressed(), image);
+			image.convert(Image::FORMAT_RGBA8);
 		}
 
 		r_gl_format = GL_RGBA;
@@ -608,7 +607,7 @@ void RasterizerStorageGLES3::texture_allocate(RID p_texture, int p_width, int p_
 	texture->stored_cube_sides = 0;
 	texture->target = (p_flags & VS::TEXTURE_FLAG_CUBEMAP) ? GL_TEXTURE_CUBE_MAP : GL_TEXTURE_2D;
 
-	_get_gl_image_and_format(Ref<Image>(), texture->format, texture->flags, format, internal_format, type, compressed, srgb);
+	_get_gl_image_and_format(Image(), texture->format, texture->flags, format, internal_format, type, compressed, srgb);
 
 	texture->alloc_width = texture->width;
 	texture->alloc_height = texture->height;
@@ -632,15 +631,15 @@ void RasterizerStorageGLES3::texture_allocate(RID p_texture, int p_width, int p_
 	texture->active = true;
 }
 
-void RasterizerStorageGLES3::texture_set_data(RID p_texture, const Ref<Image> &p_image, VS::CubeMapSide p_cube_side) {
+void RasterizerStorageGLES3::texture_set_data(RID p_texture, const Image &p_image, VS::CubeMapSide p_cube_side) {
 
 	Texture *texture = texture_owner.get(p_texture);
 
 	ERR_FAIL_COND(!texture);
 	ERR_FAIL_COND(!texture->active);
 	ERR_FAIL_COND(texture->render_target);
-	ERR_FAIL_COND(texture->format != p_image->get_format());
-	ERR_FAIL_COND(p_image.is_null());
+	ERR_FAIL_COND(texture->format != p_image.get_format());
+	ERR_FAIL_COND(p_image.empty());
 
 	GLenum type;
 	GLenum format;
@@ -652,31 +651,31 @@ void RasterizerStorageGLES3::texture_set_data(RID p_texture, const Ref<Image> &p
 		texture->images[p_cube_side] = p_image;
 	}
 
-	Ref<Image> img = _get_gl_image_and_format(p_image, p_image->get_format(), texture->flags, format, internal_format, type, compressed, srgb);
+	Image img = _get_gl_image_and_format(p_image, p_image.get_format(), texture->flags, format, internal_format, type, compressed, srgb);
 
-	if (config.shrink_textures_x2 && (p_image->has_mipmaps() || !p_image->is_compressed()) && !(texture->flags & VS::TEXTURE_FLAG_USED_FOR_STREAMING)) {
+	if (config.shrink_textures_x2 && (p_image.has_mipmaps() || !p_image.is_compressed()) && !(texture->flags & VS::TEXTURE_FLAG_USED_FOR_STREAMING)) {
 
 		texture->alloc_height = MAX(1, texture->alloc_height / 2);
 		texture->alloc_width = MAX(1, texture->alloc_width / 2);
 
-		if (texture->alloc_width == img->get_width() / 2 && texture->alloc_height == img->get_height() / 2) {
+		if (texture->alloc_width == img.get_width() / 2 && texture->alloc_height == img.get_height() / 2) {
 
-			img->shrink_x2();
-		} else if (img->get_format() <= Image::FORMAT_RGB565) {
+			img.shrink_x2();
+		} else if (img.get_format() <= Image::FORMAT_RGB565) {
 
-			img->resize(texture->alloc_width, texture->alloc_height, Image::INTERPOLATE_BILINEAR);
+			img.resize(texture->alloc_width, texture->alloc_height, Image::INTERPOLATE_BILINEAR);
 		}
 	};
 
 	GLenum blit_target = (texture->target == GL_TEXTURE_CUBE_MAP) ? _cube_side_enum[p_cube_side] : GL_TEXTURE_2D;
 
-	texture->data_size = img->get_data().size();
-	PoolVector<uint8_t>::Read read = img->get_data().read();
+	texture->data_size = img.get_data().size();
+	PoolVector<uint8_t>::Read read = img.get_data().read();
 
 	glActiveTexture(GL_TEXTURE0);
 	glBindTexture(texture->target, texture->tex_id);
 
-	texture->ignore_mipmaps = compressed && !img->has_mipmaps();
+	texture->ignore_mipmaps = compressed && !img.has_mipmaps();
 
 	if (texture->flags & VS::TEXTURE_FLAG_MIPMAPS && !texture->ignore_mipmaps)
 		glTexParameteri(texture->target, GL_TEXTURE_MIN_FILTER, config.use_fast_texture_filter ? GL_LINEAR_MIPMAP_NEAREST : GL_LINEAR_MIPMAP_LINEAR);
@@ -762,16 +761,16 @@ void RasterizerStorageGLES3::texture_set_data(RID p_texture, const Ref<Image> &p
 		}
 	}
 
-	int mipmaps = (texture->flags & VS::TEXTURE_FLAG_MIPMAPS && img->has_mipmaps()) ? img->get_mipmap_count() + 1 : 1;
+	int mipmaps = (texture->flags & VS::TEXTURE_FLAG_MIPMAPS && img.has_mipmaps()) ? img.get_mipmap_count() + 1 : 1;
 
-	int w = img->get_width();
-	int h = img->get_height();
+	int w = img.get_width();
+	int h = img.get_height();
 
 	int tsize = 0;
 	for (int i = 0; i < mipmaps; i++) {
 
 		int size, ofs;
-		img->get_mipmap_offset_and_size(i, ofs, size);
+		img.get_mipmap_offset_and_size(i, ofs, size);
 
 		//print_line("mipmap: "+itos(i)+" size: "+itos(size)+" w: "+itos(mm_w)+", h: "+itos(mm_h));
 
@@ -814,16 +813,16 @@ void RasterizerStorageGLES3::texture_set_data(RID p_texture, const Ref<Image> &p
 	//texture_set_flags(p_texture,texture->flags);
 }
 
-Ref<Image> RasterizerStorageGLES3::texture_get_data(RID p_texture, VS::CubeMapSide p_cube_side) const {
+Image RasterizerStorageGLES3::texture_get_data(RID p_texture, VS::CubeMapSide p_cube_side) const {
 
 	Texture *texture = texture_owner.get(p_texture);
 
-	ERR_FAIL_COND_V(!texture, Ref<Image>());
-	ERR_FAIL_COND_V(!texture->active, Ref<Image>());
-	ERR_FAIL_COND_V(texture->data_size == 0, Ref<Image>());
-	ERR_FAIL_COND_V(texture->render_target, Ref<Image>());
+	ERR_FAIL_COND_V(!texture, Image());
+	ERR_FAIL_COND_V(!texture->active, Image());
+	ERR_FAIL_COND_V(texture->data_size == 0, Image());
+	ERR_FAIL_COND_V(texture->render_target, Image());
 
-	if (!texture->images[p_cube_side].is_null()) {
+	if (!texture->images[p_cube_side].empty()) {
 		return texture->images[p_cube_side];
 	}
 
@@ -868,13 +867,13 @@ Ref<Image> RasterizerStorageGLES3::texture_get_data(RID p_texture, VS::CubeMapSi
 
 	data.resize(data_size);
 
-	Image *img = memnew(Image(texture->alloc_width, texture->alloc_height, texture->mipmaps > 1 ? true : false, texture->format, data));
+	Image img(texture->alloc_width, texture->alloc_height, texture->mipmaps > 1 ? true : false, texture->format, data);
 
-	return Ref<Image>(img);
+	return img;
 #else
 
 	ERR_EXPLAIN("Sorry, It's not posible to obtain images back in OpenGL ES");
-	return Ref<Image>();
+	return Image();
 #endif
 }
 

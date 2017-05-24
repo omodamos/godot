@@ -509,13 +509,10 @@ LRESULT OS_Windows::WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) 
 						if (!motion)
 							return 0;
 
-						if (motion < 0) {
+						if (motion < 0)
 							mb.button_index = BUTTON_WHEEL_LEFT;
-							mb.factor = fabs((double)motion / (double)WHEEL_DELTA);
-						} else {
+						else
 							mb.button_index = BUTTON_WHEEL_RIGHT;
-							mb.factor = fabs((double)motion / (double)WHEEL_DELTA);
-						}
 					} break;
 					/*
 				case WM_XBUTTONDOWN: {
@@ -1996,14 +1993,13 @@ String OS_Windows::get_executable_path() const {
 	return s;
 }
 
-void OS_Windows::set_icon(const Ref<Image> &p_icon) {
+void OS_Windows::set_icon(const Image &p_icon) {
 
-	ERR_FAIL_COND(!p_icon.is_valid());
-	Ref<Image> icon = p_icon->duplicate();
-	if (icon->get_format() != Image::FORMAT_RGBA8)
-		icon->convert(Image::FORMAT_RGBA8);
-	int w = icon->get_width();
-	int h = icon->get_height();
+	Image icon = p_icon;
+	if (icon.get_format() != Image::FORMAT_RGBA8)
+		icon.convert(Image::FORMAT_RGBA8);
+	int w = icon.get_width();
+	int h = icon.get_height();
 
 	/* Create temporary bitmap buffer */
 	int icon_len = 40 + h * w * 4;
@@ -2024,7 +2020,7 @@ void OS_Windows::set_icon(const Ref<Image> &p_icon) {
 	encode_uint32(0, &icon_bmp[36]);
 
 	uint8_t *wr = &icon_bmp[40];
-	PoolVector<uint8_t>::Read r = icon->get_data().read();
+	PoolVector<uint8_t>::Read r = icon.get_data().read();
 
 	for (int i = 0; i < h; i++) {
 

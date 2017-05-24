@@ -1,4 +1,4 @@
-[![Godot Engine logo](/logo.png)](https://godotengine.org)
+[![GODOT](/logo.png)](https://godotengine.org)
 
 ## Godot Engine
 

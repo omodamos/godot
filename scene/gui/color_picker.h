@@ -47,7 +47,7 @@ class ColorPicker : public BoxContainer {
 
 private:
 	Control *screen;
-	Ref<Image> last_capture;
+	Image last_capture;
 	Control *uv_edit;
 	Control *w_edit;
 	TextureRect *sample;

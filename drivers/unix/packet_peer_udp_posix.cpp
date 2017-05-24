@@ -216,8 +216,6 @@ Error PacketPeerUDPPosix::_poll(bool p_wait) {
 
 		len = sizeof(struct sockaddr_storage);
 		++queue_count;
-		if (p_wait)
-			break;
 	};
 
 	// TODO: Should ECONNRESET be handled here?

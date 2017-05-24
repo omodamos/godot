@@ -75,6 +75,7 @@ private:
 	bool editor_only;
 	void _update_visibility();
 
+	BakedLight *baked_light;
 	// bind helpers
 
 protected:

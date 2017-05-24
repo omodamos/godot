@@ -55,6 +55,18 @@ MainLoop *test() {
 
 	{
 
+		Image img;
+		img.create(default_mouse_cursor_xpm);
+
+		{
+			for (int i = 0; i < 8; i++) {
+
+				Image mipmap;
+				//img.make_mipmap(mipmap);
+				img = mipmap;
+				if (img.get_width() <= 4) break;
+			};
+		};
 	};
 
 #if 0

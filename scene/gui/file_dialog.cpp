@@ -336,8 +336,8 @@ void FileDialog::update_file_list() {
 		dirs.push_back("..");
 	}
 
-	dirs.sort_custom<NaturalNoCaseComparator>();
-	files.sort_custom<NaturalNoCaseComparator>();
+	dirs.sort_custom<NoCaseComparator>();
+	files.sort_custom<NoCaseComparator>();
 
 	while (!dirs.empty()) {
 		String &dir_name = dirs.front()->get();

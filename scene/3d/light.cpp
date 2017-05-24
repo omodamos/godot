@@ -29,6 +29,7 @@
 /*************************************************************************/
 #include "light.h"
 
+#include "baked_light_instance.h"
 #include "global_config.h"
 #include "scene/resources/surface_tool.h"
 
@@ -165,9 +166,26 @@ void Light::_notification(int p_what) {
 
 	if (p_what == NOTIFICATION_ENTER_TREE) {
 		_update_visibility();
+
+		Node *node = this;
+
+		while (node) {
+
+			baked_light = node->cast_to<BakedLight>();
+			if (baked_light) {
+				baked_light->lights.insert(this);
+				break;
+			}
+
+			node = node->get_parent();
+		}
 	}
 
 	if (p_what == NOTIFICATION_EXIT_TREE) {
+
+		if (baked_light) {
+			baked_light->lights.erase(this);
+		}
 	}
 }
 
@@ -243,6 +261,8 @@ Light::Light(VisualServer::LightType p_type) {
 	type = p_type;
 	light = VisualServer::get_singleton()->light_create(p_type);
 	VS::get_singleton()->instance_set_base(get_instance(), light);
+
+	baked_light = NULL;
 
 	editor_only = false;
 	set_color(Color(1, 1, 1, 1));

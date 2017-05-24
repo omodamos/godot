@@ -136,6 +136,7 @@ void PropertySelector::_update_search() {
 			Control::get_icon("MiniMatrix3", "EditorIcons"),
 			Control::get_icon("MiniTransform", "EditorIcons"),
 			Control::get_icon("MiniColor", "EditorIcons"),
+			Control::get_icon("MiniImage", "EditorIcons"),
 			Control::get_icon("MiniPath", "EditorIcons"),
 			Control::get_icon("MiniRid", "EditorIcons"),
 			Control::get_icon("MiniObject", "EditorIcons"),

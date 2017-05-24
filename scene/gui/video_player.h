@@ -59,7 +59,7 @@ class VideoPlayer : public Control {
 	RID stream_rid;
 
 	Ref<ImageTexture> texture;
-	Ref<Image> last_frame;
+	Image last_frame;
 
 	AudioRBResampler resampler;
 

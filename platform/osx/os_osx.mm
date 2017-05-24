@@ -788,22 +788,6 @@ static int translateKey(unsigned int key) {
 */
 }
 
-inline void sendScrollEvent(int button, double factor) {
-	InputEvent ev;
-	ev.type = InputEvent::MOUSE_BUTTON;
-	ev.mouse_button.button_index = button;
-	ev.mouse_button.factor = factor;
-	ev.mouse_button.pressed = true;
-	ev.mouse_button.x = mouse_x;
-	ev.mouse_button.y = mouse_y;
-	ev.mouse_button.global_x = mouse_x;
-	ev.mouse_button.global_y = mouse_y;
-	ev.mouse_button.button_mask = button_mask;
-	OS_OSX::singleton->push_input(ev);
-	ev.mouse_button.pressed = false;
-	OS_OSX::singleton->push_input(ev);
-}
-
 - (void)scrollWheel:(NSEvent *)event {
 	double deltaX, deltaY;
 
@@ -813,21 +797,48 @@ inline void sendScrollEvent(int button, double factor) {
 		deltaY = [event scrollingDeltaY];
 
 		if ([event hasPreciseScrollingDeltas]) {
-			deltaX *= 0.03;
-			deltaY *= 0.03;
+			deltaX *= 0.1;
+			deltaY *= 0.1;
 		}
-	} else
-#endif // MAC_OS_X_VERSION_MAX_ALLOWED
-	{
+	} else {
 		deltaX = [event deltaX];
 		deltaY = [event deltaY];
 	}
+#else
+	deltaX = [event deltaX];
+	deltaY = [event deltaY];
+#endif /*MAC_OS_X_VERSION_MAX_ALLOWED*/
+
+	if (fabs(deltaY)) {
+
+		InputEvent ev;
+		ev.type = InputEvent::MOUSE_BUTTON;
+		ev.mouse_button.button_index = deltaY > 0 ? BUTTON_WHEEL_UP : BUTTON_WHEEL_DOWN;
+		ev.mouse_button.pressed = true;
+		ev.mouse_button.x = mouse_x;
+		ev.mouse_button.y = mouse_y;
+		ev.mouse_button.global_x = mouse_x;
+		ev.mouse_button.global_y = mouse_y;
+		ev.mouse_button.button_mask = button_mask;
+		OS_OSX::singleton->push_input(ev);
+		ev.mouse_button.pressed = false;
+		OS_OSX::singleton->push_input(ev);
+	}
 
 	if (fabs(deltaX)) {
-		sendScrollEvent(0 > deltaX ? BUTTON_WHEEL_RIGHT : BUTTON_WHEEL_LEFT, fabs(deltaX * 0.3));
-	}
-	if (fabs(deltaY)) {
-		sendScrollEvent(0 < deltaY ? BUTTON_WHEEL_UP : BUTTON_WHEEL_DOWN, fabs(deltaY * 0.3));
+
+		InputEvent ev;
+		ev.type = InputEvent::MOUSE_BUTTON;
+		ev.mouse_button.button_index = deltaX < 0 ? BUTTON_WHEEL_RIGHT : BUTTON_WHEEL_LEFT;
+		ev.mouse_button.pressed = true;
+		ev.mouse_button.x = mouse_x;
+		ev.mouse_button.y = mouse_y;
+		ev.mouse_button.global_x = mouse_x;
+		ev.mouse_button.global_y = mouse_y;
+		ev.mouse_button.button_mask = button_mask;
+		OS_OSX::singleton->push_input(ev);
+		ev.mouse_button.pressed = false;
+		OS_OSX::singleton->push_input(ev);
 	}
 }
 
@@ -1227,27 +1238,26 @@ void OS_OSX::set_window_title(const String &p_title) {
 	[window_object setTitle:[NSString stringWithUTF8String:p_title.utf8().get_data()]];
 }
 
-void OS_OSX::set_icon(const Ref<Image> &p_icon) {
+void OS_OSX::set_icon(const Image &p_icon) {
 
-	Ref<Image> img = p_icon;
-	img = img->duplicate();
-	img->convert(Image::FORMAT_RGBA8);
+	Image img = p_icon;
+	img.convert(Image::FORMAT_RGBA8);
 	NSBitmapImageRep *imgrep = [[[NSBitmapImageRep alloc]
 			initWithBitmapDataPlanes:NULL
-						  pixelsWide:img->get_width()
-						  pixelsHigh:img->get_height()
+						  pixelsWide:p_icon.get_width()
+						  pixelsHigh:p_icon.get_height()
 					   bitsPerSample:8
 					 samplesPerPixel:4
 							hasAlpha:YES
 							isPlanar:NO
 					  colorSpaceName:NSDeviceRGBColorSpace
-						 bytesPerRow:img->get_width() * 4
+						 bytesPerRow:p_icon.get_width() * 4
 						bitsPerPixel:32] autorelease];
 	ERR_FAIL_COND(imgrep == nil);
 	uint8_t *pixels = [imgrep bitmapData];
 
-	int len = img->get_width() * img->get_height();
-	PoolVector<uint8_t> data = img->get_data();
+	int len = img.get_width() * img.get_height();
+	PoolVector<uint8_t> data = img.get_data();
 	PoolVector<uint8_t>::Read r = data.read();
 
 	/* Premultiply the alpha channel */
@@ -1259,7 +1269,7 @@ void OS_OSX::set_icon(const Ref<Image> &p_icon) {
 		pixels[i * 4 + 3] = alpha;
 	}
 
-	NSImage *nsimg = [[[NSImage alloc] initWithSize:NSMakeSize(img->get_width(), img->get_height())] autorelease];
+	NSImage *nsimg = [[[NSImage alloc] initWithSize:NSMakeSize(img.get_width(), img.get_height())] autorelease];
 	ERR_FAIL_COND(nsimg == nil);
 	[nsimg addRepresentation:imgrep];
 
@@ -1620,6 +1630,7 @@ void OS_OSX::process_events() {
 void OS_OSX::push_input(const InputEvent &p_event) {
 
 	InputEvent ev = p_event;
+	//print_line("EV: "+String(ev));
 	input->parse_input_event(ev);
 }
 

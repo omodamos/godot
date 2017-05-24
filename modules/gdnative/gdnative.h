@@ -40,7 +40,7 @@
 
 #include "godot.h"
 
-struct GDNativeScriptData;
+class GDNativeScriptData;
 class GDNativeLibrary;
 
 struct NativeLibrary {
@@ -127,6 +127,8 @@ struct GDNativeScriptData {
 	}
 };
 
+class GDNativeLibrary;
+
 class GDNativeScript : public Script {
 	GDCLASS(GDNativeScript, Script);
 
@@ -206,7 +208,7 @@ class GDNativeLibrary : public Resource {
 
 protected:
 	friend class GDNativeScript;
-	friend struct NativeLibrary;
+	friend class NativeLibrary;
 	friend class GDNativeReloadNode;
 
 	GDNativeScriptData *get_script_data(const StringName p_name);

@@ -1226,10 +1226,10 @@ void Viewport::queue_screen_capture() {
 
 	//VS::get_singleton()->viewport_queue_screen_capture(viewport);
 }
-Ref<Image> Viewport::get_screen_capture() const {
+Image Viewport::get_screen_capture() const {
 
 	//return VS::get_singleton()->viewport_get_screen_capture(viewport);
-	return Ref<Image>();
+	return Image();
 }
 
 Ref<ViewportTexture> Viewport::get_texture() const {
