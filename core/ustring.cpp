@@ -1155,6 +1155,52 @@ String String::num_scientific(double p_num) {
 #endif
 }
 
+String String::convert_scientific(double p_num, int p_decimals) {
+
+#ifndef NO_USE_STDLIB
+
+	char buf[256];
+
+	if (p_decimals > 15)
+		p_decimals = 15;
+
+	char fmt[7];
+	fmt[0] = '%';
+	fmt[1] = '.';
+
+	if (p_decimals < 0) {
+
+		fmt[2] = 'l';
+		fmt[3] = 'E';
+		fmt[4] = 0;
+
+	} else if (p_decimals < 10) {
+		fmt[2] = '0' + p_decimals;
+		fmt[3] = 'l';
+		fmt[4] = 'E';
+		fmt[5] = 0;
+	} else {
+		fmt[2] = '0' + (p_decimals / 10);
+		fmt[3] = '0' + (p_decimals % 10);
+		fmt[4] = 'l';
+		fmt[5] = 'E';
+		fmt[6] = 0;
+	}
+
+#if defined(__GNUC__) || defined(_MSC_VER)
+	snprintf(buf, 256, fmt, p_num);
+#else
+	sprintf(buf, fmt, p_num);
+#endif
+
+	buf[255] = 0;
+	return buf;
+	
+#else
+	return String::num(p_num);
+#endif
+}
+
 CharString String::ascii(bool p_allow_extended) const {
 
 	if (!length())

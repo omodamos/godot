@@ -133,6 +133,7 @@ public:
 	String sprintf(const Array &values, bool *error) const;
 	static String num(double p_num, int p_decimals = -1);
 	static String num_scientific(double p_num);
+	String convert_scientific(double p_num, int p_decimals = -1);
 	static String num_real(double p_num);
 	static String num_int64(int64_t p_num, int base = 10, bool capitalize_hex = false);
 	static String chr(CharType p_char);
