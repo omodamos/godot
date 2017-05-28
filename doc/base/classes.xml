@@ -1991,6 +1991,7 @@
 			<argument index="1" name="pos" type="Vector3">
 			</argument>
 			<argument index="2" name="weight_scale" type="float" default="1">
+				Weight scale has to be 1 or larger.
 			</argument>
 			<description>
 			</description>
@@ -20356,7 +20357,7 @@
 		Singleton that manages actions.
 	</brief_description>
 	<description>
-		Singleton that manages actions. InputMap has a list of the actions used in InputEvent, which can be modified.
+		Singleton that manages actions. InputMap has a list of the actions used in Ref<InputEvent>, which can be modified.
 	</description>
 	<methods>
 		<method name="action_add_event">

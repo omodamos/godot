@@ -45,10 +45,6 @@ void EditorAudioBus::_notification(int p_what) {
 		vu_r->set_progress_texture(get_icon("BusVuFull", "EditorIcons"));
 		scale->set_texture(get_icon("BusVuDb", "EditorIcons"));
 
-		solo->set_icon(get_icon("AudioBusSolo", "EditorIcons"));
-		mute->set_icon(get_icon("AudioBusMute", "EditorIcons"));
-		bypass->set_icon(get_icon("AudioBusBypass", "EditorIcons"));
-
 		disabled_vu = get_icon("BusVuFrozen", "EditorIcons");
 
 		prev_active = true;
@@ -389,15 +385,18 @@ void EditorAudioBus::_effect_add(int p_which) {
 	ur->commit_action();
 }
 
-void EditorAudioBus::_gui_input(const InputEvent &p_event) {
+void EditorAudioBus::_gui_input(const Ref<InputEvent> &p_event) {
 
-	if (p_event.type == InputEvent::KEY && p_event.key.pressed && p_event.key.scancode == KEY_DELETE && !p_event.key.echo) {
+	Ref<InputEventKey> k = p_event;
+	if (k.is_valid() && k->is_pressed() && k->get_scancode() == KEY_DELETE && !k->is_echo()) {
 		accept_event();
 		emit_signal("delete_request");
 	}
-	if (p_event.type == InputEvent::MOUSE_BUTTON && p_event.mouse_button.button_index == 2 && p_event.mouse_button.pressed) {
 
-		Vector2 pos = Vector2(p_event.mouse_button.x, p_event.mouse_button.y);
+	Ref<InputEventMouseButton> mb = p_event;
+	if (mb.is_valid() && mb->get_button_index() == 2 && mb->is_pressed()) {
+
+		Vector2 pos = Vector2(mb->get_pos().x, mb->get_pos().y);
 		delete_popup->set_position(get_global_position() + pos);
 		delete_popup->popup();
 	}
@@ -631,23 +630,23 @@ EditorAudioBus::EditorAudioBus(EditorAudioBuses *p_buses) {
 	vb->add_child(hbc);
 	hbc->add_spacer();
 	solo = memnew(ToolButton);
-	solo->set_tooltip(TTR("Toggle Solo"));
+	solo->set_text("S");
 	solo->set_toggle_mode(true);
-	// solo->set_modulate(Color(0.8, 1.2, 0.8));
+	solo->set_modulate(Color(0.8, 1.2, 0.8));
 	solo->set_focus_mode(FOCUS_NONE);
 	solo->connect("pressed", this, "_solo_toggled");
 	hbc->add_child(solo);
 	mute = memnew(ToolButton);
-	mute->connect("pressed", this, "_mute_toggled");
+	mute->set_text("M");
 	mute->set_toggle_mode(true);
-	// mute->set_modulate(Color(1.2, 0.8, 0.8));
+	mute->set_modulate(Color(1.2, 0.8, 0.8));
 	mute->set_focus_mode(FOCUS_NONE);
-	mute->set_tooltip(TTR("Toggle Mute"));
+	mute->connect("pressed", this, "_mute_toggled");
 	hbc->add_child(mute);
 	bypass = memnew(ToolButton);
-	bypass->set_tooltip(TTR("Toggle Bypass"));
+	bypass->set_text("B");
 	bypass->set_toggle_mode(true);
-	// bypass->set_modulate(Color(1.1, 1.1, 0.8));
+	bypass->set_modulate(Color(1.1, 1.1, 0.8));
 	bypass->set_focus_mode(FOCUS_NONE);
 	bypass->connect("pressed", this, "_bypass_toggled");
 	hbc->add_child(bypass);
@@ -767,7 +766,7 @@ void EditorAudioBuses::_update_buses() {
 
 		EditorAudioBus *audio_bus = memnew(EditorAudioBus(this));
 		if (i == 0) {
-			audio_bus->set_self_modulate(Color(0.7, 0.7, 0.7));
+			audio_bus->set_self_modulate(Color(1, 0.9, 0.9));
 		}
 		bus_hb->add_child(audio_bus);
 		audio_bus->connect("delete_request", this, "_delete_bus", varray(audio_bus), CONNECT_DEFERRED);
@@ -1109,9 +1108,9 @@ EditorAudioBuses::EditorAudioBuses() {
 
 	file_dialog = memnew(EditorFileDialog);
 	List<String> ext;
-	ResourceLoader::get_recognized_extensions_for_type("AudioServerState", &ext);
+	ResourceLoader::get_recognized_extensions_for_type("AudioBusLayout", &ext);
 	for (List<String>::Element *E = ext.front(); E; E = E->next()) {
-		file_dialog->add_filter("*." + E->get() + "; Audio Bus State");
+		file_dialog->add_filter("*." + E->get() + "; Audio Bus Layout");
 	}
 	add_child(file_dialog);
 	file_dialog->connect("file_selected", this, "_file_dialog_callback");

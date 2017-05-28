@@ -264,7 +264,7 @@ void RichTextLabel::_process_line(ItemFrame *p_frame, const Vector2 &p_ofs, int 
 							cw = tab_size * font->get_char_size(' ').width;
 						}
 
-						if (end > 0 && w + cw + begin > p_width) {
+						if (end > 0 && w + cw + wofs > p_width) {
 							break; //don't allow lines longer than assigned width
 						}
 
@@ -734,158 +734,155 @@ Control::CursorShape RichTextLabel::get_cursor_shape(const Point2 &p_pos) const 
 	return CURSOR_ARROW;
 }
 
-void RichTextLabel::_gui_input(InputEvent p_event) {
+void RichTextLabel::_gui_input(Ref<InputEvent> p_event) {
 
-	switch (p_event.type) {
+	Ref<InputEventMouseButton> b = p_event;
 
-		case InputEvent::MOUSE_BUTTON: {
+	if (b.is_valid()) {
+		if (main->first_invalid_line < main->lines.size())
+			return;
 
-			if (main->first_invalid_line < main->lines.size())
-				return;
+		if (b->get_button_index() == BUTTON_LEFT) {
 
-			const InputEventMouseButton &b = p_event.mouse_button;
+			if (true) {
 
-			if (b.button_index == BUTTON_LEFT) {
+				if (b->is_pressed() && !b->is_doubleclick()) {
+					int line = 0;
+					Item *item = NULL;
 
-				if (true) {
+					bool outside;
+					_find_click(main, b->get_pos(), &item, &line, &outside);
 
-					if (b.pressed && !b.doubleclick) {
-						int line = 0;
-						Item *item = NULL;
+					if (item) {
 
-						bool outside;
-						_find_click(main, Point2i(b.x, b.y), &item, &line, &outside);
+						Variant meta;
+						if (!outside && _find_meta(item, &meta)) {
+							//meta clicked
 
-						if (item) {
+							emit_signal("meta_clicked", meta);
+						} else if (selection.enabled) {
 
-							Variant meta;
-							if (!outside && _find_meta(item, &meta)) {
-								//meta clicked
-
-								emit_signal("meta_clicked", meta);
-							} else if (selection.enabled) {
-
-								selection.click = item;
-								selection.click_char = line;
-							}
+							selection.click = item;
+							selection.click_char = line;
 						}
-
-					} else if (!b.pressed) {
-
-						selection.click = NULL;
 					}
+
+				} else if (!b->is_pressed()) {
+
+					selection.click = NULL;
 				}
 			}
+		}
 
-			if (b.button_index == BUTTON_WHEEL_UP) {
+		if (b->get_button_index() == BUTTON_WHEEL_UP) {
 
-				if (scroll_active)
-					vscroll->set_value(vscroll->get_value() - vscroll->get_page() / 8);
+			if (scroll_active)
+
+				vscroll->set_value(vscroll->get_value() - vscroll->get_page() * b->get_factor() * 0.5 / 8);
+		}
+		if (b->get_button_index() == BUTTON_WHEEL_DOWN) {
+
+			if (scroll_active)
+
+				vscroll->set_value(vscroll->get_value() + vscroll->get_page() * b->get_factor() * 0.5 / 8);
+		}
+	}
+
+	Ref<InputEventKey> k = p_event;
+
+	if (k.is_valid()) {
+		if (k->is_pressed() && !k->get_alt() && !k->get_shift() && !k->get_metakey()) {
+			bool handled = true;
+			switch (k->get_scancode()) {
+				case KEY_PAGEUP: {
+
+					if (vscroll->is_visible_in_tree())
+						vscroll->set_value(vscroll->get_value() - vscroll->get_page());
+				} break;
+				case KEY_PAGEDOWN: {
+
+					if (vscroll->is_visible_in_tree())
+						vscroll->set_value(vscroll->get_value() + vscroll->get_page());
+				} break;
+				case KEY_UP: {
+
+					if (vscroll->is_visible_in_tree())
+						vscroll->set_value(vscroll->get_value() - get_font("normal_font")->get_height());
+				} break;
+				case KEY_DOWN: {
+
+					if (vscroll->is_visible_in_tree())
+						vscroll->set_value(vscroll->get_value() + get_font("normal_font")->get_height());
+				} break;
+				case KEY_HOME: {
+
+					if (vscroll->is_visible_in_tree())
+						vscroll->set_value(0);
+				} break;
+				case KEY_END: {
+
+					if (vscroll->is_visible_in_tree())
+						vscroll->set_value(vscroll->get_max());
+				} break;
+				case KEY_INSERT:
+				case KEY_C: {
+
+					if (k->get_command()) {
+						selection_copy();
+					} else {
+						handled = false;
+					}
+
+				} break;
+				default: handled = false;
 			}
-			if (b.button_index == BUTTON_WHEEL_DOWN) {
 
-				if (scroll_active)
-					vscroll->set_value(vscroll->get_value() + vscroll->get_page() / 8);
-			}
-		} break;
-		case InputEvent::KEY: {
+			if (handled)
+				accept_event();
+		}
+	}
 
-			const InputEventKey &k = p_event.key;
-			if (k.pressed && !k.mod.alt && !k.mod.shift && !k.mod.meta) {
-				bool handled = true;
-				switch (k.scancode) {
-					case KEY_PAGEUP: {
+	Ref<InputEventMouseMotion> m = p_event;
 
-						if (vscroll->is_visible_in_tree())
-							vscroll->set_value(vscroll->get_value() - vscroll->get_page());
-					} break;
-					case KEY_PAGEDOWN: {
+	if (m.is_valid()) {
+		if (main->first_invalid_line < main->lines.size())
+			return;
 
-						if (vscroll->is_visible_in_tree())
-							vscroll->set_value(vscroll->get_value() + vscroll->get_page());
-					} break;
-					case KEY_UP: {
+		if (selection.click) {
 
-						if (vscroll->is_visible_in_tree())
-							vscroll->set_value(vscroll->get_value() - get_font("normal_font")->get_height());
-					} break;
-					case KEY_DOWN: {
+			int line = 0;
+			Item *item = NULL;
+			_find_click(main, m->get_pos(), &item, &line);
+			if (!item)
+				return; // do not update
 
-						if (vscroll->is_visible_in_tree())
-							vscroll->set_value(vscroll->get_value() + get_font("normal_font")->get_height());
-					} break;
-					case KEY_HOME: {
+			selection.from = selection.click;
+			selection.from_char = selection.click_char;
 
-						if (vscroll->is_visible_in_tree())
-							vscroll->set_value(0);
-					} break;
-					case KEY_END: {
+			selection.to = item;
+			selection.to_char = line;
 
-						if (vscroll->is_visible_in_tree())
-							vscroll->set_value(vscroll->get_max());
-					} break;
-					case KEY_INSERT:
-					case KEY_C: {
-
-						if (k.mod.command) {
-							selection_copy();
-						} else {
-							handled = false;
-						}
-
-					} break;
-					default: handled = false;
-				}
-
-				if (handled)
-					accept_event();
-			}
-
-		} break;
-		case InputEvent::MOUSE_MOTION: {
-
-			if (main->first_invalid_line < main->lines.size())
-				return;
-
-			const InputEventMouseMotion &m = p_event.mouse_motion;
-
-			if (selection.click) {
-
-				int line = 0;
-				Item *item = NULL;
-				_find_click(main, Point2i(m.x, m.y), &item, &line);
-				if (!item)
-					return; // do not update
-
-				selection.from = selection.click;
-				selection.from_char = selection.click_char;
-
-				selection.to = item;
-				selection.to_char = line;
-
-				bool swap = false;
-				if (selection.from->index > selection.to->index)
+			bool swap = false;
+			if (selection.from->index > selection.to->index)
+				swap = true;
+			else if (selection.from->index == selection.to->index) {
+				if (selection.from_char > selection.to_char)
 					swap = true;
-				else if (selection.from->index == selection.to->index) {
-					if (selection.from_char > selection.to_char)
-						swap = true;
-					else if (selection.from_char == selection.to_char) {
+				else if (selection.from_char == selection.to_char) {
 
-						selection.active = false;
-						return;
-					}
+					selection.active = false;
+					return;
 				}
-
-				if (swap) {
-					SWAP(selection.from, selection.to);
-					SWAP(selection.from_char, selection.to_char);
-				}
-
-				selection.active = true;
-				update();
 			}
 
-		} break;
+			if (swap) {
+				SWAP(selection.from, selection.to);
+				SWAP(selection.from_char, selection.to_char);
+			}
+
+			selection.active = true;
+			update();
+		}
 	}
 }
 

@@ -43,6 +43,7 @@ int AStar::get_available_point_id() const {
 
 void AStar::add_point(int p_id, const Vector3 &p_pos, real_t p_weight_scale) {
 	ERR_FAIL_COND(p_id < 0);
+	ERR_FAIL_COND(p_weight_scale < 1);
 	if (!points.has(p_id)) {
 		Point *pt = memnew(Point);
 		pt->id = p_id;
@@ -86,7 +87,7 @@ void AStar::remove_point(int p_id) {
 	points.erase(p_id);
 }
 
-void AStar::connect_points(int p_id, int p_with_id) {
+void AStar::connect_points(int p_id, int p_with_id, bool bidirectional) {
 
 	ERR_FAIL_COND(!points.has(p_id));
 	ERR_FAIL_COND(!points.has(p_with_id));
@@ -95,7 +96,9 @@ void AStar::connect_points(int p_id, int p_with_id) {
 	Point *a = points[p_id];
 	Point *b = points[p_with_id];
 	a->neighbours.push_back(b);
-	b->neighbours.push_back(a);
+
+	if (bidirectional)
+		b->neighbours.push_back(a);
 
 	Segment s(p_id, p_with_id);
 	if (s.from == p_id) {
@@ -190,8 +193,7 @@ bool AStar::_solve(Point *begin_point, Point *end_point) {
 
 		Point *n = begin_point->neighbours[i];
 		n->prev_point = begin_point;
-		n->distance = _compute_cost(n->id, begin_point->id);
-		n->distance *= n->weight_scale;
+		n->distance = _compute_cost(begin_point->id, n->id) * n->weight_scale;
 		n->last_pass = pass;
 		open_list.add(&n->list);
 
@@ -219,7 +221,6 @@ bool AStar::_solve(Point *begin_point, Point *end_point) {
 
 			real_t cost = p->distance;
 			cost += _estimate_cost(p->id, end_point->id);
-			cost *= p->weight_scale;
 
 			if (cost < least_cost) {
 
@@ -236,8 +237,7 @@ bool AStar::_solve(Point *begin_point, Point *end_point) {
 
 			Point *e = p->neighbours[i];
 
-			real_t distance = _compute_cost(p->id, e->id) + p->distance;
-			distance *= e->weight_scale;
+			real_t distance = _compute_cost(p->id, e->id) * e->weight_scale + p->distance;
 
 			if (e->last_pass == pass) {
 				//oh this was visited already, can we win the cost?
@@ -401,7 +401,7 @@ void AStar::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("get_point_weight_scale", "id"), &AStar::get_point_weight_scale);
 	ClassDB::bind_method(D_METHOD("remove_point", "id"), &AStar::remove_point);
 
-	ClassDB::bind_method(D_METHOD("connect_points", "id", "to_id"), &AStar::connect_points);
+	ClassDB::bind_method(D_METHOD("connect_points", "id", "to_id"), &AStar::connect_points, DEFVAL(true));
 	ClassDB::bind_method(D_METHOD("disconnect_points", "id", "to_id"), &AStar::disconnect_points);
 	ClassDB::bind_method(D_METHOD("are_points_connected", "id", "to_id"), &AStar::are_points_connected);
 

@@ -68,7 +68,7 @@ class OS_Windows : public OS {
 
 	struct KeyEvent {
 
-		InputModifierState mod_state;
+		bool alt, shift, control, meta;
 		UINT uMsg;
 		WPARAM wParam;
 		LPARAM lParam;

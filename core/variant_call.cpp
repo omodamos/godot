@@ -37,9 +37,6 @@
 typedef void (*VariantFunc)(Variant &r_ret, Variant &p_self, const Variant **p_args);
 typedef void (*VariantConstructFunc)(Variant &r_ret, const Variant **p_args);
 
-VARIANT_ENUM_CAST(Image::CompressMode);
-//VARIANT_ENUM_CAST(Image::Format);
-
 struct _VariantCall {
 
 	static void Vector3_dot(Variant &r_ret, Variant &p_self, const Variant **p_args) {
@@ -294,7 +291,6 @@ struct _VariantCall {
 	VCALL_LOCALMEM0R(String, hex_to_int);
 	VCALL_LOCALMEM1R(String, pad_decimals);
 	VCALL_LOCALMEM1R(String, pad_zeros);
-	VCALL_LOCALMEM2R(String, convert_scientific);
 
 	static void _call_String_to_ascii(Variant &r_ret, Variant &p_self, const Variant **p_args) {
 
@@ -615,22 +611,6 @@ struct _VariantCall {
 #define VCALL_PTR5R(m_type, m_method) \
 	static void _call_##m_type##_##m_method(Variant &r_ret, Variant &p_self, const Variant **p_args) { r_ret = reinterpret_cast<m_type *>(p_self._data._ptr)->m_method(*p_args[0], *p_args[1], *p_args[2], *p_args[3], *p_args[4]); }
 
-	VCALL_PTR0R(Image, get_format);
-	VCALL_PTR0R(Image, get_width);
-	VCALL_PTR0R(Image, get_height);
-	VCALL_PTR0R(Image, empty);
-	VCALL_PTR0R(Image, get_used_rect);
-	VCALL_PTR1R(Image, load);
-	VCALL_PTR1R(Image, save_png);
-	VCALL_PTR1R(Image, get_rect);
-	VCALL_PTR1R(Image, compressed);
-	VCALL_PTR0R(Image, decompressed);
-	VCALL_PTR3R(Image, resized);
-	VCALL_PTR0R(Image, get_data);
-	VCALL_PTR3(Image, blit_rect);
-	VCALL_PTR1R(Image, converted);
-	VCALL_PTR0(Image, fix_alpha_edges);
-
 	VCALL_PTR0R(Rect3, get_area);
 	VCALL_PTR0R(Rect3, has_no_area);
 	VCALL_PTR0R(Rect3, has_no_surface);
@@ -756,13 +736,6 @@ struct _VariantCall {
 	VCALL_PTR1( Transform, scale );
 	VCALL_PTR1( Transform, translate );
 	VCALL_PTR0( Transform, orthonormalize ); */
-
-	VCALL_PTR0R(InputEvent, is_pressed);
-	VCALL_PTR1R(InputEvent, is_action);
-	VCALL_PTR1R(InputEvent, is_action_pressed);
-	VCALL_PTR1R(InputEvent, is_action_released);
-	VCALL_PTR0R(InputEvent, is_echo);
-	VCALL_PTR2(InputEvent, set_as_action);
 
 	struct ConstructData {
 
@@ -900,11 +873,6 @@ struct _VariantCall {
 	static void Transform_init2(Variant &r_ret, const Variant **p_args) {
 
 		r_ret = Transform(p_args[0]->operator Basis(), p_args[1]->operator Vector3());
-	}
-
-	static void Image_init1(Variant &r_ret, const Variant **p_args) {
-
-		r_ret = Image(*p_args[0], *p_args[1], *p_args[2], Image::Format(p_args[3]->operator int()));
 	}
 
 	static void add_constructor(VariantConstructFunc p_func, const Variant::Type p_type,
@@ -1057,12 +1025,10 @@ Variant Variant::construct(const Variant::Type p_type, const Variant **p_args, i
 
 			// misc types
 			case COLOR: return Color();
-			case IMAGE: return Image();
 			case NODE_PATH:
 				return NodePath(); // 15
 			case _RID: return RID();
 			case OBJECT: return (Object *)NULL;
-			case INPUT_EVENT: return InputEvent();
 			case DICTIONARY: return Dictionary();
 			case ARRAY:
 				return Array(); // 20
@@ -1139,12 +1105,10 @@ Variant Variant::construct(const Variant::Type p_type, const Variant **p_args, i
 
 			// misc types
 			case COLOR: return p_args[0]->type == Variant::STRING ? Color::html(*p_args[0]) : Color::hex(*p_args[0]);
-			case IMAGE: return (Image(*p_args[0]));
 			case NODE_PATH:
 				return (NodePath(p_args[0]->operator NodePath())); // 15
 			case _RID: return (RID(*p_args[0]));
 			case OBJECT: return ((Object *)(p_args[0]->operator Object *()));
-			case INPUT_EVENT: return (InputEvent(*p_args[0]));
 			case DICTIONARY: return p_args[0]->operator Dictionary();
 			case ARRAY:
 				return p_args[0]->operator Array(); // 20
@@ -1433,7 +1397,6 @@ void register_variant_methods() {
 	ADDFUNC0(STRING, INT, String, hex_to_int, varray());
 	ADDFUNC1(STRING, STRING, String, pad_decimals, INT, "digits", varray());
 	ADDFUNC1(STRING, STRING, String, pad_zeros, INT, "digits", varray());
-	ADDFUNC2(STRING, STRING, String, convert_scientific, REAL, "num", INT, "digits", varray());
 
 	ADDFUNC0(STRING, POOL_BYTE_ARRAY, String, to_ascii, varray());
 	ADDFUNC0(STRING, POOL_BYTE_ARRAY, String, to_utf8, varray());
@@ -1488,7 +1451,6 @@ void register_variant_methods() {
 	ADDFUNC1(VECTOR3, BASIS, Vector3, outer, VECTOR3, "b", varray());
 	ADDFUNC0(VECTOR3, BASIS, Vector3, to_diagonal_matrix, varray());
 	ADDFUNC0(VECTOR3, VECTOR3, Vector3, abs, varray());
-	ADDFUNC0(VECTOR3, VECTOR3, Vector3, abs, varray());
 	ADDFUNC0(VECTOR3, VECTOR3, Vector3, floor, varray());
 	ADDFUNC0(VECTOR3, VECTOR3, Vector3, ceil, varray());
 	ADDFUNC1(VECTOR3, REAL, Vector3, distance_to, VECTOR3, "b", varray());
@@ -1528,22 +1490,6 @@ void register_variant_methods() {
 	ADDFUNC2(COLOR, COLOR, Color, linear_interpolate, COLOR, "b", REAL, "t", varray());
 	ADDFUNC1(COLOR, COLOR, Color, blend, COLOR, "over", varray());
 	ADDFUNC1(COLOR, STRING, Color, to_html, BOOL, "with_alpha", varray(true));
-
-	ADDFUNC0(IMAGE, INT, Image, get_format, varray());
-	ADDFUNC0(IMAGE, INT, Image, get_width, varray());
-	ADDFUNC0(IMAGE, INT, Image, get_height, varray());
-	ADDFUNC0(IMAGE, BOOL, Image, empty, varray());
-	ADDFUNC1(IMAGE, INT, Image, load, STRING, "path", varray(0));
-	ADDFUNC1(IMAGE, INT, Image, save_png, STRING, "path", varray(0));
-	ADDFUNC0(IMAGE, RECT2, Image, get_used_rect, varray(0));
-	ADDFUNC1(IMAGE, IMAGE, Image, get_rect, RECT2, "area", varray(0));
-	ADDFUNC1(IMAGE, IMAGE, Image, compressed, INT, "format", varray(0));
-	ADDFUNC0(IMAGE, IMAGE, Image, decompressed, varray(0));
-	ADDFUNC3(IMAGE, IMAGE, Image, resized, INT, "x", INT, "y", INT, "interpolation", varray(((int)Image::INTERPOLATE_BILINEAR)));
-	ADDFUNC0(IMAGE, POOL_BYTE_ARRAY, Image, get_data, varray());
-	ADDFUNC3(IMAGE, NIL, Image, blit_rect, IMAGE, "src", RECT2, "src_rect", VECTOR2, "dest", varray(0));
-	ADDFUNC1(IMAGE, IMAGE, Image, converted, INT, "format", varray(0));
-	ADDFUNC0(IMAGE, NIL, Image, fix_alpha_edges, varray());
 
 	ADDFUNC0(_RID, INT, RID, get_id, varray());
 
@@ -1735,13 +1681,6 @@ void register_variant_methods() {
 	_VariantCall::type_funcs[Variant::TRANSFORM].functions["xform_inv"].returns = true;
 #endif
 
-	ADDFUNC0(INPUT_EVENT, BOOL, InputEvent, is_pressed, varray());
-	ADDFUNC1(INPUT_EVENT, BOOL, InputEvent, is_action, STRING, "action", varray());
-	ADDFUNC1(INPUT_EVENT, BOOL, InputEvent, is_action_pressed, STRING, "action", varray());
-	ADDFUNC1(INPUT_EVENT, BOOL, InputEvent, is_action_released, STRING, "action", varray());
-	ADDFUNC0(INPUT_EVENT, BOOL, InputEvent, is_echo, varray());
-	ADDFUNC2(INPUT_EVENT, NIL, InputEvent, set_as_action, STRING, "action", BOOL, "pressed", varray());
-
 	/* REGISTER CONSTRUCTORS */
 
 	_VariantCall::add_constructor(_VariantCall::Vector2_init1, Variant::VECTOR2, "x", Variant::REAL, "y", Variant::REAL);
@@ -1773,73 +1712,11 @@ void register_variant_methods() {
 	_VariantCall::add_constructor(_VariantCall::Transform_init1, Variant::TRANSFORM, "x_axis", Variant::VECTOR3, "y_axis", Variant::VECTOR3, "z_axis", Variant::VECTOR3, "origin", Variant::VECTOR3);
 	_VariantCall::add_constructor(_VariantCall::Transform_init2, Variant::TRANSFORM, "basis", Variant::BASIS, "origin", Variant::VECTOR3);
 
-	_VariantCall::add_constructor(_VariantCall::Image_init1, Variant::IMAGE, "width", Variant::INT, "height", Variant::INT, "mipmaps", Variant::BOOL, "format", Variant::INT);
-
 	/* REGISTER CONSTANTS */
 
 	_VariantCall::add_constant(Variant::VECTOR3, "AXIS_X", Vector3::AXIS_X);
 	_VariantCall::add_constant(Variant::VECTOR3, "AXIS_Y", Vector3::AXIS_Y);
 	_VariantCall::add_constant(Variant::VECTOR3, "AXIS_Z", Vector3::AXIS_Z);
-
-	_VariantCall::add_constant(Variant::INPUT_EVENT, "NONE", InputEvent::NONE);
-	_VariantCall::add_constant(Variant::INPUT_EVENT, "KEY", InputEvent::KEY);
-	_VariantCall::add_constant(Variant::INPUT_EVENT, "MOUSE_MOTION", InputEvent::MOUSE_MOTION);
-	_VariantCall::add_constant(Variant::INPUT_EVENT, "MOUSE_BUTTON", InputEvent::MOUSE_BUTTON);
-	_VariantCall::add_constant(Variant::INPUT_EVENT, "JOYPAD_MOTION", InputEvent::JOYPAD_MOTION);
-	_VariantCall::add_constant(Variant::INPUT_EVENT, "JOYPAD_BUTTON", InputEvent::JOYPAD_BUTTON);
-	_VariantCall::add_constant(Variant::INPUT_EVENT, "SCREEN_TOUCH", InputEvent::SCREEN_TOUCH);
-	_VariantCall::add_constant(Variant::INPUT_EVENT, "SCREEN_DRAG", InputEvent::SCREEN_DRAG);
-	_VariantCall::add_constant(Variant::INPUT_EVENT, "ACTION", InputEvent::ACTION);
-
-	_VariantCall::add_constant(Variant::IMAGE, "COMPRESS_16BIT", Image::COMPRESS_16BIT);
-	_VariantCall::add_constant(Variant::IMAGE, "COMPRESS_S3TC", Image::COMPRESS_S3TC);
-	_VariantCall::add_constant(Variant::IMAGE, "COMPRESS_PVRTC2", Image::COMPRESS_PVRTC2);
-	_VariantCall::add_constant(Variant::IMAGE, "COMPRESS_PVRTC4", Image::COMPRESS_PVRTC4);
-	_VariantCall::add_constant(Variant::IMAGE, "COMPRESS_ETC", Image::COMPRESS_ETC);
-	_VariantCall::add_constant(Variant::IMAGE, "COMPRESS_ETC2", Image::COMPRESS_ETC2);
-
-	_VariantCall::add_constant(Variant::IMAGE, "FORMAT_L8", Image::FORMAT_L8);
-	_VariantCall::add_constant(Variant::IMAGE, "FORMAT_LA8", Image::FORMAT_LA8);
-	_VariantCall::add_constant(Variant::IMAGE, "FORMAT_R8", Image::FORMAT_R8);
-	_VariantCall::add_constant(Variant::IMAGE, "FORMAT_RG8", Image::FORMAT_RG8);
-	_VariantCall::add_constant(Variant::IMAGE, "FORMAT_RGB8", Image::FORMAT_RGB8);
-	_VariantCall::add_constant(Variant::IMAGE, "FORMAT_RGBA8", Image::FORMAT_RGBA8);
-	_VariantCall::add_constant(Variant::IMAGE, "FORMAT_RGB565", Image::FORMAT_RGB565);
-	_VariantCall::add_constant(Variant::IMAGE, "FORMAT_RGBA4444", Image::FORMAT_RGBA4444);
-	_VariantCall::add_constant(Variant::IMAGE, "FORMAT_RGBA5551", Image::FORMAT_DXT1);
-	_VariantCall::add_constant(Variant::IMAGE, "FORMAT_RF", Image::FORMAT_RF);
-	_VariantCall::add_constant(Variant::IMAGE, "FORMAT_RGF", Image::FORMAT_RGF);
-	_VariantCall::add_constant(Variant::IMAGE, "FORMAT_RGBF", Image::FORMAT_RGBF);
-	_VariantCall::add_constant(Variant::IMAGE, "FORMAT_RGBAF", Image::FORMAT_RGBAF);
-	_VariantCall::add_constant(Variant::IMAGE, "FORMAT_RH", Image::FORMAT_RH);
-	_VariantCall::add_constant(Variant::IMAGE, "FORMAT_RGH", Image::FORMAT_RGH);
-	_VariantCall::add_constant(Variant::IMAGE, "FORMAT_RGBH", Image::FORMAT_RGBH);
-	_VariantCall::add_constant(Variant::IMAGE, "FORMAT_RGBAH", Image::FORMAT_RGBAH);
-	_VariantCall::add_constant(Variant::IMAGE, "FORMAT_DXT1", Image::FORMAT_DXT1);
-	_VariantCall::add_constant(Variant::IMAGE, "FORMAT_DXT3", Image::FORMAT_DXT3);
-	_VariantCall::add_constant(Variant::IMAGE, "FORMAT_DXT5", Image::FORMAT_DXT5);
-	_VariantCall::add_constant(Variant::IMAGE, "FORMAT_ATI1", Image::FORMAT_ATI1);
-	_VariantCall::add_constant(Variant::IMAGE, "FORMAT_ATI2", Image::FORMAT_ATI2);
-	_VariantCall::add_constant(Variant::IMAGE, "FORMAT_BPTC_RGBA", Image::FORMAT_BPTC_RGBA);
-	_VariantCall::add_constant(Variant::IMAGE, "FORMAT_BPTC_RGBF", Image::FORMAT_BPTC_RGBF);
-	_VariantCall::add_constant(Variant::IMAGE, "FORMAT_BPTC_RGBFU", Image::FORMAT_BPTC_RGBFU);
-	_VariantCall::add_constant(Variant::IMAGE, "FORMAT_PVRTC2", Image::FORMAT_PVRTC2);
-	_VariantCall::add_constant(Variant::IMAGE, "FORMAT_PVRTC2A", Image::FORMAT_PVRTC2A);
-	_VariantCall::add_constant(Variant::IMAGE, "FORMAT_PVRTC4", Image::FORMAT_PVRTC4);
-	_VariantCall::add_constant(Variant::IMAGE, "FORMAT_PVRTC4A", Image::FORMAT_PVRTC4A);
-	_VariantCall::add_constant(Variant::IMAGE, "FORMAT_ETC", Image::FORMAT_ETC);
-	_VariantCall::add_constant(Variant::IMAGE, "FORMAT_ETC2_R11", Image::FORMAT_ETC2_R11);
-	_VariantCall::add_constant(Variant::IMAGE, "FORMAT_ETC2_R11S", Image::FORMAT_ETC2_R11S);
-	_VariantCall::add_constant(Variant::IMAGE, "FORMAT_ETC2_RG11", Image::FORMAT_ETC2_RG11);
-	_VariantCall::add_constant(Variant::IMAGE, "FORMAT_ETC2_RG11S", Image::FORMAT_ETC2_RG11S);
-	_VariantCall::add_constant(Variant::IMAGE, "FORMAT_ETC2_RGB8", Image::FORMAT_ETC2_RGB8);
-	_VariantCall::add_constant(Variant::IMAGE, "FORMAT_ETC2_RGBA8", Image::FORMAT_ETC2_RGBA8);
-	_VariantCall::add_constant(Variant::IMAGE, "FORMAT_ETC2_RGB8A1", Image::FORMAT_ETC2_RGB8A1);
-	_VariantCall::add_constant(Variant::IMAGE, "FORMAT_MAX", Image::FORMAT_MAX);
-
-	_VariantCall::add_constant(Variant::IMAGE, "INTERPOLATE_NEAREST", Image::INTERPOLATE_NEAREST);
-	_VariantCall::add_constant(Variant::IMAGE, "INTERPOLATE_BILINEAR", Image::INTERPOLATE_BILINEAR);
-	_VariantCall::add_constant(Variant::IMAGE, "INTERPOLATE_CUBIC", Image::INTERPOLATE_CUBIC);
 }
 
 void unregister_variant_methods() {

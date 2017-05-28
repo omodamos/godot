@@ -118,9 +118,9 @@ private:
 
 	Vector3 last_accel;
 
-	InputEvent event_queue[MAX_EVENTS];
+	Ref<InputEvent> event_queue[MAX_EVENTS];
 	int event_count;
-	void queue_event(const InputEvent &p_event);
+	void queue_event(const Ref<InputEvent> &p_event);
 
 	String data_dir;
 	String unique_ID;
@@ -153,6 +153,8 @@ public:
 	virtual Point2 get_mouse_position() const;
 	virtual int get_mouse_button_state() const;
 	virtual void set_window_title(const String &p_title);
+
+	virtual void alert(const String &p_alert, const String &p_title = "ALERT!");
 
 	virtual void set_video_mode(const VideoMode &p_video_mode, int p_screen = 0);
 	virtual VideoMode get_video_mode(int p_screen = 0) const;

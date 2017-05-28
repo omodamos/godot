@@ -38,7 +38,6 @@
 #include "os/file_access.h"
 #include "os/input.h"
 #include "os/keyboard.h"
-#include "os/keyboard.h"
 #include "os/os.h"
 #include "scene/main/viewport.h"
 
@@ -48,6 +47,7 @@ void ScriptEditorBase::_bind_methods() {
 
 	ADD_SIGNAL(MethodInfo("name_changed"));
 	ADD_SIGNAL(MethodInfo("request_help_search", PropertyInfo(Variant::STRING, "topic")));
+	ADD_SIGNAL(MethodInfo("request_help_index"));
 	ADD_SIGNAL(MethodInfo("request_open_script_at_line", PropertyInfo(Variant::OBJECT, "script"), PropertyInfo(Variant::INT, "line")));
 	ADD_SIGNAL(MethodInfo("request_save_history"));
 	ADD_SIGNAL(MethodInfo("go_to_help", PropertyInfo(Variant::STRING, "what")));
@@ -164,14 +164,16 @@ void ScriptEditorQuickOpen::_text_changed(const String &p_newtext) {
 	_update_search();
 }
 
-void ScriptEditorQuickOpen::_sbox_input(const InputEvent &p_ie) {
+void ScriptEditorQuickOpen::_sbox_input(const Ref<InputEvent> &p_ie) {
 
-	if (p_ie.type == InputEvent::KEY && (p_ie.key.scancode == KEY_UP ||
-												p_ie.key.scancode == KEY_DOWN ||
-												p_ie.key.scancode == KEY_PAGEUP ||
-												p_ie.key.scancode == KEY_PAGEDOWN)) {
+	Ref<InputEventKey> k = p_ie;
 
-		search_options->call("_gui_input", p_ie);
+	if (k.is_valid() && (k->get_scancode() == KEY_UP ||
+								k->get_scancode() == KEY_DOWN ||
+								k->get_scancode() == KEY_PAGEUP ||
+								k->get_scancode() == KEY_PAGEDOWN)) {
+
+		search_options->call("_gui_input", k);
 		search_box->accept_event();
 	}
 }
@@ -1037,7 +1039,7 @@ void ScriptEditor::_notification(int p_what) {
 
 		EditorSettings::get_singleton()->connect("settings_changed", this, "_editor_settings_changed");
 		help_search->set_icon(get_icon("Help", "EditorIcons"));
-		site_search->set_icon(get_icon("Godot", "EditorIcons"));
+		site_search->set_icon(get_icon("Instance", "EditorIcons"));
 		class_search->set_icon(get_icon("ClassList", "EditorIcons"));
 
 		script_forward->set_icon(get_icon("Forward", "EditorIcons"));
@@ -1048,6 +1050,8 @@ void ScriptEditor::_notification(int p_what) {
 
 		get_tree()->connect("tree_changed", this, "_tree_changed");
 		editor->connect("request_help", this, "_request_help");
+		editor->connect("request_help_search", this, "_help_search");
+		editor->connect("request_help_index", this, "_help_index");
 	}
 
 	if (p_what == NOTIFICATION_EXIT_TREE) {
@@ -1374,8 +1378,7 @@ void ScriptEditor::_update_script_colors() {
 			int non_zero_hist_size = (hist_size == 0) ? 1 : hist_size;
 			float v = Math::ease((edit_pass - pass) / float(non_zero_hist_size), 0.4);
 
-			//script_list->set_item_custom_bg_color(i, hot_color.linear_interpolate(cold_color, v));
-			script_list->set_item_custom_font_color(i, hot_color.linear_interpolate(cold_color, v));
+			script_list->set_item_custom_bg_color(i, hot_color.linear_interpolate(cold_color, v));
 		}
 	}
 }
@@ -1778,8 +1781,8 @@ void ScriptEditor::_script_split_dragged(float) {
 	_save_layout();
 }
 
-void ScriptEditor::_unhandled_input(const InputEvent &p_event) {
-	if (p_event.key.pressed || !is_visible_in_tree()) return;
+void ScriptEditor::_unhandled_input(const Ref<InputEvent> &p_event) {
+	if (p_event->is_pressed() || !is_visible_in_tree()) return;
 	if (ED_IS_SHORTCUT("script_editor/next_script", p_event)) {
 		int next_tab = script_list->get_current() + 1;
 		next_tab %= script_list->get_item_count();
@@ -2026,6 +2029,10 @@ void ScriptEditor::set_live_auto_reload_running_scripts(bool p_enabled) {
 	auto_reload_running_scripts = p_enabled;
 }
 
+void ScriptEditor::_help_index(String p_text) {
+	help_index->popup();
+}
+
 void ScriptEditor::_help_search(String p_text) {
 	help_search_dialog->popup(p_text);
 }
@@ -2067,6 +2074,7 @@ void ScriptEditor::_bind_methods() {
 	ClassDB::bind_method("_goto_script_line", &ScriptEditor::_goto_script_line);
 	ClassDB::bind_method("_goto_script_line2", &ScriptEditor::_goto_script_line2);
 	ClassDB::bind_method("_help_search", &ScriptEditor::_help_search);
+	ClassDB::bind_method("_help_index", &ScriptEditor::_help_index);
 	ClassDB::bind_method("_save_history", &ScriptEditor::_save_history);
 
 	ClassDB::bind_method("_breaked", &ScriptEditor::_breaked);
@@ -2112,7 +2120,7 @@ ScriptEditor::ScriptEditor(EditorNode *p_editor) {
 	script_split->set_split_offset(140);
 
 	tab_container = memnew(TabContainer);
-	tab_container->add_style_override("panel", p_editor->get_gui_base()->get_stylebox("EditorBG", "EditorStyles"));
+	tab_container->add_style_override("panel", p_editor->get_gui_base()->get_stylebox("ScriptPanel", "EditorStyles"));
 	tab_container->set_tabs_visible(false);
 	script_split->add_child(tab_container);
 
@@ -2209,10 +2217,10 @@ ScriptEditor::ScriptEditor(EditorNode *p_editor) {
 	menu_hb->add_spacer();
 
 	site_search = memnew(ToolButton);
-	site_search->set_text(TTR("Tutorials"));
+	site_search->set_text(TTR("Online Docs"));
 	site_search->connect("pressed", this, "_menu_option", varray(SEARCH_WEBSITE));
 	menu_hb->add_child(site_search);
-	site_search->set_tooltip(TTR("Open https://godotengine.org at tutorials section."));
+	site_search->set_tooltip(TTR("Open Godot online documentation"));
 
 	class_search = memnew(ToolButton);
 	class_search->set_text(TTR("Classes"));
@@ -2431,8 +2439,8 @@ ScriptEditorPlugin::ScriptEditorPlugin(EditorNode *p_node) {
 	EDITOR_DEF("text_editor/open_scripts/script_temperature_enabled", true);
 	EDITOR_DEF("text_editor/open_scripts/highlight_current_script", true);
 	EDITOR_DEF("text_editor/open_scripts/script_temperature_history_size", 15);
-	EDITOR_DEF("text_editor/open_scripts/script_temperature_hot_color", Color::html("ff5446"));
-	EDITOR_DEF("text_editor/open_scripts/script_temperature_cold_color", Color::html("647b93"));
+	EDITOR_DEF("text_editor/open_scripts/script_temperature_hot_color", Color(1, 0, 0, 0.3));
+	EDITOR_DEF("text_editor/open_scripts/script_temperature_cold_color", Color(0, 0, 1, 0.3));
 	EDITOR_DEF("text_editor/open_scripts/current_script_background_color", Color(0.81, 0.81, 0.14, 0.63));
 	EDITOR_DEF("text_editor/open_scripts/group_help_pages", true);
 	EditorSettings::get_singleton()->add_property_hint(PropertyInfo(Variant::INT, "text_editor/open_scripts/sort_scripts_by", PROPERTY_HINT_ENUM, "Name,Path"));

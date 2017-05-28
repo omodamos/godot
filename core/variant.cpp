@@ -138,11 +138,6 @@ String Variant::get_type_name(Variant::Type p_type) {
 			return "NodePath";
 
 		} break;
-		case INPUT_EVENT: {
-
-			return "InputEvent";
-
-		} break;
 		case DICTIONARY: {
 
 			return "Dictionary";
@@ -809,11 +804,6 @@ bool Variant::is_zero() const {
 			return reinterpret_cast<const NodePath *>(_data._mem)->is_empty();
 
 		} break;
-		case INPUT_EVENT: {
-
-			return _data._input_event->type == InputEvent::NONE;
-
-		} break;
 		case DICTIONARY: {
 
 			return reinterpret_cast<const Dictionary *>(_data._mem)->empty();
@@ -1034,11 +1024,6 @@ void Variant::reference(const Variant &p_variant) {
 			memnew_placement(_data._mem, NodePath(*reinterpret_cast<const NodePath *>(p_variant._data._mem)));
 
 		} break;
-		case INPUT_EVENT: {
-
-			_data._input_event = memnew(InputEvent(*p_variant._data._input_event));
-
-		} break;
 		case DICTIONARY: {
 
 			memnew_placement(_data._mem, Dictionary(*reinterpret_cast<const Dictionary *>(p_variant._data._mem)));
@@ -1170,12 +1155,6 @@ void Variant::clear() {
 			reinterpret_cast<Array *>(_data._mem)->~Array();
 
 		} break;
-		case INPUT_EVENT: {
-
-			memdelete(_data._input_event);
-
-		} break;
-
 		// arrays
 		case POOL_BYTE_ARRAY: {
 
@@ -1524,7 +1503,6 @@ Variant::operator String() const {
 		} break;
 		case TRANSFORM: return operator Transform();
 		case NODE_PATH: return operator NodePath();
-		case INPUT_EVENT: return operator InputEvent();
 		case COLOR: return String::num(operator Color().r) + "," + String::num(operator Color().g) + "," + String::num(operator Color().b) + "," + String::num(operator Color().a);
 		case DICTIONARY: {
 
@@ -1824,14 +1802,6 @@ Variant::operator Control *() const {
 		return _get_obj().obj ? _get_obj().obj->cast_to<Control>() : NULL;
 	else
 		return NULL;
-}
-
-Variant::operator InputEvent() const {
-
-	if (type == INPUT_EVENT)
-		return *reinterpret_cast<const InputEvent *>(_data._input_event);
-	else
-		return InputEvent();
 }
 
 Variant::operator Dictionary() const {
@@ -2318,12 +2288,6 @@ Variant::Variant(const NodePath &p_node_path) {
 	memnew_placement(_data._mem, NodePath(p_node_path));
 }
 
-Variant::Variant(const InputEvent &p_input_event) {
-
-	type = INPUT_EVENT;
-	_data._input_event = memnew(InputEvent(p_input_event));
-}
-
 Variant::Variant(const RefPtr &p_resource) {
 
 	type = OBJECT;
@@ -2727,11 +2691,6 @@ uint32_t Variant::hash() const {
 		case NODE_PATH: {
 
 			return reinterpret_cast<const NodePath *>(_data._mem)->hash();
-		} break;
-		case INPUT_EVENT: {
-
-			return hash_djb2_buffer((uint8_t *)_data._input_event, sizeof(InputEvent));
-
 		} break;
 		case DICTIONARY: {
 

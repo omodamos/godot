@@ -101,11 +101,11 @@
 
 GLuint RasterizerStorageGLES3::system_fbo = 0;
 
-Image RasterizerStorageGLES3::_get_gl_image_and_format(const Image &p_image, Image::Format p_format, uint32_t p_flags, GLenum &r_gl_format, GLenum &r_gl_internal_format, GLenum &r_gl_type, bool &r_compressed, bool &srgb) {
+Ref<Image> RasterizerStorageGLES3::_get_gl_image_and_format(const Ref<Image> &p_image, Image::Format p_format, uint32_t p_flags, GLenum &r_gl_format, GLenum &r_gl_internal_format, GLenum &r_gl_type, bool &r_compressed, bool &srgb) {
 
 	r_compressed = false;
 	r_gl_format = 0;
-	Image image = p_image;
+	Ref<Image> image = p_image;
 	srgb = false;
 
 	bool need_decompress = false;
@@ -162,18 +162,6 @@ Image RasterizerStorageGLES3::_get_gl_image_and_format(const Image &p_image, Ima
 			r_gl_internal_format = (config.srgb_decode_supported || p_flags & VS::TEXTURE_FLAG_CONVERT_TO_LINEAR) ? GL_SRGB8_ALPHA8 : GL_RGBA8;
 			r_gl_type = GL_UNSIGNED_BYTE;
 			srgb = true;
-
-		} break;
-		case Image::FORMAT_RGB565: {
-#ifndef GLES_OVER_GL
-			r_gl_internal_format = GL_RGB565;
-#else
-			//#warning TODO: Convert tod 555 if 565 is not supported (GLES3.3-)
-			r_gl_internal_format = GL_RGB5;
-#endif
-			//r_gl_internal_format=GL_RGB565;
-			r_gl_format = GL_RGB;
-			r_gl_type = GL_UNSIGNED_SHORT_5_6_5;
 
 		} break;
 		case Image::FORMAT_RGBA4444: {
@@ -241,6 +229,12 @@ Image RasterizerStorageGLES3::_get_gl_image_and_format(const Image &p_image, Ima
 			r_gl_type = GL_HALF_FLOAT;
 
 		} break;
+		case Image::FORMAT_RGBE9995: {
+			r_gl_internal_format = GL_RGB9_E5;
+			r_gl_format = GL_RGB;
+			r_gl_type = GL_UNSIGNED_INT_5_9_9_9_REV;
+
+		} break;
 		case Image::FORMAT_DXT1: {
 
 			if (config.s3tc_supported) {
@@ -289,7 +283,7 @@ Image RasterizerStorageGLES3::_get_gl_image_and_format(const Image &p_image, Ima
 			}
 
 		} break;
-		case Image::FORMAT_ATI1: {
+		case Image::FORMAT_LATC_L: {
 
 			if (config.latc_supported) {
 
@@ -305,11 +299,41 @@ Image RasterizerStorageGLES3::_get_gl_image_and_format(const Image &p_image, Ima
 			}
 
 		} break;
-		case Image::FORMAT_ATI2: {
+		case Image::FORMAT_LATC_LA: {
 
 			if (config.latc_supported) {
 
 				r_gl_internal_format = _EXT_COMPRESSED_LUMINANCE_ALPHA_LATC2_EXT;
+				r_gl_format = GL_RGBA;
+				r_gl_type = GL_UNSIGNED_BYTE;
+				r_compressed = true;
+			} else {
+
+				need_decompress = true;
+			}
+
+		} break;
+		case Image::FORMAT_RGTC_R: {
+
+			if (config.rgtc_supported) {
+
+				r_gl_internal_format = _EXT_COMPRESSED_RED_RGTC1_EXT;
+				r_gl_format = GL_RGBA;
+				r_gl_type = GL_UNSIGNED_BYTE;
+				r_compressed = true;
+				srgb = true;
+
+			} else {
+
+				need_decompress = true;
+			}
+
+		} break;
+		case Image::FORMAT_RGTC_RG: {
+
+			if (config.rgtc_supported) {
+
+				r_gl_internal_format = _EXT_COMPRESSED_RED_GREEN_RGTC2_EXT;
 				r_gl_format = GL_RGBA;
 				r_gl_type = GL_UNSIGNED_BYTE;
 				r_compressed = true;
@@ -538,16 +562,17 @@ Image RasterizerStorageGLES3::_get_gl_image_and_format(const Image &p_image, Ima
 		} break;
 		default: {
 
-			ERR_FAIL_V(Image());
+			ERR_FAIL_V(Ref<Image>());
 		}
 	}
 
 	if (need_decompress) {
 
-		if (!image.empty()) {
-			image.decompress();
-			ERR_FAIL_COND_V(image.is_compressed(), image);
-			image.convert(Image::FORMAT_RGBA8);
+		if (!image.is_null()) {
+			image = image->duplicate();
+			image->decompress();
+			ERR_FAIL_COND_V(image->is_compressed(), image);
+			image->convert(Image::FORMAT_RGBA8);
 		}
 
 		r_gl_format = GL_RGBA;
@@ -607,7 +632,7 @@ void RasterizerStorageGLES3::texture_allocate(RID p_texture, int p_width, int p_
 	texture->stored_cube_sides = 0;
 	texture->target = (p_flags & VS::TEXTURE_FLAG_CUBEMAP) ? GL_TEXTURE_CUBE_MAP : GL_TEXTURE_2D;
 
-	_get_gl_image_and_format(Image(), texture->format, texture->flags, format, internal_format, type, compressed, srgb);
+	_get_gl_image_and_format(Ref<Image>(), texture->format, texture->flags, format, internal_format, type, compressed, srgb);
 
 	texture->alloc_width = texture->width;
 	texture->alloc_height = texture->height;
@@ -631,15 +656,15 @@ void RasterizerStorageGLES3::texture_allocate(RID p_texture, int p_width, int p_
 	texture->active = true;
 }
 
-void RasterizerStorageGLES3::texture_set_data(RID p_texture, const Image &p_image, VS::CubeMapSide p_cube_side) {
+void RasterizerStorageGLES3::texture_set_data(RID p_texture, const Ref<Image> &p_image, VS::CubeMapSide p_cube_side) {
 
 	Texture *texture = texture_owner.get(p_texture);
 
 	ERR_FAIL_COND(!texture);
 	ERR_FAIL_COND(!texture->active);
 	ERR_FAIL_COND(texture->render_target);
-	ERR_FAIL_COND(texture->format != p_image.get_format());
-	ERR_FAIL_COND(p_image.empty());
+	ERR_FAIL_COND(texture->format != p_image->get_format());
+	ERR_FAIL_COND(p_image.is_null());
 
 	GLenum type;
 	GLenum format;
@@ -651,31 +676,31 @@ void RasterizerStorageGLES3::texture_set_data(RID p_texture, const Image &p_imag
 		texture->images[p_cube_side] = p_image;
 	}
 
-	Image img = _get_gl_image_and_format(p_image, p_image.get_format(), texture->flags, format, internal_format, type, compressed, srgb);
+	Ref<Image> img = _get_gl_image_and_format(p_image, p_image->get_format(), texture->flags, format, internal_format, type, compressed, srgb);
 
-	if (config.shrink_textures_x2 && (p_image.has_mipmaps() || !p_image.is_compressed()) && !(texture->flags & VS::TEXTURE_FLAG_USED_FOR_STREAMING)) {
+	if (config.shrink_textures_x2 && (p_image->has_mipmaps() || !p_image->is_compressed()) && !(texture->flags & VS::TEXTURE_FLAG_USED_FOR_STREAMING)) {
 
 		texture->alloc_height = MAX(1, texture->alloc_height / 2);
 		texture->alloc_width = MAX(1, texture->alloc_width / 2);
 
-		if (texture->alloc_width == img.get_width() / 2 && texture->alloc_height == img.get_height() / 2) {
+		if (texture->alloc_width == img->get_width() / 2 && texture->alloc_height == img->get_height() / 2) {
 
-			img.shrink_x2();
-		} else if (img.get_format() <= Image::FORMAT_RGB565) {
+			img->shrink_x2();
+		} else if (img->get_format() <= Image::FORMAT_RGBA8) {
 
-			img.resize(texture->alloc_width, texture->alloc_height, Image::INTERPOLATE_BILINEAR);
+			img->resize(texture->alloc_width, texture->alloc_height, Image::INTERPOLATE_BILINEAR);
 		}
 	};
 
 	GLenum blit_target = (texture->target == GL_TEXTURE_CUBE_MAP) ? _cube_side_enum[p_cube_side] : GL_TEXTURE_2D;
 
-	texture->data_size = img.get_data().size();
-	PoolVector<uint8_t>::Read read = img.get_data().read();
+	texture->data_size = img->get_data().size();
+	PoolVector<uint8_t>::Read read = img->get_data().read();
 
 	glActiveTexture(GL_TEXTURE0);
 	glBindTexture(texture->target, texture->tex_id);
 
-	texture->ignore_mipmaps = compressed && !img.has_mipmaps();
+	texture->ignore_mipmaps = compressed && !img->has_mipmaps();
 
 	if (texture->flags & VS::TEXTURE_FLAG_MIPMAPS && !texture->ignore_mipmaps)
 		glTexParameteri(texture->target, GL_TEXTURE_MIN_FILTER, config.use_fast_texture_filter ? GL_LINEAR_MIPMAP_NEAREST : GL_LINEAR_MIPMAP_LINEAR);
@@ -761,22 +786,34 @@ void RasterizerStorageGLES3::texture_set_data(RID p_texture, const Image &p_imag
 		}
 	}
 
-	int mipmaps = (texture->flags & VS::TEXTURE_FLAG_MIPMAPS && img.has_mipmaps()) ? img.get_mipmap_count() + 1 : 1;
+	int mipmaps = (texture->flags & VS::TEXTURE_FLAG_MIPMAPS && img->has_mipmaps()) ? img->get_mipmap_count() + 1 : 1;
 
-	int w = img.get_width();
-	int h = img.get_height();
+	int w = img->get_width();
+	int h = img->get_height();
 
 	int tsize = 0;
+
+	int block = Image::get_format_block_size(img->get_format());
+
 	for (int i = 0; i < mipmaps; i++) {
 
 		int size, ofs;
-		img.get_mipmap_offset_and_size(i, ofs, size);
+		img->get_mipmap_offset_and_size(i, ofs, size);
 
 		//print_line("mipmap: "+itos(i)+" size: "+itos(size)+" w: "+itos(mm_w)+", h: "+itos(mm_h));
 
 		if (texture->compressed) {
 			glPixelStorei(GL_UNPACK_ALIGNMENT, 4);
-			glCompressedTexImage2D(blit_target, i, internal_format, w, h, 0, size, &read[ofs]);
+
+			//this is not needed, as compressed takes the regular size, even if blocks extend it
+			//int bw = (w % block != 0) ? w + (block - w % block) : w;
+			//int bh = (h % block != 0) ? h + (block - h % block) : h;
+
+			int bw = w;
+			int bh = h;
+
+			glCompressedTexImage2D(blit_target, i, internal_format, bw, bh, 0, size, &read[ofs]);
+			print_line("format: " + Image::get_format_name(texture->format) + " size: " + Vector2(bw, bh) + " block: " + itos(block));
 
 		} else {
 			glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
@@ -813,16 +850,16 @@ void RasterizerStorageGLES3::texture_set_data(RID p_texture, const Image &p_imag
 	//texture_set_flags(p_texture,texture->flags);
 }
 
-Image RasterizerStorageGLES3::texture_get_data(RID p_texture, VS::CubeMapSide p_cube_side) const {
+Ref<Image> RasterizerStorageGLES3::texture_get_data(RID p_texture, VS::CubeMapSide p_cube_side) const {
 
 	Texture *texture = texture_owner.get(p_texture);
 
-	ERR_FAIL_COND_V(!texture, Image());
-	ERR_FAIL_COND_V(!texture->active, Image());
-	ERR_FAIL_COND_V(texture->data_size == 0, Image());
-	ERR_FAIL_COND_V(texture->render_target, Image());
+	ERR_FAIL_COND_V(!texture, Ref<Image>());
+	ERR_FAIL_COND_V(!texture->active, Ref<Image>());
+	ERR_FAIL_COND_V(texture->data_size == 0, Ref<Image>());
+	ERR_FAIL_COND_V(texture->render_target, Ref<Image>());
 
-	if (!texture->images[p_cube_side].empty()) {
+	if (!texture->images[p_cube_side].is_null()) {
 		return texture->images[p_cube_side];
 	}
 
@@ -867,13 +904,13 @@ Image RasterizerStorageGLES3::texture_get_data(RID p_texture, VS::CubeMapSide p_
 
 	data.resize(data_size);
 
-	Image img(texture->alloc_width, texture->alloc_height, texture->mipmaps > 1 ? true : false, texture->format, data);
+	Image *img = memnew(Image(texture->alloc_width, texture->alloc_height, texture->mipmaps > 1 ? true : false, texture->format, data));
 
-	return img;
+	return Ref<Image>(img);
 #else
 
 	ERR_EXPLAIN("Sorry, It's not posible to obtain images back in OpenGL ES");
-	return Image();
+	return Ref<Image>();
 #endif
 }
 
@@ -968,6 +1005,14 @@ Image::Format RasterizerStorageGLES3::texture_get_format(RID p_texture) const {
 	ERR_FAIL_COND_V(!texture, Image::FORMAT_L8);
 
 	return texture->format;
+}
+uint32_t RasterizerStorageGLES3::texture_get_texid(RID p_texture) const {
+
+	Texture *texture = texture_owner.get(p_texture);
+
+	ERR_FAIL_COND_V(!texture, 0);
+
+	return texture->tex_id;
 }
 uint32_t RasterizerStorageGLES3::texture_get_width(RID p_texture) const {
 
@@ -1204,32 +1249,32 @@ RID RasterizerStorageGLES3::texture_create_radiance_cubemap(RID p_source, int p_
 	return texture_owner.make_rid(ctex);
 }
 
-RID RasterizerStorageGLES3::skybox_create() {
+RID RasterizerStorageGLES3::sky_create() {
 
-	SkyBox *skybox = memnew(SkyBox);
-	skybox->radiance = 0;
-	return skybox_owner.make_rid(skybox);
+	Sky *sky = memnew(Sky);
+	sky->radiance = 0;
+	return sky_owner.make_rid(sky);
 }
 
-void RasterizerStorageGLES3::skybox_set_texture(RID p_skybox, RID p_cube_map, int p_radiance_size) {
+void RasterizerStorageGLES3::sky_set_texture(RID p_sky, RID p_panorama, int p_radiance_size) {
 
-	SkyBox *skybox = skybox_owner.getornull(p_skybox);
-	ERR_FAIL_COND(!skybox);
+	Sky *sky = sky_owner.getornull(p_sky);
+	ERR_FAIL_COND(!sky);
 
-	if (skybox->cubemap.is_valid()) {
-		skybox->cubemap = RID();
-		glDeleteTextures(1, &skybox->radiance);
-		skybox->radiance = 0;
+	if (sky->panorama.is_valid()) {
+		sky->panorama = RID();
+		glDeleteTextures(1, &sky->radiance);
+		sky->radiance = 0;
 	}
 
-	skybox->cubemap = p_cube_map;
-	if (!skybox->cubemap.is_valid())
+	sky->panorama = p_panorama;
+	if (!sky->panorama.is_valid())
 		return; //cleared
 
-	Texture *texture = texture_owner.getornull(skybox->cubemap);
-	if (!texture || !(texture->flags & VS::TEXTURE_FLAG_CUBEMAP)) {
-		skybox->cubemap = RID();
-		ERR_FAIL_COND(!texture || !(texture->flags & VS::TEXTURE_FLAG_CUBEMAP));
+	Texture *texture = texture_owner.getornull(sky->panorama);
+	if (!texture) {
+		sky->panorama = RID();
+		ERR_FAIL_COND(!texture);
 	}
 
 	glBindVertexArray(0);
@@ -1254,8 +1299,8 @@ void RasterizerStorageGLES3::skybox_set_texture(RID p_skybox, RID p_cube_map, in
 	}
 
 	glActiveTexture(GL_TEXTURE1);
-	glGenTextures(1, &skybox->radiance);
-	glBindTexture(GL_TEXTURE_2D, skybox->radiance);
+	glGenTextures(1, &sky->radiance);
+	glBindTexture(GL_TEXTURE_2D, sky->radiance);
 
 	GLuint tmp_fb;
 
@@ -1295,11 +1340,12 @@ void RasterizerStorageGLES3::skybox_set_texture(RID p_skybox, RID p_cube_map, in
 	size = p_radiance_size;
 
 	shaders.cubemap_filter.set_conditional(CubemapFilterShaderGLES3::USE_DUAL_PARABOLOID, true);
+	shaders.cubemap_filter.set_conditional(CubemapFilterShaderGLES3::USE_PANORAMA, true);
 	shaders.cubemap_filter.bind();
 
 	while (mm_level) {
 
-		glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, skybox->radiance, lod);
+		glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, sky->radiance, lod);
 #ifdef DEBUG_ENABLED
 		GLenum status = glCheckFramebufferStatus(GL_FRAMEBUFFER);
 		ERR_CONTINUE(status != GL_FRAMEBUFFER_COMPLETE);
@@ -1322,6 +1368,7 @@ void RasterizerStorageGLES3::skybox_set_texture(RID p_skybox, RID p_cube_map, in
 		mm_level--;
 	}
 	shaders.cubemap_filter.set_conditional(CubemapFilterShaderGLES3::USE_DUAL_PARABOLOID, false);
+	shaders.cubemap_filter.set_conditional(CubemapFilterShaderGLES3::USE_PANORAMA, false);
 
 	//restore ranges
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_BASE_LEVEL, 0);
@@ -6107,12 +6154,12 @@ bool RasterizerStorageGLES3::free(RID p_rid) {
 		info.texture_mem -= texture->total_data_size;
 		texture_owner.free(p_rid);
 		memdelete(texture);
-	} else if (skybox_owner.owns(p_rid)) {
-		// delete the skybox
-		SkyBox *skybox = skybox_owner.get(p_rid);
-		skybox_set_texture(p_rid, RID(), 256);
-		skybox_owner.free(p_rid);
-		memdelete(skybox);
+	} else if (sky_owner.owns(p_rid)) {
+		// delete the sky
+		Sky *sky = sky_owner.get(p_rid);
+		sky_set_texture(p_rid, RID(), 256);
+		sky_owner.free(p_rid);
+		memdelete(sky);
 
 	} else if (shader_owner.owns(p_rid)) {
 
@@ -6347,6 +6394,7 @@ void RasterizerStorageGLES3::initialize() {
 	config.s3tc_supported = config.extensions.has("GL_EXT_texture_compression_dxt1") || config.extensions.has("GL_EXT_texture_compression_s3tc") || config.extensions.has("WEBGL_compressed_texture_s3tc");
 	config.etc_supported = config.extensions.has("GL_OES_compressed_ETC1_RGB8_texture");
 	config.latc_supported = config.extensions.has("GL_EXT_texture_compression_latc");
+	config.rgtc_supported = config.extensions.has("GL_EXT_texture_compression_rgtc");
 	config.bptc_supported = config.extensions.has("GL_ARB_texture_compression_bptc");
 #ifdef GLES_OVER_GL
 	config.hdr_supported = true;
@@ -6469,7 +6517,7 @@ void RasterizerStorageGLES3::initialize() {
 		glBindBuffer(GL_ARRAY_BUFFER, 0); //unbind
 	}
 
-	//generic quadie for copying without touching skybox
+	//generic quadie for copying without touching sky
 
 	{
 		//transform feedback buffers

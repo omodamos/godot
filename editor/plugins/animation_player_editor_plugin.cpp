@@ -51,7 +51,7 @@ void AnimationPlayerEditor::_node_removed(Node *p_node) {
 	}
 }
 
-void AnimationPlayerEditor::_gui_input(InputEvent p_event) {
+void AnimationPlayerEditor::_gui_input(Ref<InputEvent> p_event) {
 }
 
 void AnimationPlayerEditor::_notification(int p_what) {
@@ -118,7 +118,14 @@ void AnimationPlayerEditor::_notification(int p_what) {
 
 		blend_editor.next->connect("item_selected", this, "_blend_editor_next_changed");
 
-		// nodename->set_icon(get_icon("AnimationPlayer", "EditorIcons"));
+		/*
+		anim_editor_load->set_normal_texture( get_icon("AnimGet","EditorIcons"));
+		anim_editor_store->set_normal_texture( get_icon("AnimSet","EditorIcons"));
+		anim_editor_load->set_pressed_texture( get_icon("AnimGet","EditorIcons"));
+		anim_editor_store->set_pressed_texture( get_icon("AnimSet","EditorIcons"));
+		anim_editor_load->set_hover_texture( get_icon("AnimGetHl","EditorIcons"));
+		anim_editor_store->set_hover_texture( get_icon("AnimSetHl","EditorIcons"));
+*/
 
 		get_tree()->connect("node_removed", this, "_node_removed");
 	}
@@ -781,10 +788,6 @@ void AnimationPlayerEditor::_update_player() {
 		player->get_animation_list(&animlist);
 
 	animation->clear();
-	if (player)
-		nodename->set_text(player->get_name());
-	else
-		nodename->set_text(TTR("No player selected"));
 
 	add_anim->set_disabled(player == NULL);
 	load_anim->set_disabled(player == NULL);
@@ -1157,14 +1160,15 @@ void AnimationPlayerEditor::_animation_save_menu(int p_option) {
 	}
 }
 
-void AnimationPlayerEditor::_unhandled_key_input(const InputEvent &p_ev) {
+void AnimationPlayerEditor::_unhandled_key_input(const Ref<InputEvent> &p_ev) {
 
-	if (is_visible_in_tree() && p_ev.type == InputEvent::KEY && p_ev.key.pressed && !p_ev.key.echo && !p_ev.key.mod.alt && !p_ev.key.mod.control && !p_ev.key.mod.meta) {
+	Ref<InputEventKey> k = p_ev;
+	if (is_visible_in_tree() && k.is_valid() && k->is_pressed() && !k->is_echo() && !k->get_alt() && !k->get_control() && !k->get_metakey()) {
 
-		switch (p_ev.key.scancode) {
+		switch (k->get_scancode()) {
 
 			case KEY_A: {
-				if (!p_ev.key.mod.shift)
+				if (!k->get_shift())
 					_play_bw_from_pressed();
 				else
 					_play_bw_pressed();
@@ -1173,7 +1177,7 @@ void AnimationPlayerEditor::_unhandled_key_input(const InputEvent &p_ev) {
 				_stop_pressed();
 			} break;
 			case KEY_D: {
-				if (!p_ev.key.mod.shift)
+				if (!k->get_shift())
 					_play_from_pressed();
 				else
 					_play_pressed();
@@ -1358,14 +1362,7 @@ AnimationPlayerEditor::AnimationPlayerEditor(EditorNode *p_editor) {
 	//tool_anim->get_popup()->add_item("Edit Anim Resource",TOOL_PASTE_ANIM);
 	hb->add_child(tool_anim);
 
-	hb->add_child(memnew(VSeparator));
-	nodename_icon = memnew(TextureRect);
-	nodename_icon->set_stretch_mode(TextureRect::STRETCH_KEEP_CENTERED);
-	hb->add_child(nodename_icon);
-	nodename = memnew(Label);
-	hb->add_child(nodename);
 	pin = memnew(ToolButton);
-	pin->set_tooltip(TTR("Keep this animation selected?"));
 	pin->set_toggle_mode(true);
 	hb->add_child(pin);
 

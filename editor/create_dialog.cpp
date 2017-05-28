@@ -109,14 +109,15 @@ void CreateDialog::_text_changed(const String &p_newtext) {
 	_update_search();
 }
 
-void CreateDialog::_sbox_input(const InputEvent &p_ie) {
+void CreateDialog::_sbox_input(const Ref<InputEvent> &p_ie) {
 
-	if (p_ie.type == InputEvent::KEY && (p_ie.key.scancode == KEY_UP ||
-												p_ie.key.scancode == KEY_DOWN ||
-												p_ie.key.scancode == KEY_PAGEUP ||
-												p_ie.key.scancode == KEY_PAGEDOWN)) {
+	Ref<InputEventKey> k = p_ie;
+	if (k.is_valid() && (k->get_scancode() == KEY_UP ||
+								k->get_scancode() == KEY_DOWN ||
+								k->get_scancode() == KEY_PAGEUP ||
+								k->get_scancode() == KEY_PAGEDOWN)) {
 
-		search_options->call("_gui_input", p_ie);
+		search_options->call("_gui_input", k);
 		search_box->accept_event();
 	}
 }
@@ -202,7 +203,7 @@ void CreateDialog::_update_search() {
 	}
 
 	List<StringName>::Element *I = type_list.front();
-	TreeItem *to_select = NULL;
+	TreeItem *to_select = search_box->get_text() == base_type ? root : NULL;
 
 	for (; I; I = I->next()) {
 
@@ -488,11 +489,13 @@ void CreateDialog::_favorite_selected() {
 
 void CreateDialog::_history_activated() {
 
+	_history_selected();
 	_confirmed();
 }
 
 void CreateDialog::_favorite_activated() {
 
+	_favorite_selected();
 	_confirmed();
 }
 
@@ -622,7 +625,6 @@ CreateDialog::CreateDialog() {
 	search_box->set_h_size_flags(SIZE_EXPAND_FILL);
 	search_hb->add_child(search_box);
 	favorite = memnew(Button);
-	favorite->set_flat(true);
 	favorite->set_toggle_mode(true);
 	search_hb->add_child(favorite);
 	favorite->connect("pressed", this, "_favorite_toggled");

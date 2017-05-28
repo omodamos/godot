@@ -79,13 +79,15 @@ Size2 Tabs::get_minimum_size() const {
 	return ms;
 }
 
-void Tabs::_gui_input(const InputEvent &p_event) {
+void Tabs::_gui_input(const Ref<InputEvent> &p_event) {
 
-	if (p_event.type == InputEvent::MOUSE_MOTION) {
+	Ref<InputEventMouseMotion> mm = p_event;
 
-		Point2 pos(p_event.mouse_motion.x, p_event.mouse_motion.y);
+	if (mm.is_valid()) {
 
-		hilite_arrow = -1;
+		Point2 pos = mm->get_pos();
+
+		highlight_arrow = -1;
 		if (buttons_visible) {
 
 			Ref<Texture> incr = get_icon("increment");
@@ -94,9 +96,9 @@ void Tabs::_gui_input(const InputEvent &p_event) {
 			int limit = get_size().width - incr->get_width() - decr->get_width();
 
 			if (pos.x > limit + decr->get_width()) {
-				hilite_arrow = 1;
+				highlight_arrow = 1;
 			} else if (pos.x > limit) {
-				hilite_arrow = 0;
+				highlight_arrow = 0;
 			}
 		}
 
@@ -130,9 +132,11 @@ void Tabs::_gui_input(const InputEvent &p_event) {
 		return;
 	}
 
-	if (rb_pressing && p_event.type == InputEvent::MOUSE_BUTTON &&
-			!p_event.mouse_button.pressed &&
-			p_event.mouse_button.button_index == BUTTON_LEFT) {
+	Ref<InputEventMouseButton> mb = p_event;
+
+	if (rb_pressing && mb.is_valid() &&
+			!mb->is_pressed() &&
+			mb->get_button_index() == BUTTON_LEFT) {
 
 		if (rb_hover != -1) {
 			//pressed
@@ -143,9 +147,9 @@ void Tabs::_gui_input(const InputEvent &p_event) {
 		update();
 	}
 
-	if (cb_pressing && p_event.type == InputEvent::MOUSE_BUTTON &&
-			!p_event.mouse_button.pressed &&
-			p_event.mouse_button.button_index == BUTTON_LEFT) {
+	if (cb_pressing && mb.is_valid() &&
+			!mb->is_pressed() &&
+			mb->get_button_index() == BUTTON_LEFT) {
 
 		if (cb_hover != -1) {
 			//pressed
@@ -156,12 +160,12 @@ void Tabs::_gui_input(const InputEvent &p_event) {
 		update();
 	}
 
-	if (p_event.type == InputEvent::MOUSE_BUTTON &&
-			p_event.mouse_button.pressed &&
-			p_event.mouse_button.button_index == BUTTON_LEFT) {
+	if (mb.is_valid() &&
+			mb->is_pressed() &&
+			mb->get_button_index() == BUTTON_LEFT) {
 
 		// clicks
-		Point2 pos(p_event.mouse_button.x, p_event.mouse_button.y);
+		Point2 pos(mb->get_pos().x, mb->get_pos().y);
 
 		if (buttons_visible) {
 
@@ -268,8 +272,8 @@ void Tabs::_notification(int p_what) {
 
 			Ref<Texture> incr = get_icon("increment");
 			Ref<Texture> decr = get_icon("decrement");
-			Ref<Texture> incr_hl = get_icon("increment_hilite");
-			Ref<Texture> decr_hl = get_icon("decrement_hilite");
+			Ref<Texture> incr_hl = get_icon("increment_highlight");
+			Ref<Texture> decr_hl = get_icon("decrement_highlight");
 
 			int limit = get_size().width - incr->get_size().width - decr->get_size().width;
 
@@ -385,12 +389,12 @@ void Tabs::_notification(int p_what) {
 				int vofs = (get_size().height - incr->get_size().height) / 2;
 
 				if (offset > 0)
-					draw_texture(hilite_arrow == 0 ? decr_hl : decr, Point2(limit, vofs));
+					draw_texture(highlight_arrow == 0 ? decr_hl : decr, Point2(limit, vofs));
 				else
 					draw_texture(decr, Point2(limit, vofs), Color(1, 1, 1, 0.5));
 
 				if (missing_right)
-					draw_texture(hilite_arrow == 1 ? incr_hl : incr, Point2(limit + decr->get_size().width, vofs));
+					draw_texture(highlight_arrow == 1 ? incr_hl : incr, Point2(limit + decr->get_size().width, vofs));
 				else
 					draw_texture(incr, Point2(limit + decr->get_size().width, vofs), Color(1, 1, 1, 0.5));
 
@@ -677,7 +681,7 @@ Tabs::Tabs() {
 	tab_align = ALIGN_CENTER;
 	rb_hover = -1;
 	rb_pressing = false;
-	hilite_arrow = -1;
+	highlight_arrow = -1;
 
 	cb_hover = -1;
 	cb_pressing = false;

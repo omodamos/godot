@@ -628,6 +628,7 @@ public:
 	BIND2(texture_set_flags, RID, uint32_t)
 	BIND1RC(uint32_t, texture_get_flags, RID)
 	BIND1RC(Image::Format, texture_get_format, RID)
+	BIND1RC(uint32_t, texture_get_texid, RID)
 	BIND1RC(uint32_t, texture_get_width, RID)
 	BIND1RC(uint32_t, texture_get_height, RID)
 	BIND3(texture_set_size_override, RID, int, int)
@@ -643,10 +644,10 @@ public:
 
 	BIND1(textures_keep_original, bool)
 
-	/* SKYBOX API */
+	/* SKY API */
 
-	BIND0R(RID, skybox_create)
-	BIND3(skybox_set_texture, RID, RID, int)
+	BIND0R(RID, sky_create)
+	BIND3(sky_set_texture, RID, RID, int)
 
 	/* SHADER API */
 
@@ -931,8 +932,8 @@ public:
 	BIND0R(RID, environment_create)
 
 	BIND2(environment_set_background, RID, EnvironmentBG)
-	BIND2(environment_set_skybox, RID, RID)
-	BIND2(environment_set_skybox_scale, RID, float)
+	BIND2(environment_set_sky, RID, RID)
+	BIND2(environment_set_sky_scale, RID, float)
 	BIND2(environment_set_bg_color, RID, const Color &)
 	BIND2(environment_set_bg_energy, RID, float)
 	BIND2(environment_set_canvas_max_layer, RID, int)

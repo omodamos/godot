@@ -69,7 +69,7 @@ private:
 
 	int offset;
 	int max_drawn_tab;
-	int hilite_arrow;
+	int highlight_arrow;
 	bool buttons_visible;
 	bool missing_right;
 	Vector<Tab> tabs;
@@ -90,7 +90,7 @@ private:
 	void _ensure_no_over_offset();
 
 protected:
-	void _gui_input(const InputEvent &p_event);
+	void _gui_input(const Ref<InputEvent> &p_event);
 	void _notification(int p_what);
 	static void _bind_methods();
 

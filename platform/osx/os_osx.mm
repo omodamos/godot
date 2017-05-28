@@ -53,35 +53,6 @@
 #include <sys/types.h>
 #include <unistd.h>
 
-//uses portions of glfw
-
-//========================================================================
-// GLFW 3.0 - www.glfw.org
-//------------------------------------------------------------------------
-// Copyright (c) 2002-2006 Marcus Geelnard
-// Copyright (c) 2006-2010 Camilla Berglund <elmindreda@elmindreda.org>
-//
-// This software is provided 'as-is', without any express or implied
-// warranty. In no event will the authors be held liable for any damages
-// arising from the use of this software.
-//
-// Permission is granted to anyone to use this software for any purpose,
-// including commercial applications, and to alter it and redistribute it
-// freely, subject to the following restrictions:
-//
-// 1. The origin of this software must not be misrepresented; you must not
-//    claim that you wrote the original software. If you use this software
-//    in a product, an acknowledgment in the product documentation would
-//    be appreciated but is not required.
-//
-// 2. Altered source versions must be plainly marked as such, and must not
-//    be misrepresented as being the original software.
-//
-// 3. This notice may not be removed or altered from any source
-//    distribution.
-//
-//========================================================================
-
 static NSRect convertRectToBacking(NSRect contentRect) {
 
 #if MAC_OS_X_VERSION_MAX_ALLOWED >= 1070
@@ -92,15 +63,12 @@ static NSRect convertRectToBacking(NSRect contentRect) {
 		return contentRect;
 }
 
-static InputModifierState translateFlags(NSUInteger flags) {
-	InputModifierState mod;
+static void get_key_modifier_state(unsigned int p_osx_state, Ref<InputEventWithModifiers> state) {
 
-	mod.shift = (flags & NSShiftKeyMask);
-	mod.control = (flags & NSControlKeyMask);
-	mod.alt = (flags & NSAlternateKeyMask);
-	mod.meta = (flags & NSCommandKeyMask);
-
-	return mod;
+	state->set_shift((p_osx_state & NSShiftKeyMask));
+	state->set_control((p_osx_state & NSControlKeyMask));
+	state->set_alt((p_osx_state & NSAlternateKeyMask));
+	state->set_metakey((p_osx_state & NSCommandKeyMask));
 }
 
 static int mouse_x = 0;
@@ -249,14 +217,7 @@ static int button_mask = 0;
 
 + (void)initialize {
 	if (self == [GodotContentView class]) {
-		/*
-		if (_glfw.ns.cursor == nil) {
-			NSImage* data = [[NSImage alloc] initWithSize:NSMakeSize(1, 1)];
-			_glfw.ns.cursor = [[NSCursor alloc] initWithImage:data
-			hotSpot:NSZeroPoint];
-			[data release];
-		}
-*/
+		// nothing left to do here at the moment..
 	}
 }
 
@@ -322,27 +283,19 @@ static int button_mask = 0;
 
 - (void)mouseDown:(NSEvent *)event {
 
-	//print_line("mouse down:");
 	button_mask |= BUTTON_MASK_LEFT;
-	InputEvent ev;
-	ev.type = InputEvent::MOUSE_BUTTON;
-	ev.mouse_button.button_index = BUTTON_LEFT;
-	ev.mouse_button.pressed = true;
-	ev.mouse_button.x = mouse_x;
-	ev.mouse_button.y = mouse_y;
-	ev.mouse_button.global_x = mouse_x;
-	ev.mouse_button.global_y = mouse_y;
-	ev.mouse_button.button_mask = button_mask;
-	ev.mouse_button.doubleclick = [event clickCount] == 2;
-	ev.mouse_button.mod = translateFlags([event modifierFlags]);
-	OS_OSX::singleton->push_input(ev);
 
-	/*
-	_glfwInputMouseClick(window,
-		GLFW_MOUSE_BUTTON_LEFT,
-		GLFW_PRESS,
-		translateFlags([event modifierFlags]));
-*/
+	Ref<InputEventMouseButton> mb;
+	mb.instance();
+
+	get_key_modifier_state([event modifierFlags], mb);
+	mb->set_button_index(BUTTON_LEFT);
+	mb->set_pressed(true);
+	mb->set_pos(Vector2(mouse_x, mouse_y));
+	mb->set_global_pos(Vector2(mouse_x, mouse_y));
+	mb->set_button_mask(button_mask);
+	mb->set_doubleclick([event clickCount] == 2);
+	OS_OSX::singleton->push_input(mb);
 }
 
 - (void)mouseDragged:(NSEvent *)event {
@@ -352,81 +305,58 @@ static int button_mask = 0;
 - (void)mouseUp:(NSEvent *)event {
 
 	button_mask &= ~BUTTON_MASK_LEFT;
-	InputEvent ev;
-	ev.type = InputEvent::MOUSE_BUTTON;
-	ev.mouse_button.button_index = BUTTON_LEFT;
-	ev.mouse_button.pressed = false;
-	ev.mouse_button.x = mouse_x;
-	ev.mouse_button.y = mouse_y;
-	ev.mouse_button.global_x = mouse_x;
-	ev.mouse_button.global_y = mouse_y;
-	ev.mouse_button.button_mask = button_mask;
-	ev.mouse_button.mod = translateFlags([event modifierFlags]);
-	OS_OSX::singleton->push_input(ev);
+	Ref<InputEventMouseButton> mb;
+	mb.instance();
 
-	/*
-	_glfwInputMouseClick(window,
-		GLFW_MOUSE_BUTTON_LEFT,
-		GLFW_RELEASE,
-		translateFlags([event modifierFlags]));
-*/
+	get_key_modifier_state([event modifierFlags], mb);
+	mb->set_button_index(BUTTON_LEFT);
+	mb->set_pressed(false);
+	mb->set_pos(Vector2(mouse_x, mouse_y));
+	mb->set_global_pos(Vector2(mouse_x, mouse_y));
+	mb->set_button_mask(button_mask);
+	mb->set_doubleclick([event clickCount] == 2);
+	OS_OSX::singleton->push_input(mb);
 }
 
 - (void)mouseMoved:(NSEvent *)event {
 
-	InputEvent ev;
-	ev.type = InputEvent::MOUSE_MOTION;
-	ev.mouse_motion.button_mask = button_mask;
+	Ref<InputEventMouseMotion> mm;
+	mm.instance();
+
+	mm->set_button_mask(button_mask);
 	prev_mouse_x = mouse_x;
 	prev_mouse_y = mouse_y;
 	const NSRect contentRect = [OS_OSX::singleton->window_view frame];
 	const NSPoint p = [event locationInWindow];
 	mouse_x = p.x * OS_OSX::singleton->_mouse_scale([[event window] backingScaleFactor]);
 	mouse_y = (contentRect.size.height - p.y) * OS_OSX::singleton->_mouse_scale([[event window] backingScaleFactor]);
-	ev.mouse_motion.x = mouse_x;
-	ev.mouse_motion.y = mouse_y;
-	ev.mouse_motion.global_x = mouse_x;
-	ev.mouse_motion.global_y = mouse_y;
-	ev.mouse_motion.relative_x = [event deltaX] * OS_OSX::singleton->_mouse_scale([[event window] backingScaleFactor]);
-	ev.mouse_motion.relative_y = [event deltaY] * OS_OSX::singleton->_mouse_scale([[event window] backingScaleFactor]);
-	ev.mouse_motion.mod = translateFlags([event modifierFlags]);
+	mm->set_pos(Vector2(mouse_x, mouse_y));
+	mm->set_global_pos(Vector2(mouse_x, mouse_y));
+	Vector2 relativeMotion = Vector2();
+	relativeMotion.x = [event deltaX] * OS_OSX::singleton->_mouse_scale([[event window] backingScaleFactor]);
+	relativeMotion.y = [event deltaY] * OS_OSX::singleton->_mouse_scale([[event window] backingScaleFactor]);
+	mm->set_relative(relativeMotion);
+	get_key_modifier_state([event modifierFlags], mm);
 
 	OS_OSX::singleton->input->set_mouse_position(Point2(mouse_x, mouse_y));
-	OS_OSX::singleton->push_input(ev);
-
-	/*
-	if (window->cursorMode == GLFW_CURSOR_DISABLED)
-		_glfwInputCursorMotion(window, [event deltaX], [event deltaY]);
-	else {
-		const NSRect contentRect = [window->ns.view frame];
-		const NSPoint p = [event locationInWindow];
-
-		_glfwInputCursorMotion(window, p.x, contentRect.size.height - p.y);
-	}
-*/
+	OS_OSX::singleton->push_input(mm);
 }
 
 - (void)rightMouseDown:(NSEvent *)event {
 
 	button_mask |= BUTTON_MASK_RIGHT;
-	InputEvent ev;
-	ev.type = InputEvent::MOUSE_BUTTON;
-	ev.mouse_button.button_index = BUTTON_RIGHT;
-	ev.mouse_button.pressed = true;
-	ev.mouse_button.x = mouse_x;
-	ev.mouse_button.y = mouse_y;
-	ev.mouse_button.global_x = mouse_x;
-	ev.mouse_button.global_y = mouse_y;
-	ev.mouse_button.button_mask = button_mask;
-	ev.mouse_button.mod = translateFlags([event modifierFlags]);
-	OS_OSX::singleton->push_input(ev);
 
-	/*
-	_glfwInputMouseClick(window,
-		GLFW_MOUSE_BUTTON_RIGHT,
-		GLFW_PRESS,
-		translateFlags([event modifierFlags]));
-*/
+	Ref<InputEventMouseButton> mb;
+	mb.instance();
+
+	get_key_modifier_state([event modifierFlags], mb);
+	mb->set_button_index(BUTTON_RIGHT);
+	mb->set_pressed(true);
+	mb->set_pos(Vector2(mouse_x, mouse_y));
+	mb->set_global_pos(Vector2(mouse_x, mouse_y));
+	mb->set_button_mask(button_mask);
+	mb->set_doubleclick([event clickCount] == 2);
+	OS_OSX::singleton->push_input(mb);
 }
 
 - (void)rightMouseDragged:(NSEvent *)event {
@@ -435,25 +365,19 @@ static int button_mask = 0;
 
 - (void)rightMouseUp:(NSEvent *)event {
 
-	button_mask &= ~BUTTON_MASK_RIGHT;
-	InputEvent ev;
-	ev.type = InputEvent::MOUSE_BUTTON;
-	ev.mouse_button.button_index = BUTTON_RIGHT;
-	ev.mouse_button.pressed = false;
-	ev.mouse_button.x = mouse_x;
-	ev.mouse_button.y = mouse_y;
-	ev.mouse_button.global_x = mouse_x;
-	ev.mouse_button.global_y = mouse_y;
-	ev.mouse_button.button_mask = button_mask;
-	ev.mouse_button.mod = translateFlags([event modifierFlags]);
-	OS_OSX::singleton->push_input(ev);
+	button_mask |= BUTTON_MASK_RIGHT;
 
-	/*
-	_glfwInputMouseClick(window,
-		GLFW_MOUSE_BUTTON_RIGHT,
-		GLFW_RELEASE,
-		translateFlags([event modifierFlags]));
-*/
+	Ref<InputEventMouseButton> mb;
+	mb.instance();
+
+	get_key_modifier_state([event modifierFlags], mb);
+	mb->set_button_index(BUTTON_RIGHT);
+	mb->set_pressed(false);
+	mb->set_pos(Vector2(mouse_x, mouse_y));
+	mb->set_global_pos(Vector2(mouse_x, mouse_y));
+	mb->set_button_mask(button_mask);
+	mb->set_doubleclick([event clickCount] == 2);
+	OS_OSX::singleton->push_input(mb);
 }
 
 - (void)otherMouseDown:(NSEvent *)event {
@@ -462,24 +386,18 @@ static int button_mask = 0;
 		return;
 
 	button_mask |= BUTTON_MASK_MIDDLE;
-	InputEvent ev;
-	ev.type = InputEvent::MOUSE_BUTTON;
-	ev.mouse_button.button_index = BUTTON_MIDDLE;
-	ev.mouse_button.pressed = true;
-	ev.mouse_button.x = mouse_x;
-	ev.mouse_button.y = mouse_y;
-	ev.mouse_button.global_x = mouse_x;
-	ev.mouse_button.global_y = mouse_y;
-	ev.mouse_button.button_mask = button_mask;
-	ev.mouse_button.mod = translateFlags([event modifierFlags]);
-	OS_OSX::singleton->push_input(ev);
 
-	/*
-	_glfwInputMouseClick(window,
-		(int) [event buttonNumber],
-		GLFW_PRESS,
-		translateFlags([event modifierFlags]));
-*/
+	Ref<InputEventMouseButton> mb;
+	mb.instance();
+
+	get_key_modifier_state([event modifierFlags], mb);
+	mb->set_button_index(BUTTON_MIDDLE);
+	mb->set_pressed(true);
+	mb->set_pos(Vector2(mouse_x, mouse_y));
+	mb->set_global_pos(Vector2(mouse_x, mouse_y));
+	mb->set_button_mask(button_mask);
+	mb->set_doubleclick([event clickCount] == 2);
+	OS_OSX::singleton->push_input(mb);
 }
 
 - (void)otherMouseDragged:(NSEvent *)event {
@@ -491,25 +409,19 @@ static int button_mask = 0;
 	if ((int)[event buttonNumber] != 2)
 		return;
 
-	button_mask &= ~BUTTON_MASK_MIDDLE;
-	InputEvent ev;
-	ev.type = InputEvent::MOUSE_BUTTON;
-	ev.mouse_button.button_index = BUTTON_MIDDLE;
-	ev.mouse_button.pressed = false;
-	ev.mouse_button.x = mouse_x;
-	ev.mouse_button.y = mouse_y;
-	ev.mouse_button.global_x = mouse_x;
-	ev.mouse_button.global_y = mouse_y;
-	ev.mouse_button.button_mask = button_mask;
-	ev.mouse_button.mod = translateFlags([event modifierFlags]);
-	OS_OSX::singleton->push_input(ev);
+	button_mask |= BUTTON_MASK_MIDDLE;
 
-	/*
-	_glfwInputMouseClick(window,
-		(int) [event buttonNumber],
-		GLFW_RELEASE,
-		translateFlags([event modifierFlags]));
-*/
+	Ref<InputEventMouseButton> mb;
+	mb.instance();
+
+	get_key_modifier_state([event modifierFlags], mb);
+	mb->set_button_index(BUTTON_MIDDLE);
+	mb->set_pressed(true);
+	mb->set_pos(Vector2(mouse_x, mouse_y));
+	mb->set_global_pos(Vector2(mouse_x, mouse_y));
+	mb->set_button_mask(button_mask);
+	mb->set_doubleclick([event clickCount] == 2);
+	OS_OSX::singleton->push_input(mb);
 }
 
 - (void)mouseExited:(NSEvent *)event {
@@ -520,11 +432,9 @@ static int button_mask = 0;
 		OS_OSX::singleton->main_loop->notification(MainLoop::NOTIFICATION_WM_MOUSE_EXIT);
 	if (OS_OSX::singleton->input)
 		OS_OSX::singleton->input->set_mouse_in_window(false);
-	//_glfwInputCursorEnter(window, GL_FALSE);
 }
 
 - (void)mouseEntered:(NSEvent *)event {
-	//_glfwInputCursorEnter(window, GL_TRUE);
 	if (!OS_OSX::singleton)
 		return;
 	if (OS_OSX::singleton->main_loop && OS_OSX::singleton->mouse_mode != OS::MOUSE_MODE_CAPTURED)
@@ -534,12 +444,7 @@ static int button_mask = 0;
 }
 
 - (void)viewDidChangeBackingProperties {
-	/*
-	const NSRect contentRect = [window->ns.view frame];
-	const NSRect fbRect = convertRectToBacking(window, contentRect);
-
-	_glfwInputFramebufferSize(window, fbRect.size.width, fbRect.size.height);
-*/
+	// nothing left to do here
 }
 
 - (void)updateTrackingAreas {
@@ -706,86 +611,102 @@ static int translateKey(unsigned int key) {
 }
 
 - (void)keyDown:(NSEvent *)event {
-	InputEvent ev;
-	ev.type = InputEvent::KEY;
-	ev.key.pressed = true;
-	ev.key.mod = translateFlags([event modifierFlags]);
-	ev.key.scancode = latin_keyboard_keycode_convert(translateKey([event keyCode]));
-	ev.key.echo = [event isARepeat];
+
+	Ref<InputEventKey> k;
+	k.instance();
+
+	get_key_modifier_state([event modifierFlags], k);
+	k->set_pressed(true);
+	k->set_scancode(latin_keyboard_keycode_convert(translateKey([event keyCode])));
+	k->set_echo([event isARepeat]);
 
 	NSString *characters = [event characters];
 	NSUInteger i, length = [characters length];
 
-	if (length > 0 && keycode_has_unicode(ev.key.scancode)) {
+	if (length > 0 && keycode_has_unicode(k->get_scancode())) {
 		for (i = 0; i < length; i++) {
-			ev.key.unicode = [characters characterAtIndex:i];
-			OS_OSX::singleton->push_input(ev);
-			ev.key.scancode = 0;
+			k->set_unicode([characters characterAtIndex:i]);
+			OS_OSX::singleton->push_input(k);
+			k->set_scancode(0);
 		}
 	} else {
-		OS_OSX::singleton->push_input(ev);
+		OS_OSX::singleton->push_input(k);
 	}
 }
 
 - (void)flagsChanged:(NSEvent *)event {
-	InputEvent ev;
+	Ref<InputEventKey> k;
+	k.instance();
+
 	int key = [event keyCode];
 	int mod = [event modifierFlags];
-
-	ev.type = InputEvent::KEY;
 
 	if (key == 0x36 || key == 0x37) {
 		if (mod & NSCommandKeyMask) {
 			mod &= ~NSCommandKeyMask;
-			ev.key.pressed = true;
+			k->set_pressed(true);
 		} else {
-			ev.key.pressed = false;
+			k->set_pressed(false);
 		}
 	} else if (key == 0x38 || key == 0x3c) {
 		if (mod & NSShiftKeyMask) {
 			mod &= ~NSShiftKeyMask;
-			ev.key.pressed = true;
+			k->set_pressed(true);
 		} else {
-			ev.key.pressed = false;
+			k->set_pressed(false);
 		}
 	} else if (key == 0x3a || key == 0x3d) {
 		if (mod & NSAlternateKeyMask) {
 			mod &= ~NSAlternateKeyMask;
-			ev.key.pressed = true;
+			k->set_pressed(true);
 		} else {
-			ev.key.pressed = false;
+			k->set_pressed(false);
 		}
 	} else if (key == 0x3b || key == 0x3e) {
 		if (mod & NSControlKeyMask) {
 			mod &= ~NSControlKeyMask;
-			ev.key.pressed = true;
+			k->set_pressed(true);
 		} else {
-			ev.key.pressed = false;
+			k->set_pressed(false);
 		}
 	} else {
 		return;
 	}
 
-	ev.key.mod = translateFlags(mod);
-	ev.key.scancode = latin_keyboard_keycode_convert(translateKey(key));
+	get_key_modifier_state(mod, k);
+	k->set_scancode(latin_keyboard_keycode_convert(translateKey(key)));
 
-	OS_OSX::singleton->push_input(ev);
+	OS_OSX::singleton->push_input(k);
 }
 
 - (void)keyUp:(NSEvent *)event {
 
-	InputEvent ev;
-	ev.type = InputEvent::KEY;
-	ev.key.pressed = false;
-	ev.key.mod = translateFlags([event modifierFlags]);
-	ev.key.scancode = latin_keyboard_keycode_convert(translateKey([event keyCode]));
-	OS_OSX::singleton->push_input(ev);
+	Ref<InputEventKey> k;
+	k.instance();
 
-	/*
- 	const int key = translateKey([event keyCode]);
-	const int mods = translateFlags([event modifierFlags]);
-	_glfwInputKey(window, key, [event keyCode], GLFW_RELEASE, mods);
-*/
+	get_key_modifier_state([event modifierFlags], k);
+	k->set_pressed(false);
+	k->set_scancode(latin_keyboard_keycode_convert(translateKey([event keyCode])));
+
+	OS_OSX::singleton->push_input(k);
+}
+
+inline void sendScrollEvent(int button, double factor, int modifierFlags) {
+
+	Ref<InputEventMouseButton> sc;
+	sc.instance();
+
+	get_key_modifier_state(modifierFlags, sc);
+	sc->set_button_index(button);
+	sc->set_factor(factor);
+	sc->set_pressed(true);
+	Vector2 mouse_pos = Vector2(mouse_x, mouse_y);
+	sc->set_pos(mouse_pos);
+	sc->set_global_pos(mouse_pos);
+	sc->set_button_mask(button_mask);
+	OS_OSX::singleton->push_input(sc);
+	sc->set_pressed(false);
+	OS_OSX::singleton->push_input(sc);
 }
 
 - (void)scrollWheel:(NSEvent *)event {
@@ -797,48 +718,20 @@ static int translateKey(unsigned int key) {
 		deltaY = [event scrollingDeltaY];
 
 		if ([event hasPreciseScrollingDeltas]) {
-			deltaX *= 0.1;
-			deltaY *= 0.1;
+			deltaX *= 0.03;
+			deltaY *= 0.03;
 		}
-	} else {
+	} else
+#endif // MAC_OS_X_VERSION_MAX_ALLOWED
+	{
 		deltaX = [event deltaX];
 		deltaY = [event deltaY];
 	}
-#else
-	deltaX = [event deltaX];
-	deltaY = [event deltaY];
-#endif /*MAC_OS_X_VERSION_MAX_ALLOWED*/
-
-	if (fabs(deltaY)) {
-
-		InputEvent ev;
-		ev.type = InputEvent::MOUSE_BUTTON;
-		ev.mouse_button.button_index = deltaY > 0 ? BUTTON_WHEEL_UP : BUTTON_WHEEL_DOWN;
-		ev.mouse_button.pressed = true;
-		ev.mouse_button.x = mouse_x;
-		ev.mouse_button.y = mouse_y;
-		ev.mouse_button.global_x = mouse_x;
-		ev.mouse_button.global_y = mouse_y;
-		ev.mouse_button.button_mask = button_mask;
-		OS_OSX::singleton->push_input(ev);
-		ev.mouse_button.pressed = false;
-		OS_OSX::singleton->push_input(ev);
-	}
-
 	if (fabs(deltaX)) {
-
-		InputEvent ev;
-		ev.type = InputEvent::MOUSE_BUTTON;
-		ev.mouse_button.button_index = deltaX < 0 ? BUTTON_WHEEL_RIGHT : BUTTON_WHEEL_LEFT;
-		ev.mouse_button.pressed = true;
-		ev.mouse_button.x = mouse_x;
-		ev.mouse_button.y = mouse_y;
-		ev.mouse_button.global_x = mouse_x;
-		ev.mouse_button.global_y = mouse_y;
-		ev.mouse_button.button_mask = button_mask;
-		OS_OSX::singleton->push_input(ev);
-		ev.mouse_button.pressed = false;
-		OS_OSX::singleton->push_input(ev);
+		sendScrollEvent(0 > deltaX ? BUTTON_WHEEL_RIGHT : BUTTON_WHEEL_LEFT, fabs(deltaX * 0.3), [event modifierFlags]);
+	}
+	if (fabs(deltaY)) {
+		sendScrollEvent(0 < deltaY ? BUTTON_WHEEL_UP : BUTTON_WHEEL_DOWN, fabs(deltaY * 0.3), [event modifierFlags]);
 	}
 }
 
@@ -1238,26 +1131,27 @@ void OS_OSX::set_window_title(const String &p_title) {
 	[window_object setTitle:[NSString stringWithUTF8String:p_title.utf8().get_data()]];
 }
 
-void OS_OSX::set_icon(const Image &p_icon) {
+void OS_OSX::set_icon(const Ref<Image> &p_icon) {
 
-	Image img = p_icon;
-	img.convert(Image::FORMAT_RGBA8);
+	Ref<Image> img = p_icon;
+	img = img->duplicate();
+	img->convert(Image::FORMAT_RGBA8);
 	NSBitmapImageRep *imgrep = [[[NSBitmapImageRep alloc]
 			initWithBitmapDataPlanes:NULL
-						  pixelsWide:p_icon.get_width()
-						  pixelsHigh:p_icon.get_height()
+						  pixelsWide:img->get_width()
+						  pixelsHigh:img->get_height()
 					   bitsPerSample:8
 					 samplesPerPixel:4
 							hasAlpha:YES
 							isPlanar:NO
 					  colorSpaceName:NSDeviceRGBColorSpace
-						 bytesPerRow:p_icon.get_width() * 4
+						 bytesPerRow:img->get_width() * 4
 						bitsPerPixel:32] autorelease];
 	ERR_FAIL_COND(imgrep == nil);
 	uint8_t *pixels = [imgrep bitmapData];
 
-	int len = img.get_width() * img.get_height();
-	PoolVector<uint8_t> data = img.get_data();
+	int len = img->get_width() * img->get_height();
+	PoolVector<uint8_t> data = img->get_data();
 	PoolVector<uint8_t>::Read r = data.read();
 
 	/* Premultiply the alpha channel */
@@ -1269,7 +1163,7 @@ void OS_OSX::set_icon(const Image &p_icon) {
 		pixels[i * 4 + 3] = alpha;
 	}
 
-	NSImage *nsimg = [[[NSImage alloc] initWithSize:NSMakeSize(img.get_width(), img.get_height())] autorelease];
+	NSImage *nsimg = [[[NSImage alloc] initWithSize:NSMakeSize(img->get_width(), img->get_height())] autorelease];
 	ERR_FAIL_COND(nsimg == nil);
 	[nsimg addRepresentation:imgrep];
 
@@ -1334,8 +1228,8 @@ Error OS_OSX::shell_open(String p_uri) {
 }
 
 String OS_OSX::get_locale() const {
-	NSString *preferredLang = [[NSLocale preferredLanguages] objectAtIndex:0];
-	return [preferredLang UTF8String];
+	NSString *locale_code = [[NSLocale currentLocale] localeIdentifier];
+	return [locale_code UTF8String];
 }
 
 void OS_OSX::swap_buffers() {
@@ -1627,10 +1521,9 @@ void OS_OSX::process_events() {
 	autoreleasePool = [[NSAutoreleasePool alloc] init];
 }
 
-void OS_OSX::push_input(const InputEvent &p_event) {
+void OS_OSX::push_input(const Ref<InputEvent> &p_event) {
 
-	InputEvent ev = p_event;
-	//print_line("EV: "+String(ev));
+	Ref<InputEvent> ev = p_event;
 	input->parse_input_event(ev);
 }
 

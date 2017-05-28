@@ -65,7 +65,7 @@ LineEdit *SpinBox::get_line_edit() {
 	return line_edit;
 }
 
-void SpinBox::_line_edit_input(const InputEvent &p_event) {
+void SpinBox::_line_edit_input(const Ref<InputEvent> &p_event) {
 }
 
 void SpinBox::_range_click_timeout() {
@@ -86,17 +86,19 @@ void SpinBox::_range_click_timeout() {
 	}
 }
 
-void SpinBox::_gui_input(const InputEvent &p_event) {
+void SpinBox::_gui_input(const Ref<InputEvent> &p_event) {
 
 	if (!is_editable()) {
 		return;
 	}
-	if (p_event.type == InputEvent::MOUSE_BUTTON && p_event.mouse_button.pressed) {
-		const InputEventMouseButton &mb = p_event.mouse_button;
 
-		bool up = mb.y < (get_size().height / 2);
+	Ref<InputEventMouseButton> mb = p_event;
 
-		switch (mb.button_index) {
+	if (mb.is_valid() && mb->is_pressed()) {
+
+		bool up = mb->get_pos().y < (get_size().height / 2);
+
+		switch (mb->get_button_index()) {
 
 			case BUTTON_LEFT: {
 
@@ -115,27 +117,29 @@ void SpinBox::_gui_input(const InputEvent &p_event) {
 			} break;
 			case BUTTON_WHEEL_UP: {
 				if (line_edit->has_focus()) {
-					set_value(get_value() + get_step());
+
+					set_value(get_value() + get_step() * mb->get_factor());
 					accept_event();
 				}
 			} break;
 			case BUTTON_WHEEL_DOWN: {
 				if (line_edit->has_focus()) {
-					set_value(get_value() - get_step());
+
+					set_value(get_value() - get_step() * mb->get_factor());
 					accept_event();
 				}
 			} break;
 		}
 	}
 
-	if (p_event.type == InputEvent::MOUSE_BUTTON && p_event.mouse_button.pressed && p_event.mouse_button.button_index == 1) {
+	if (mb.is_valid() && mb->is_pressed() && mb->get_button_index() == 1) {
 
 		//set_default_cursor_shape(CURSOR_VSIZE);
-		Vector2 cpos = Vector2(p_event.mouse_button.x, p_event.mouse_button.y);
+		Vector2 cpos = Vector2(mb->get_pos().x, mb->get_pos().y);
 		drag.mouse_pos = cpos;
 	}
 
-	if (p_event.type == InputEvent::MOUSE_BUTTON && !p_event.mouse_button.pressed && p_event.mouse_button.button_index == 1) {
+	if (mb.is_valid() && !mb->is_pressed() && mb->get_button_index() == 1) {
 
 		//set_default_cursor_shape(CURSOR_ARROW);
 		range_click_timer->stop();
@@ -147,9 +151,12 @@ void SpinBox::_gui_input(const InputEvent &p_event) {
 		}
 	}
 
-	if (p_event.type == InputEvent::MOUSE_MOTION && p_event.mouse_button.button_mask & 1) {
+	Ref<InputEventMouseMotion> mm = p_event;
 
-		Vector2 cpos = Vector2(p_event.mouse_motion.x, p_event.mouse_motion.y);
+	if (mm.is_valid() && mm->get_button_mask() & 1) {
+
+		Vector2 cpos = mm->get_pos();
+
 		if (drag.enabled) {
 
 			float diff_y = drag.mouse_pos.y - cpos.y;
@@ -192,12 +199,7 @@ void SpinBox::_notification(int p_what) {
 		RID ci = get_canvas_item();
 		Size2i size = get_size();
 
-		Color color = has_focus() ? line_edit->get_color("font_color_active") : line_edit->get_color("font_color");
-		if (!is_editable())
-			color = line_edit->get_color("font_color_read_only");
-		updown->draw(ci, Point2i(size.width - updown->get_width(), (size.height - updown->get_height()) / 2), color);
-
-	} else if (p_what == NOTIFICATION_FOCUS_EXIT) {
+		updown->draw(ci, Point2i(size.width - updown->get_width(), (size.height - updown->get_height()) / 2));
 
 	} else if (p_what == NOTIFICATION_FOCUS_EXIT) {
 
