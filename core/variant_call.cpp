@@ -291,6 +291,7 @@ struct _VariantCall {
 	VCALL_LOCALMEM0R(String, hex_to_int);
 	VCALL_LOCALMEM1R(String, pad_decimals);
 	VCALL_LOCALMEM1R(String, pad_zeros);
+	VCALL_LOCALMEM2R(String, convert_scientific);
 
 	static void _call_String_to_ascii(Variant &r_ret, Variant &p_self, const Variant **p_args) {
 
@@ -1397,6 +1398,7 @@ void register_variant_methods() {
 	ADDFUNC0(STRING, INT, String, hex_to_int, varray());
 	ADDFUNC1(STRING, STRING, String, pad_decimals, INT, "digits", varray());
 	ADDFUNC1(STRING, STRING, String, pad_zeros, INT, "digits", varray());
+	ADDFUNC2(STRING, STRING, String, convert_scientific, REAL, "num", INT, "digits", varray());
 
 	ADDFUNC0(STRING, POOL_BYTE_ARRAY, String, to_ascii, varray());
 	ADDFUNC0(STRING, POOL_BYTE_ARRAY, String, to_utf8, varray());
