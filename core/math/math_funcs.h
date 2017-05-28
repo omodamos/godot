@@ -51,7 +51,9 @@ class Math {
 public:
 	Math() {} // useless to instance
 
-	static const uint32_t RANDOM_MAX = 4294967295;
+	enum {
+		RANDOM_MAX = 4294967295L
+	};
 
 	static _ALWAYS_INLINE_ double sin(double p_x) { return ::sin(p_x); }
 	static _ALWAYS_INLINE_ float sin(float p_x) { return ::sinf(p_x); }

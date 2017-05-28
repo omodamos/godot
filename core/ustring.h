@@ -98,6 +98,7 @@ public:
 
 	signed char casecmp_to(const String &p_str) const;
 	signed char nocasecmp_to(const String &p_str) const;
+	signed char naturalnocasecmp_to(const String &p_str) const;
 
 	const CharType *c_str() const;
 	/* standard size stuff */
@@ -133,7 +134,6 @@ public:
 	String sprintf(const Array &values, bool *error) const;
 	static String num(double p_num, int p_decimals = -1);
 	static String num_scientific(double p_num);
-	String convert_scientific(double p_num, int p_decimals = -1);
 	static String num_real(double p_num);
 	static String num_int64(int64_t p_num, int base = 10, bool capitalize_hex = false);
 	static String chr(CharType p_char);
@@ -254,6 +254,14 @@ struct NoCaseComparator {
 	bool operator()(const String &p_a, const String &p_b) const {
 
 		return p_a.nocasecmp_to(p_b) < 0;
+	}
+};
+
+struct NaturalNoCaseComparator {
+
+	bool operator()(const String &p_a, const String &p_b) const {
+
+		return p_a.naturalnocasecmp_to(p_b) < 0;
 	}
 };
 

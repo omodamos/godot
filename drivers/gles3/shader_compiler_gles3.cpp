@@ -383,7 +383,7 @@ String ShaderCompilerGLES3::_dump_node_code(SL::Node *p_node, int p_level, Gener
 				String vcode;
 				vcode += _prestr(E->get().precission);
 				vcode += _typestr(E->get().type);
-				vcode += " " + String(E->key());
+				vcode += " " + _mkid(E->key());
 				vcode += ";\n";
 				r_gen_code.vertex_global += "out " + vcode;
 				r_gen_code.fragment_global += "in " + vcode;
@@ -394,26 +394,7 @@ String ShaderCompilerGLES3::_dump_node_code(SL::Node *p_node, int p_level, Gener
 			//code for functions
 			for (int i = 0; i < pnode->functions.size(); i++) {
 				SL::FunctionNode *fnode = pnode->functions[i].function;
-				String funcname = fnode->name;
-
-				if (funcname == "vertex" || funcname == "fragment" || funcname == "light") {
-					function_code[fnode->name] = _dump_node_code(fnode->body, p_level + 1, r_gen_code, p_actions, p_default_actions);
-				}
-				else {
-					String newfuncname = _mkid(funcname);
-
-					String fcode;
-					fcode = _typestr(fnode->return_type) + " " + newfuncname + "(";
-					for (int i = 0; i < fnode->arguments.size(); i++) {
-						if (i > 0)
-							fcode += ", ";
-						fcode += _typestr(fnode->arguments[i].type) + " " + _mkid(fnode->arguments[i].name);
-					}
-
-					fcode += ")\n";
-					fcode += _dump_node_code(fnode->body, p_level + 1, r_gen_code, p_actions, p_default_actions);
-					r_gen_code.fragment_global += fcode;
-				}
+				function_code[fnode->name] = _dump_node_code(fnode->body, p_level + 1, r_gen_code, p_actions, p_default_actions);
 			}
 
 			//place functions in actual code

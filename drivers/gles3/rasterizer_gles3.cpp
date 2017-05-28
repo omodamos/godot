@@ -80,9 +80,10 @@ RasterizerScene *RasterizerGLES3::get_scene() {
 
 static void GLAPIENTRY _gl_debug_print(GLenum source, GLenum type, GLuint id, GLenum severity, GLsizei length, const GLchar *message, const GLvoid *userParam) {
 
-/*	if (type == _EXT_DEBUG_TYPE_OTHER_ARB)
+	if (type == _EXT_DEBUG_TYPE_OTHER_ARB)
 		return;
 
+	print_line("mesege");
 	char debSource[256], debType[256], debSev[256];
 	if (source == _EXT_DEBUG_SOURCE_API_ARB)
 		strcpy(debSource, "OpenGL");
@@ -119,7 +120,7 @@ static void GLAPIENTRY _gl_debug_print(GLenum source, GLenum type, GLuint id, GL
 
 	String output = String() + "GL ERROR: Source: " + debSource + "\tType: " + debType + "\tID: " + itos(id) + "\tSeverity: " + debSev + "\tMessage: " + message;
 
-	ERR_PRINTS(output);*/
+	ERR_PRINTS(output);
 }
 
 typedef void (*DEBUGPROCARB)(GLenum source,
@@ -270,9 +271,9 @@ void RasterizerGLES3::clear_render_target(const Color &p_color) {
 	storage->frame.clear_request_color = p_color;
 }
 
-void RasterizerGLES3::set_boot_image(const Image &p_image, const Color &p_color, bool p_scale) {
+void RasterizerGLES3::set_boot_image(const Ref<Image> &p_image, const Color &p_color, bool p_scale) {
 
-	if (p_image.empty())
+	if (p_image.is_null() || p_image->empty())
 		return;
 
 	begin_frame();
@@ -289,10 +290,10 @@ void RasterizerGLES3::set_boot_image(const Image &p_image, const Color &p_color,
 	canvas->canvas_begin();
 
 	RID texture = storage->texture_create();
-	storage->texture_allocate(texture, p_image.get_width(), p_image.get_height(), p_image.get_format(), VS::TEXTURE_FLAG_FILTER);
+	storage->texture_allocate(texture, p_image->get_width(), p_image->get_height(), p_image->get_format(), VS::TEXTURE_FLAG_FILTER);
 	storage->texture_set_data(texture, p_image);
 
-	Rect2 imgrect(0, 0, p_image.get_width(), p_image.get_height());
+	Rect2 imgrect(0, 0, p_image->get_width(), p_image->get_height());
 	Rect2 screenrect;
 	if (p_scale) {
 

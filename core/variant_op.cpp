@@ -58,7 +58,6 @@ bool Variant::booleanize(bool &r_valid) const {
 		case BASIS:
 		case TRANSFORM:
 		case COLOR:
-		case IMAGE: r_valid = false; return false;
 		case _RID: return (*reinterpret_cast<const RID *>(_data._mem)).is_valid();
 		case OBJECT: return _get_obj().obj;
 		case NODE_PATH: return (*reinterpret_cast<const NodePath *>(_data._mem)) != NodePath();
@@ -282,7 +281,6 @@ void Variant::evaluate(const Operator &p_op, const Variant &p_a, const Variant &
 					DEFAULT_OP_PTRREF(==, TRANSFORM, _transform);
 
 					DEFAULT_OP_LOCALMEM(==, COLOR, Color);
-					DEFAULT_OP_PTRREF(==, IMAGE, _image);
 					DEFAULT_OP_STR(==, NODE_PATH, NodePath);
 					DEFAULT_OP_LOCALMEM(==, _RID, RID);
 				case OBJECT: {
@@ -370,7 +368,7 @@ void Variant::evaluate(const Operator &p_op, const Variant &p_a, const Variant &
 				DEFAULT_OP_FAIL(TRANSFORM);
 
 				DEFAULT_OP_FAIL(COLOR);
-				DEFAULT_OP_FAIL(IMAGE);
+
 				DEFAULT_OP_FAIL(NODE_PATH);
 				DEFAULT_OP_LOCALMEM(<, _RID, RID);
 				case OBJECT: {
@@ -434,7 +432,7 @@ void Variant::evaluate(const Operator &p_op, const Variant &p_a, const Variant &
 				DEFAULT_OP_FAIL(TRANSFORM);
 
 				DEFAULT_OP_FAIL(COLOR);
-				DEFAULT_OP_FAIL(IMAGE);
+
 				DEFAULT_OP_FAIL(NODE_PATH);
 				DEFAULT_OP_LOCALMEM(<=, _RID, RID);
 				case OBJECT: {
@@ -496,7 +494,7 @@ void Variant::evaluate(const Operator &p_op, const Variant &p_a, const Variant &
 				DEFAULT_OP_FAIL(TRANSFORM);
 
 				DEFAULT_OP_FAIL(COLOR);
-				DEFAULT_OP_FAIL(IMAGE);
+
 				DEFAULT_OP_FAIL(NODE_PATH);
 				DEFAULT_OP_FAIL(_RID);
 				DEFAULT_OP_FAIL(OBJECT);
@@ -552,7 +550,7 @@ void Variant::evaluate(const Operator &p_op, const Variant &p_a, const Variant &
 				DEFAULT_OP_FAIL(TRANSFORM);
 
 				DEFAULT_OP_FAIL(COLOR);
-				DEFAULT_OP_FAIL(IMAGE);
+
 				DEFAULT_OP_FAIL(NODE_PATH);
 				DEFAULT_OP_FAIL(_RID);
 				DEFAULT_OP_FAIL(OBJECT);
@@ -648,7 +646,7 @@ void Variant::evaluate(const Operator &p_op, const Variant &p_a, const Variant &
 					return;
 				} break;
 					DEFAULT_OP_FAIL(COLOR);
-					DEFAULT_OP_FAIL(IMAGE);
+
 					DEFAULT_OP_FAIL(NODE_PATH);
 					DEFAULT_OP_FAIL(_RID);
 					DEFAULT_OP_FAIL(OBJECT);
@@ -720,7 +718,7 @@ void Variant::evaluate(const Operator &p_op, const Variant &p_a, const Variant &
 					DEFAULT_OP_FAIL(TRANSFORM);
 
 					DEFAULT_OP_FAIL(COLOR);
-					DEFAULT_OP_FAIL(IMAGE);
+
 					DEFAULT_OP_FAIL(NODE_PATH);
 					DEFAULT_OP_FAIL(_RID);
 					DEFAULT_OP_FAIL(OBJECT);
@@ -761,7 +759,7 @@ void Variant::evaluate(const Operator &p_op, const Variant &p_a, const Variant &
 				DEFAULT_OP_LOCALMEM_POS(VECTOR2, Vector2);
 
 				DEFAULT_OP_FAIL(COLOR);
-				DEFAULT_OP_FAIL(IMAGE);
+
 				DEFAULT_OP_FAIL(NODE_PATH);
 				DEFAULT_OP_FAIL(_RID);
 				DEFAULT_OP_FAIL(OBJECT);
@@ -800,7 +798,7 @@ void Variant::evaluate(const Operator &p_op, const Variant &p_a, const Variant &
 				DEFAULT_OP_FAIL(TRANSFORM);
 
 				DEFAULT_OP_FAIL(COLOR);
-				DEFAULT_OP_FAIL(IMAGE);
+
 				DEFAULT_OP_FAIL(NODE_PATH);
 				DEFAULT_OP_FAIL(_RID);
 				DEFAULT_OP_FAIL(OBJECT);
@@ -1295,7 +1293,7 @@ void Variant::set(const Variant &p_index, const Variant &p_value, bool *r_valid)
 				}
 			}
 
-		} break;
+		} break; // 10
 		case RECT3: {
 
 			if (p_value.type != Variant::VECTOR3)
@@ -1320,7 +1318,7 @@ void Variant::set(const Variant &p_index, const Variant &p_value, bool *r_valid)
 					return;
 				}
 			}
-		} break; //sorry naming convention fail :( not like it's used often // 10
+		} break;
 		case BASIS: {
 
 			if (p_value.type != Variant::VECTOR3)
@@ -1470,8 +1468,6 @@ void Variant::set(const Variant &p_index, const Variant &p_value, bool *r_valid)
 			}
 
 		} break;
-		case IMAGE: {
-		} break;
 		case NODE_PATH: {
 		} break; // 15
 		case _RID: {
@@ -1507,13 +1503,13 @@ void Variant::set(const Variant &p_index, const Variant &p_value, bool *r_valid)
 			dic->operator[](p_index) = p_value;
 			valid = true; //always valid, i guess? should this really be ok?
 			return;
-		} break; // 20
-			DEFAULT_OP_ARRAY_CMD(ARRAY, Array, ;, (*arr)[index] = p_value; return )
+		} break;
+			DEFAULT_OP_ARRAY_CMD(ARRAY, Array, ;, (*arr)[index] = p_value; return ) // 20
 			DEFAULT_OP_DVECTOR_SET(POOL_BYTE_ARRAY, uint8_t, p_value.type != Variant::REAL && p_value.type != Variant::INT)
 			DEFAULT_OP_DVECTOR_SET(POOL_INT_ARRAY, int, p_value.type != Variant::REAL && p_value.type != Variant::INT)
 			DEFAULT_OP_DVECTOR_SET(POOL_REAL_ARRAY, real_t, p_value.type != Variant::REAL && p_value.type != Variant::INT)
-			DEFAULT_OP_DVECTOR_SET(POOL_STRING_ARRAY, String, p_value.type != Variant::STRING) // 25
-			DEFAULT_OP_DVECTOR_SET(POOL_VECTOR2_ARRAY, Vector2, p_value.type != Variant::VECTOR2)
+			DEFAULT_OP_DVECTOR_SET(POOL_STRING_ARRAY, String, p_value.type != Variant::STRING)
+			DEFAULT_OP_DVECTOR_SET(POOL_VECTOR2_ARRAY, Vector2, p_value.type != Variant::VECTOR2) // 25
 			DEFAULT_OP_DVECTOR_SET(POOL_VECTOR3_ARRAY, Vector3, p_value.type != Variant::VECTOR3)
 			DEFAULT_OP_DVECTOR_SET(POOL_COLOR_ARRAY, Color, p_value.type != Variant::COLOR)
 		default: return;
@@ -1714,7 +1710,7 @@ Variant Variant::get(const Variant &p_index, bool *r_valid) const {
 				}
 			}
 
-		} break;
+		} break; // 10
 		case RECT3: {
 
 			if (p_index.get_type() == Variant::STRING) {
@@ -1733,7 +1729,7 @@ Variant Variant::get(const Variant &p_index, bool *r_valid) const {
 					return v->size + v->pos;
 				}
 			}
-		} break; //sorry naming convention fail :( not like it's used often // 10
+		} break;
 		case BASIS: {
 
 			if (p_index.get_type() == Variant::INT || p_index.get_type() == Variant::REAL) {
@@ -1846,8 +1842,6 @@ Variant Variant::get(const Variant &p_index, bool *r_valid) const {
 			}
 
 		} break;
-		case IMAGE: {
-		} break;
 		case NODE_PATH: {
 		} break; // 15
 		case _RID: {
@@ -1882,13 +1876,13 @@ Variant Variant::get(const Variant &p_index, bool *r_valid) const {
 				valid = true;
 				return *res;
 			}
-		} break; // 20
-			DEFAULT_OP_ARRAY_CMD(ARRAY, const Array, ;, return (*arr)[index])
+		} break;
+			DEFAULT_OP_ARRAY_CMD(ARRAY, const Array, ;, return (*arr)[index]) // 20
 			DEFAULT_OP_DVECTOR_GET(POOL_BYTE_ARRAY, uint8_t)
 			DEFAULT_OP_DVECTOR_GET(POOL_INT_ARRAY, int)
 			DEFAULT_OP_DVECTOR_GET(POOL_REAL_ARRAY, real_t)
 			DEFAULT_OP_DVECTOR_GET(POOL_STRING_ARRAY, String)
-			DEFAULT_OP_DVECTOR_GET(POOL_VECTOR2_ARRAY, Vector2)
+			DEFAULT_OP_DVECTOR_GET(POOL_VECTOR2_ARRAY, Vector2) // 25
 			DEFAULT_OP_DVECTOR_GET(POOL_VECTOR3_ARRAY, Vector3)
 			DEFAULT_OP_DVECTOR_GET(POOL_COLOR_ARRAY, Color)
 		default: return Variant();
@@ -2152,12 +2146,12 @@ void Variant::get_property_list(List<PropertyInfo> *p_list) const {
 			p_list->push_back(PropertyInfo(Variant::REAL, "z"));
 			p_list->push_back(PropertyInfo(Variant::REAL, "w"));
 
-		} break;
+		} break; // 10
 		case RECT3: {
 			p_list->push_back(PropertyInfo(Variant::VECTOR3, "pos"));
 			p_list->push_back(PropertyInfo(Variant::VECTOR3, "size"));
 			p_list->push_back(PropertyInfo(Variant::VECTOR3, "end"));
-		} break; //sorry naming convention fail :( not like it's used often // 10
+		} break;
 		case BASIS: {
 
 			p_list->push_back(PropertyInfo(Variant::VECTOR3, "x"));
@@ -2184,8 +2178,6 @@ void Variant::get_property_list(List<PropertyInfo> *p_list) const {
 			p_list->push_back(PropertyInfo(Variant::INT, "b8"));
 			p_list->push_back(PropertyInfo(Variant::INT, "a8"));
 
-		} break;
-		case IMAGE: {
 		} break;
 		case NODE_PATH: {
 		} break; // 15
@@ -2219,12 +2211,13 @@ void Variant::get_property_list(List<PropertyInfo> *p_list) const {
 					p_list->push_back(PropertyInfo(Variant::STRING, E->get()));
 				}
 			}
-		} break; // 20
-		case ARRAY:
+		} break;
+		case ARRAY: // 20
 		case POOL_BYTE_ARRAY:
 		case POOL_INT_ARRAY:
 		case POOL_REAL_ARRAY:
 		case POOL_STRING_ARRAY:
+		case POOL_VECTOR2_ARRAY: // 25
 		case POOL_VECTOR3_ARRAY:
 		case POOL_COLOR_ARRAY: {
 
@@ -2919,10 +2912,6 @@ void Variant::interpolate(const Variant &a, const Variant &b, float c, Variant &
 			return;
 		case COLOR: {
 			r_dst = reinterpret_cast<const Color *>(a._data._mem)->linear_interpolate(*reinterpret_cast<const Color *>(b._data._mem), c);
-		}
-			return;
-		case IMAGE: {
-			r_dst = a;
 		}
 			return;
 		case NODE_PATH: {

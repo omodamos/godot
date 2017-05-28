@@ -1,22 +1,5 @@
 # Godot auto generated files
-<<<<<<< HEAD
-bin/
-platform/server/logo.h
-platform/android/logo.h
-platform/bb10/logo.h
-platform/iphone/logo.h
-platform/javascript/logo.h
-platform/osx/logo.h
-platform/windows/logo.h
-platform/x11/logo.h
-drivers/gles2/shaders/*.h
-drivers/gles3/shaders/*.h
-modules/register_module_types.cpp
-core/version.h
-core/method_bind.inc
-=======
 core/global_defaults.cpp
->>>>>>> master
 core/method_bind_ext.inc
 core/method_bind.inc
 core/script_encryption_key.cpp

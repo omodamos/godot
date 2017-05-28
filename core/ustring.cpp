@@ -53,6 +53,8 @@
 #define MAX_DIGITS 6
 #define UPPERCASE(m_c) (((m_c) >= 'a' && (m_c) <= 'z') ? ((m_c) - ('a' - 'A')) : (m_c))
 #define LOWERCASE(m_c) (((m_c) >= 'A' && (m_c) <= 'Z') ? ((m_c) + ('a' - 'A')) : (m_c))
+#define IS_DIGIT(m_d) ((m_d) >= '0' && (m_d) <= '9')
+#define IS_HEX_DIGIT(m_d) (((m_d) >= '0' && (m_d) <= '9') || ((m_d) >= 'a' && (m_d) <= 'f') || ((m_d) >= 'A' && (m_d) <= 'F'))
 
 /** STRING **/
 
@@ -479,6 +481,56 @@ signed char String::casecmp_to(const String &p_str) const {
 	}
 
 	return 0; //should never reach anyway
+}
+
+signed char String::naturalnocasecmp_to(const String &p_str) const {
+
+	const CharType *this_str = c_str();
+	const CharType *that_str = p_str.c_str();
+
+	if (this_str && that_str) {
+		while (*this_str) {
+
+			if (!*that_str)
+				return 1;
+			else if (IS_DIGIT(*this_str)) {
+
+				int64_t this_int, that_int;
+
+				if (!IS_DIGIT(*that_str))
+					return -1;
+
+				/* Compare the numbers */
+				this_int = to_int(this_str);
+				that_int = to_int(that_str);
+
+				if (this_int < that_int)
+					return -1;
+				else if (this_int > that_int)
+					return 1;
+
+				/* Skip */
+				while (IS_DIGIT(*this_str))
+					this_str++;
+				while (IS_DIGIT(*that_str))
+					that_str++;
+			} else if (IS_DIGIT(*that_str))
+				return 1;
+			else {
+				if (_find_upper(*this_str) < _find_upper(*that_str)) //more than
+					return -1;
+				else if (_find_upper(*this_str) > _find_upper(*that_str)) //less than
+					return 1;
+
+				this_str++;
+				that_str++;
+			}
+		}
+		if (*that_str)
+			return -1;
+	}
+
+	return 0;
 }
 
 void String::erase(int p_pos, int p_chars) {
@@ -1155,52 +1207,6 @@ String String::num_scientific(double p_num) {
 #endif
 }
 
-String String::convert_scientific(double p_num, int p_decimals) {
-
-#ifndef NO_USE_STDLIB
-
-	char buf[256];
-
-	if (p_decimals > 15)
-		p_decimals = 15;
-
-	char fmt[7];
-	fmt[0] = '%';
-	fmt[1] = '.';
-
-	if (p_decimals < 0) {
-
-		fmt[2] = 'l';
-		fmt[3] = 'E';
-		fmt[4] = 0;
-
-	} else if (p_decimals < 10) {
-		fmt[2] = '0' + p_decimals;
-		fmt[3] = 'l';
-		fmt[4] = 'E';
-		fmt[5] = 0;
-	} else {
-		fmt[2] = '0' + (p_decimals / 10);
-		fmt[3] = '0' + (p_decimals % 10);
-		fmt[4] = 'l';
-		fmt[5] = 'E';
-		fmt[6] = 0;
-	}
-
-#if defined(__GNUC__) || defined(_MSC_VER)
-	snprintf(buf, 256, fmt, p_num);
-#else
-	sprintf(buf, fmt, p_num);
-#endif
-
-	buf[255] = 0;
-	return buf;
-	
-#else
-	return String::num(p_num);
-#endif
-}
-
 CharString String::ascii(bool p_allow_extended) const {
 
 	if (!length())
@@ -1743,9 +1749,6 @@ bool String::is_numeric() const {
 
 	return true; // TODO: Use the parser below for this instead
 };
-
-#define IS_DIGIT(m_d) ((m_d) >= '0' && (m_d) <= '9')
-#define IS_HEX_DIGIT(m_d) (((m_d) >= '0' && (m_d) <= '9') || ((m_d) >= 'a' && (m_d) <= 'f') || ((m_d) >= 'A' && (m_d) <= 'F'))
 
 template <class C>
 static double built_in_strtod(const C *string, /* A decimal ASCII floating-point number,

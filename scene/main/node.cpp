@@ -463,7 +463,7 @@ Node::PauseMode Node::get_pause_mode() const {
 
 void Node::_propagate_pause_owner(Node *p_owner) {
 
-	if (data.pause_mode != PAUSE_MODE_INHERIT)
+	if (this != p_owner && data.pause_mode != PAUSE_MODE_INHERIT)
 		return;
 	data.pause_owner = p_owner;
 	for (int i = 0; i < data.children.size(); i++) {
@@ -2804,7 +2804,6 @@ void Node::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("print_tree"), &Node::print_tree);
 	ClassDB::bind_method(D_METHOD("set_filename", "filename"), &Node::set_filename);
 	ClassDB::bind_method(D_METHOD("get_filename"), &Node::get_filename);
-	ClassDB::bind_method(D_METHOD("set_editable_instance","node:Node","editable"),&Node::set_editable_instance);
 	ClassDB::bind_method(D_METHOD("propagate_notification", "what"), &Node::propagate_notification);
 	ClassDB::bind_method(D_METHOD("set_fixed_process", "enable"), &Node::set_fixed_process);
 	ClassDB::bind_method(D_METHOD("get_fixed_process_delta_time"), &Node::get_fixed_process_delta_time);

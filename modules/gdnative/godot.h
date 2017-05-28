@@ -139,6 +139,31 @@ typedef float godot_real;
 /////// Object (forward declared)
 typedef void godot_object;
 
+/////// Brute force forward declarations for the rest
+typedef struct godot_variant godot_variant;
+typedef struct godot_string godot_string;
+typedef struct godot_vector2 godot_vector2;
+typedef struct godot_rect2 godot_rect2;
+typedef struct godot_vector3 godot_vector3;
+typedef struct godot_transform2d godot_transform2d;
+typedef struct godot_plane godot_plane;
+typedef struct godot_quat godot_quat;
+typedef struct godot_rect3 godot_rect3;
+typedef struct godot_basis godot_basis;
+typedef struct godot_transform godot_transform;
+typedef struct godot_color godot_color;
+typedef struct godot_node_path godot_node_path;
+typedef struct godot_rid godot_rid;
+typedef struct godot_dictionary godot_dictionary;
+typedef struct godot_array godot_array;
+typedef struct godot_pool_byte_array godot_pool_byte_array;
+typedef struct godot_pool_int_array godot_pool_int_array;
+typedef struct godot_pool_real_array godot_pool_real_array;
+typedef struct godot_pool_string_array godot_pool_string_array;
+typedef struct godot_pool_vector2_array godot_pool_vector2_array;
+typedef struct godot_pool_vector3_array godot_pool_vector3_array;
+typedef struct godot_pool_color_array godot_pool_color_array;
+
 /////// String
 
 #include "godot/godot_string.h"
@@ -183,10 +208,6 @@ typedef void godot_object;
 
 #include "godot/godot_color.h"
 
-/////// Image
-
-#include "godot/godot_image.h"
-
 /////// NodePath
 
 #include "godot/godot_node_path.h"
@@ -194,10 +215,6 @@ typedef void godot_object;
 /////// RID
 
 #include "godot/godot_rid.h"
-
-/////// InputEvent
-
-#include "godot/godot_input_event.h"
 
 /////// Dictionary
 
@@ -228,7 +245,7 @@ typedef struct godot_method_bind {
 
 godot_method_bind GDAPI *godot_method_bind_get_method(const char *p_classname, const char *p_methodname);
 void GDAPI godot_method_bind_ptrcall(godot_method_bind *p_method_bind, godot_object *p_instance, const void **p_args, void *p_ret);
-
+godot_variant GDAPI godot_method_bind_call(godot_method_bind *p_method_bind, godot_object *p_instance, const godot_variant **p_args, const int p_arg_count, godot_variant_call_error *p_call_error);
 ////// Script API
 
 typedef struct godot_native_init_options {
@@ -403,6 +420,11 @@ godot_dictionary GDAPI godot_get_global_constants();
 void GDAPI *godot_alloc(int p_bytes);
 void GDAPI *godot_realloc(void *p_ptr, int p_bytes);
 void GDAPI godot_free(void *p_ptr);
+
+//print using Godot's error handler list
+void GDAPI godot_print_error(const char *p_description, const char *p_function, const char *p_file, int p_line);
+void GDAPI godot_print_warning(const char *p_description, const char *p_function, const char *p_file, int p_line);
+void GDAPI godot_print(const godot_string *p_message);
 
 #ifdef __cplusplus
 }
