@@ -42,9 +42,9 @@
 #include "os/keyboard.h"
 #include "os/os.h"
 #include "scene/main/node.h"
-#include "scene/main/scene_main_loop.h"
+#include "scene/main/scene_tree.h"
 #include "scene/main/viewport.h"
-#include "translations.h"
+#include "translations.gen.h"
 #include "version.h"
 
 Ref<EditorSettings> EditorSettings::singleton = NULL;
@@ -292,6 +292,12 @@ void EditorSettings::create() {
 			dir->change_dir("..");
 		}
 
+		if (dir->change_dir("script_templates") != OK) {
+			dir->make_dir("script_templates");
+		} else {
+			dir->change_dir("..");
+		}
+
 		if (dir->change_dir("tmp") != OK) {
 			dir->make_dir("tmp");
 		} else {
@@ -502,7 +508,7 @@ void EditorSettings::_load_defaults(Ref<ConfigFile> p_extra_config) {
 	set("interface/source_font_size", 14);
 	hints["interface/source_font_size"] = PropertyInfo(Variant::INT, "interface/source_font_size", PROPERTY_HINT_RANGE, "8,96,1", PROPERTY_USAGE_DEFAULT | PROPERTY_USAGE_RESTART_IF_CHANGED);
 	set("interface/custom_font", "");
-	hints["interface/custom_font"] = PropertyInfo(Variant::STRING, "interface/custom_font", PROPERTY_HINT_GLOBAL_FILE, "*.fnt", PROPERTY_USAGE_DEFAULT | PROPERTY_USAGE_RESTART_IF_CHANGED);
+	hints["interface/custom_font"] = PropertyInfo(Variant::STRING, "interface/custom_font", PROPERTY_HINT_GLOBAL_FILE, "*.font", PROPERTY_USAGE_DEFAULT | PROPERTY_USAGE_RESTART_IF_CHANGED);
 	set("interface/dim_editor_on_dialog_popup", true);
 	set("interface/dim_amount", 0.6f);
 	hints["interface/dim_amount"] = PropertyInfo(Variant::REAL, "interface/dim_amount", PROPERTY_HINT_RANGE, "0,1,0.01", PROPERTY_USAGE_DEFAULT);
@@ -510,6 +516,9 @@ void EditorSettings::_load_defaults(Ref<ConfigFile> p_extra_config) {
 	hints["interface/dim_transition_time"] = PropertyInfo(Variant::REAL, "interface/dim_transition_time", PROPERTY_HINT_RANGE, "0,1,0.001", PROPERTY_USAGE_DEFAULT);
 
 	set("interface/separate_distraction_mode", false);
+
+	set("interface/save_each_scene_on_quit", true); // Regression
+	set("interface/quit_confirmation", true);
 
 	set("interface/theme/preset", 0);
 	hints["interface/theme/preset"] = PropertyInfo(Variant::INT, "interface/theme/preset", PROPERTY_HINT_ENUM, "Default,Grey,Godot 2,Arc,Custom", PROPERTY_USAGE_DEFAULT | PROPERTY_USAGE_RESTART_IF_CHANGED);
@@ -521,6 +530,12 @@ void EditorSettings::_load_defaults(Ref<ConfigFile> p_extra_config) {
 	hints["interface/theme/contrast"] = PropertyInfo(Variant::REAL, "interface/theme/contrast", PROPERTY_HINT_RANGE, "0.01, 1, 0.01");
 	set("interface/theme/custom_theme", "");
 	hints["interface/theme/custom_theme"] = PropertyInfo(Variant::STRING, "interface/theme/custom_theme", PROPERTY_HINT_GLOBAL_FILE, "*.res,*.tres,*.theme", PROPERTY_USAGE_DEFAULT | PROPERTY_USAGE_RESTART_IF_CHANGED);
+
+	set("interface/scene_tabs/show_extension", false);
+	set("interface/scene_tabs/show_thumbnail_on_hover", true);
+	set("interface/scene_tabs/resize_if_many_tabs", true);
+	set("interface/scene_tabs/minimum_width", 50);
+	hints["interface/scene_tabs/minimum_width"] = PropertyInfo(Variant::INT, "interface/scene_tabs/minimum_width", PROPERTY_HINT_RANGE, "50,500,1", PROPERTY_USAGE_DEFAULT | PROPERTY_USAGE_RESTART_IF_CHANGED);
 
 	set("filesystem/directories/autoscan_project_path", "");
 	hints["filesystem/directories/autoscan_project_path"] = PropertyInfo(Variant::STRING, "filesystem/directories/autoscan_project_path", PROPERTY_HINT_GLOBAL_DIR);
@@ -556,6 +571,8 @@ void EditorSettings::_load_defaults(Ref<ConfigFile> p_extra_config) {
 	set("text_editor/line_numbers/line_length_guideline_column", 80);
 	hints["text_editor/line_numbers/line_length_guideline_column"] = PropertyInfo(Variant::INT, "text_editor/line_numbers/line_length_guideline_column", PROPERTY_HINT_RANGE, "20, 160, 10");
 
+	set("text_editor/open_scripts/show_members_overview", true);
+
 	set("text_editor/files/trim_trailing_whitespace_on_save", false);
 	set("text_editor/completion/idle_parse_delay", 2);
 	set("text_editor/tools/create_signal_callbacks", true);
@@ -567,7 +584,7 @@ void EditorSettings::_load_defaults(Ref<ConfigFile> p_extra_config) {
 	hints["text_editor/cursor/caret_blink_speed"] = PropertyInfo(Variant::REAL, "text_editor/cursor/caret_blink_speed", PROPERTY_HINT_RANGE, "0.1, 10, 0.1");
 
 	set("text_editor/theme/font", "");
-	hints["text_editor/theme/font"] = PropertyInfo(Variant::STRING, "text_editor/theme/font", PROPERTY_HINT_GLOBAL_FILE, "*.fnt");
+	hints["text_editor/theme/font"] = PropertyInfo(Variant::STRING, "text_editor/theme/font", PROPERTY_HINT_GLOBAL_FILE, "*.font");
 	set("text_editor/completion/auto_brace_complete", false);
 	set("text_editor/files/restore_scripts_on_load", true);
 	set("text_editor/completion/complete_file_paths", true);
@@ -584,7 +601,7 @@ void EditorSettings::_load_defaults(Ref<ConfigFile> p_extra_config) {
 	set("editors/3d/grid_color", Color(0, 1, 0, 0.2));
 	hints["editors/3d/grid_color"] = PropertyInfo(Variant::COLOR, "editors/3d/grid_color", PROPERTY_HINT_NONE, "", PROPERTY_USAGE_DEFAULT | PROPERTY_USAGE_RESTART_IF_CHANGED);
 
-	set("editors/3d/default_fov", 45.0);
+	set("editors/3d/default_fov", 55.0);
 	set("editors/3d/default_z_near", 0.1);
 	set("editors/3d/default_z_far", 500.0);
 
@@ -612,10 +629,12 @@ void EditorSettings::_load_defaults(Ref<ConfigFile> p_extra_config) {
 	set("editors/2d/bone_ik_color", Color(0.9, 0.9, 0.45, 0.9));
 	set("editors/2d/keep_margins_when_changing_anchors", false);
 	set("editors/2d/warped_mouse_panning", true);
+	set("editors/2d/scroll_to_pan", false);
+	set("editors/2d/pan_speed", 20);
 
 	set("editors/poly_editor/point_grab_radius", 8);
 
-	set("run/window_placement/rect", 0);
+	set("run/window_placement/rect", 1);
 	hints["run/window_placement/rect"] = PropertyInfo(Variant::INT, "run/window_placement/rect", PROPERTY_HINT_ENUM, "Default,Centered,Custom Position,Force Maximized,Force Full Screen");
 	String screen_hints = TTR("Default (Same as Editor)");
 	for (int i = 0; i < OS::get_singleton()->get_screen_count(); i++) {
@@ -718,7 +737,7 @@ void EditorSettings::_load_default_text_editor_theme() {
 	set("text_editor/highlighting/string_color", Color::html("ef6ebe"));
 	set("text_editor/highlighting/number_color", Color::html("EB9532"));
 	set("text_editor/highlighting/symbol_color", Color::html("badfff"));
-	set("text_editor/highlighting/selection_color", Color::html("7b5dbe"));
+	set("text_editor/highlighting/selection_color", Color::html("6ca9c2"));
 	set("text_editor/highlighting/brace_mismatch_color", Color(1, 0.2, 0.2));
 	set("text_editor/highlighting/current_line_color", Color(0.3, 0.5, 0.8, 0.15));
 	set("text_editor/highlighting/line_length_guideline_color", Color(0.3, 0.5, 0.8, 0.1));
@@ -940,6 +959,25 @@ bool EditorSettings::save_text_editor_theme_as(String p_file) {
 		return true;
 	}
 	return false;
+}
+
+Vector<String> EditorSettings::get_script_templates(const String &p_extension) {
+
+	Vector<String> templates;
+	DirAccess *d = DirAccess::open(settings_path + "/script_templates");
+	if (d) {
+		d->list_dir_begin();
+		String file = d->get_next();
+		while (file != String()) {
+			if (file.get_extension() == p_extension) {
+				templates.push_back(file.get_basename());
+			}
+			file = d->get_next();
+		}
+		d->list_dir_end();
+		memdelete(d);
+	}
+	return templates;
 }
 
 bool EditorSettings::_save_text_editor_theme(String p_file) {

@@ -313,6 +313,13 @@ void ScriptEditor::_goto_script_line(REF p_script, int p_line) {
 
 	editor->push_item(p_script.ptr());
 
+	if (bool(EditorSettings::get_singleton()->get("text_editor/external/use_external_editor"))) {
+
+		Ref<Script> script = p_script->cast_to<Script>();
+		if (!script.is_null() && script->get_path().is_resource_file())
+			edit(p_script, p_line, 0);
+	}
+
 	int selected = tab_container->get_current_tab();
 	if (selected < 0 || selected >= tab_container->get_child_count())
 		return;
@@ -410,7 +417,9 @@ void ScriptEditor::_go_to_tab(int p_idx) {
 	c->set_meta("__editor_pass", ++edit_pass);
 	_update_history_arrows();
 	_update_script_colors();
+	_update_members_overview();
 	_update_selected_editor_menu();
+	_update_members_overview_visibility();
 }
 
 void ScriptEditor::_add_recent_script(String p_path) {
@@ -540,6 +549,7 @@ void ScriptEditor::_close_tab(int p_idx, bool p_save) {
 	_update_history_arrows();
 
 	_update_script_names();
+	_update_members_overview_visibility();
 	_save_layout();
 }
 
@@ -863,6 +873,11 @@ void ScriptEditor::_menu_option(int p_option) {
 				debugger->set_hide_on_stop(visible);
 			debug_menu->get_popup()->set_item_checked(debug_menu->get_popup()->get_item_index(DEBUG_SHOW_KEEP_OPEN), !visible);
 		} break;
+		case DEBUG_WITH_EXTERNAL_EDITOR: {
+			bool debug_with_external_editor = !debug_menu->get_popup()->is_item_checked(debug_menu->get_popup()->get_item_index(DEBUG_WITH_EXTERNAL_EDITOR));
+			debugger->set_debug_with_external_editor(debug_with_external_editor);
+			debug_menu->get_popup()->set_item_checked(debug_menu->get_popup()->get_item_index(DEBUG_WITH_EXTERNAL_EDITOR), debug_with_external_editor);
+		}
 	}
 
 	int selected = tab_container->get_current_tab();
@@ -1025,6 +1040,7 @@ void ScriptEditor::_notification(int p_what) {
 		editor->connect("script_add_function_request", this, "_add_callback");
 		editor->connect("resource_saved", this, "_res_saved_callback");
 		script_list->connect("item_selected", this, "_script_selected");
+		members_overview->connect("item_selected", this, "_members_overview_selected");
 		script_split->connect("dragged", this, "_script_split_dragged");
 		autosave_timer->connect("timeout", this, "_autosave_scripts");
 		{
@@ -1273,6 +1289,16 @@ void ScriptEditor::ensure_focus_current() {
 	se->ensure_focus();
 }
 
+void ScriptEditor::_members_overview_selected(int p_idx) {
+	Node *current = tab_container->get_child(tab_container->get_current_tab());
+	ScriptEditorBase *se = current->cast_to<ScriptEditorBase>();
+	if (!se) {
+		return;
+	}
+	se->goto_line(members_overview->get_item_metadata(p_idx));
+	se->ensure_focus();
+}
+
 void ScriptEditor::_script_selected(int p_idx) {
 
 	grab_focus_block = !Input::get_singleton()->is_mouse_button_pressed(1); //amazing hack, simply amazing
@@ -1341,6 +1367,37 @@ struct _ScriptEditorItemData {
 		return category == id.category ? sort_key < id.sort_key : category < id.category;
 	}
 };
+
+void ScriptEditor::_update_members_overview_visibility() {
+	Node *current = tab_container->get_child(tab_container->get_current_tab());
+	ScriptEditorBase *se = current->cast_to<ScriptEditorBase>();
+	if (!se) {
+		members_overview->set_visible(false);
+		return;
+	}
+
+	if (members_overview_enabled && se->show_members_overview()) {
+		members_overview->set_visible(true);
+	} else {
+		members_overview->set_visible(false);
+	}
+}
+
+void ScriptEditor::_update_members_overview() {
+	members_overview->clear();
+
+	Node *current = tab_container->get_child(tab_container->get_current_tab());
+	ScriptEditorBase *se = current->cast_to<ScriptEditorBase>();
+	if (!se) {
+		return;
+	}
+
+	Vector<String> functions = se->get_functions();
+	for (int i = 0; i < functions.size(); i++) {
+		members_overview->add_item(functions[i].get_slice(":", 0));
+		members_overview->set_item_metadata(i, functions[i].get_slice(":", 1).to_int() - 1);
+	}
+}
 
 void ScriptEditor::_update_script_colors() {
 
@@ -1485,6 +1542,7 @@ void ScriptEditor::_update_script_names() {
 		}
 	}
 
+	_update_members_overview();
 	_update_script_colors();
 }
 
@@ -1499,13 +1557,10 @@ bool ScriptEditor::edit(const Ref<Script> &p_script, int p_line, int p_col, bool
 
 	bool open_dominant = EditorSettings::get_singleton()->get("text_editor/files/open_dominant_script_on_scene_change");
 
-	Error err = p_script->get_language()->open_in_external_editor(p_script, p_line >= 0 ? p_line : 0, p_col);
-	if (err == OK)
-		return false;
-	if (err != ERR_UNAVAILABLE)
-		WARN_PRINT("Couldn't open in custom external text editor");
-
-	if (p_script->get_path().is_resource_file() && bool(EditorSettings::get_singleton()->get("text_editor/external/use_external_editor"))) {
+	if ((debugger->get_dump_stack_script() != p_script || debugger->get_debug_with_external_editor()) &&
+			p_script->get_language()->open_in_external_editor(p_script, p_line >= 0 ? p_line : 0, p_col) == OK &&
+			p_script->get_path().is_resource_file() &&
+			bool(EditorSettings::get_singleton()->get("text_editor/external/use_external_editor"))) {
 
 		String path = EditorSettings::get_singleton()->get("text_editor/external/exec_path");
 		String flags = EditorSettings::get_singleton()->get("text_editor/external/exec_flags");
@@ -1732,6 +1787,9 @@ void ScriptEditor::_editor_settings_changed() {
 	trim_trailing_whitespace_on_save = EditorSettings::get_singleton()->get("text_editor/files/trim_trailing_whitespace_on_save");
 	convert_indent_on_save = EditorSettings::get_singleton()->get("text_editor/indent/convert_indent_on_save");
 	use_space_indentation = EditorSettings::get_singleton()->get("text_editor/indent/type");
+
+	members_overview_enabled = EditorSettings::get_singleton()->get("text_editor/open_scripts/show_members_overview");
+	_update_members_overview_visibility();
 
 	float autosave_time = EditorSettings::get_singleton()->get("text_editor/files/autosave_interval_secs");
 	if (autosave_time > 0) {
@@ -2084,6 +2142,7 @@ void ScriptEditor::_bind_methods() {
 	ClassDB::bind_method("_editor_settings_changed", &ScriptEditor::_editor_settings_changed);
 	ClassDB::bind_method("_update_script_names", &ScriptEditor::_update_script_names);
 	ClassDB::bind_method("_tree_changed", &ScriptEditor::_tree_changed);
+	ClassDB::bind_method("_members_overview_selected", &ScriptEditor::_members_overview_selected);
 	ClassDB::bind_method("_script_selected", &ScriptEditor::_script_selected);
 	ClassDB::bind_method("_script_created", &ScriptEditor::_script_created);
 	ClassDB::bind_method("_script_split_dragged", &ScriptEditor::_script_split_dragged);
@@ -2105,6 +2164,7 @@ ScriptEditor::ScriptEditor(EditorNode *p_editor) {
 	waiting_update_names = false;
 	pending_auto_reload = false;
 	auto_reload_running_scripts = false;
+	members_overview_enabled = true;
 	editor = p_editor;
 
 	menu_hb = memnew(HBoxContainer);
@@ -2114,10 +2174,19 @@ ScriptEditor::ScriptEditor(EditorNode *p_editor) {
 	add_child(script_split);
 	script_split->set_v_size_flags(SIZE_EXPAND_FILL);
 
+	list_split = memnew(VSplitContainer);
+	script_split->add_child(list_split);
+	list_split->set_v_size_flags(SIZE_EXPAND_FILL);
+
 	script_list = memnew(ItemList);
-	script_split->add_child(script_list);
+	list_split->add_child(script_list);
 	script_list->set_custom_minimum_size(Size2(0, 0));
 	script_split->set_split_offset(140);
+	list_split->set_split_offset(500);
+
+	members_overview = memnew(ItemList);
+	list_split->add_child(members_overview);
+	members_overview->set_custom_minimum_size(Size2(0, 0));
 
 	tab_container = memnew(TabContainer);
 	tab_container->add_style_override("panel", p_editor->get_gui_base()->get_stylebox("ScriptPanel", "EditorStyles"));
@@ -2184,6 +2253,7 @@ ScriptEditor::ScriptEditor(EditorNode *p_editor) {
 	debug_menu->get_popup()->add_separator();
 	//debug_menu->get_popup()->add_check_item("Show Debugger",DEBUG_SHOW);
 	debug_menu->get_popup()->add_check_shortcut(ED_SHORTCUT("debugger/keep_debugger_open", TTR("Keep Debugger Open")), DEBUG_SHOW_KEEP_OPEN);
+	debug_menu->get_popup()->add_check_shortcut(ED_SHORTCUT("debugger/debug_with_exteral_editor", TTR("Debug with external editor")), DEBUG_WITH_EXTERNAL_EDITOR);
 	debug_menu->get_popup()->connect("id_pressed", this, "_menu_option");
 
 	debug_menu->get_popup()->set_item_disabled(debug_menu->get_popup()->get_item_index(DEBUG_NEXT), true);

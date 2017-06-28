@@ -28,7 +28,7 @@
 /* SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                */
 /*************************************************************************/
 #include "surface_tool.h"
-#include "method_bind_ext.inc"
+#include "method_bind_ext.gen.inc"
 
 #define _VERTEX_SNAP 0.0001
 #define EQ_VERTEX_DIST 0.00001
@@ -224,13 +224,13 @@ void SurfaceTool::add_index(int p_index) {
 	index_array.push_back(p_index);
 }
 
-Ref<Mesh> SurfaceTool::commit(const Ref<Mesh> &p_existing) {
+Ref<ArrayMesh> SurfaceTool::commit(const Ref<ArrayMesh> &p_existing) {
 
-	Ref<Mesh> mesh;
+	Ref<ArrayMesh> mesh;
 	if (p_existing.is_valid())
 		mesh = p_existing;
 	else
-		mesh = Ref<Mesh>(memnew(Mesh));
+		mesh.instance();
 
 	int varr_len = vertex_array.size();
 

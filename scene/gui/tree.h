@@ -58,6 +58,12 @@ public:
 		CELL_MODE_CUSTOM, ///< Contains a custom value, show a string, and an edit button
 	};
 
+	enum TextAlign {
+		ALIGN_LEFT,
+		ALIGN_CENTER,
+		ALIGN_RIGHT
+	};
+
 private:
 	friend class Tree;
 
@@ -81,6 +87,10 @@ private:
 		bool custom_bg_color;
 		bool custom_bg_outline;
 		Color bg_color;
+		bool custom_button;
+		bool expand_right;
+
+		TextAlign text_align;
 
 		Variant meta;
 		String tooltip;
@@ -107,6 +117,7 @@ private:
 		Cell() {
 
 			custom_draw_obj = 0;
+			custom_button = false;
 			mode = TreeItem::CELL_MODE_STRING;
 			min = 0;
 			max = 100;
@@ -120,6 +131,8 @@ private:
 			custom_bg_color = false;
 			expr = false;
 			icon_max_w = 0;
+			text_align = ALIGN_LEFT;
+			expand_right = false;
 		}
 
 		Size2 get_icon_size() const;
@@ -129,6 +142,7 @@ private:
 	Vector<Cell> cells;
 
 	bool collapsed; // wont show childs
+	bool disable_folding;
 
 	TreeItem *parent; // parent item
 	TreeItem *next; // next in list
@@ -238,18 +252,31 @@ public:
 	void clear_custom_bg_color(int p_column);
 	Color get_custom_bg_color(int p_column) const;
 
+	void set_custom_as_button(int p_column, bool p_button);
+	bool is_custom_set_as_button(int p_column) const;
+
 	void set_tooltip(int p_column, const String &p_tooltip);
 	String get_tooltip(int p_column) const;
 
 	void clear_children();
 
+	void set_text_align(int p_column, TextAlign p_align);
+	TextAlign get_text_align(int p_column) const;
+
+	void set_expand_right(int p_column, bool p_enable);
+	bool get_expand_right(int p_column) const;
+
 	void move_to_top();
 	void move_to_bottom();
+
+	void set_disable_folding(bool p_disable);
+	bool is_folding_disabled() const;
 
 	~TreeItem();
 };
 
 VARIANT_ENUM_CAST(TreeItem::TreeCellMode);
+VARIANT_ENUM_CAST(TreeItem::TextAlign);
 
 class Tree : public Control {
 
@@ -369,6 +396,10 @@ private:
 		Ref<StyleBox> title_button;
 		Ref<StyleBox> title_button_hover;
 		Ref<StyleBox> title_button_pressed;
+		Ref<StyleBox> custom_button;
+		Ref<StyleBox> custom_button_hover;
+		Ref<StyleBox> custom_button_pressed;
+
 		Color title_button_color;
 
 		Ref<Texture> checked;
@@ -383,6 +414,7 @@ private:
 		Color guide_color;
 		Color drop_position_color;
 		Color relationship_line_color;
+		Color custom_button_font_highlight;
 
 		int hseparation;
 		int vseparation;
@@ -409,6 +441,9 @@ private:
 		int click_column;
 		int hover_index;
 		Point2 click_pos;
+
+		TreeItem *hover_item;
+		int hover_cell;
 
 	} cache;
 

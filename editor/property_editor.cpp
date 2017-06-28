@@ -65,6 +65,9 @@ void CustomPropertyEditor::_notification(int p_what) {
 			VisualServer::get_singleton()->canvas_item_add_rect(ci, Rect2( 10,10,60, get_size().height-20 ), v );
 		}*/
 	}
+	if (p_what == MainLoop::NOTIFICATION_WM_QUIT_REQUEST) {
+		hide();
+	}
 }
 
 void CustomPropertyEditor::_menu_option(int p_which) {
@@ -678,8 +681,8 @@ bool CustomPropertyEditor::edit(Object *p_owner, const String &p_name, Variant::
 			field_names.push_back("h");
 			config_value_editors(4, 4, 10, field_names);
 			Rect2 r = v;
-			value_editor[0]->set_text(String::num(r.pos.x));
-			value_editor[1]->set_text(String::num(r.pos.y));
+			value_editor[0]->set_text(String::num(r.position.x));
+			value_editor[1]->set_text(String::num(r.position.y));
 			value_editor[2]->set_text(String::num(r.size.x));
 			value_editor[3]->set_text(String::num(r.size.y));
 		} break;
@@ -733,9 +736,9 @@ bool CustomPropertyEditor::edit(Object *p_owner, const String &p_name, Variant::
 			config_value_editors(6, 3, 16, field_names);
 
 			Rect3 aabb = v;
-			value_editor[0]->set_text(String::num(aabb.pos.x));
-			value_editor[1]->set_text(String::num(aabb.pos.y));
-			value_editor[2]->set_text(String::num(aabb.pos.z));
+			value_editor[0]->set_text(String::num(aabb.position.x));
+			value_editor[1]->set_text(String::num(aabb.position.y));
+			value_editor[2]->set_text(String::num(aabb.position.z));
 			value_editor[3]->set_text(String::num(aabb.size.x));
 			value_editor[4]->set_text(String::num(aabb.size.y));
 			value_editor[5]->set_text(String::num(aabb.size.z));
@@ -821,7 +824,7 @@ bool CustomPropertyEditor::edit(Object *p_owner, const String &p_name, Variant::
 			color_picker->show();
 			color_picker->set_edit_alpha(hint != PROPERTY_HINT_COLOR_NO_ALPHA);
 			color_picker->set_pick_color(v);
-			set_size(Size2(300 * EDSCALE, color_picker->get_combined_minimum_size().height + 10 * EDSCALE));
+			set_size(Size2(307 * EDSCALE, 460 * EDSCALE));
 			color_picker->set_focus_on_line_edit();
 			/*
 			int ofs=80;
@@ -1539,13 +1542,13 @@ void CustomPropertyEditor::_modified(String p_string) {
 
 			Rect2 r2;
 			if (evaluator) {
-				r2.pos.x = evaluator->eval(value_editor[0]->get_text());
-				r2.pos.y = evaluator->eval(value_editor[1]->get_text());
+				r2.position.x = evaluator->eval(value_editor[0]->get_text());
+				r2.position.y = evaluator->eval(value_editor[1]->get_text());
 				r2.size.x = evaluator->eval(value_editor[2]->get_text());
 				r2.size.y = evaluator->eval(value_editor[3]->get_text());
 			} else {
-				r2.pos.x = value_editor[0]->get_text().to_double();
-				r2.pos.y = value_editor[1]->get_text().to_double();
+				r2.position.x = value_editor[0]->get_text().to_double();
+				r2.position.y = value_editor[1]->get_text().to_double();
 				r2.size.x = value_editor[2]->get_text().to_double();
 				r2.size.y = value_editor[3]->get_text().to_double();
 			}
@@ -2310,6 +2313,7 @@ void PropertyEditor::set_item_text(TreeItem *p_item, int p_type, const String &p
 			if (obj->get(p_name).get_type() == Variant::NIL || obj->get(p_name).operator RefPtr().is_null()) {
 				p_item->set_text(1, "<null>");
 				p_item->set_icon(1, Ref<Texture>());
+				p_item->set_custom_as_button(1, false);
 
 				Dictionary d = p_item->get_metadata(0);
 				int hint = d.has("hint") ? d["hint"].operator int() : -1;
@@ -2319,6 +2323,7 @@ void PropertyEditor::set_item_text(TreeItem *p_item, int p_type, const String &p
 				}
 
 			} else {
+				p_item->set_custom_as_button(1, true);
 				RES res = obj->get(p_name).operator RefPtr();
 				if (res->is_class("Texture")) {
 					int tw = EditorSettings::get_singleton()->get("docks/property_editor/texture_preview_width");
@@ -2691,20 +2696,20 @@ void PropertyEditor::_notification(int p_what) {
 	}
 }
 
-TreeItem *PropertyEditor::get_parent_node(String p_path, HashMap<String, TreeItem *> &item_paths, TreeItem *root) {
+TreeItem *PropertyEditor::get_parent_node(String p_path, HashMap<String, TreeItem *> &item_paths, TreeItem *root, TreeItem *category) {
 
 	TreeItem *item = NULL;
 
 	if (p_path == "") {
 
-		item = root;
+		item = category ? category : root;
 	} else if (item_paths.has(p_path)) {
 
 		item = item_paths.get(p_path);
 	} else {
 
 		//printf("path %s parent path %s - item name %s\n",p_path.ascii().get_data(),p_path.left( p_path.find_last("/") ).ascii().get_data(),p_path.right( p_path.find_last("/") ).ascii().get_data() );
-		TreeItem *parent = get_parent_node(p_path.left(p_path.find_last("/")), item_paths, root);
+		TreeItem *parent = get_parent_node(p_path.left(p_path.find_last("/")), item_paths, root, NULL);
 		item = tree->create_item(parent);
 
 		String name = (p_path.find("/") != -1) ? p_path.right(p_path.find_last("/") + 1) : p_path;
@@ -2715,9 +2720,21 @@ TreeItem *PropertyEditor::get_parent_node(String p_path, HashMap<String, TreeIte
 		}
 
 		item->set_editable(0, false);
+		if (!subsection_selectable) {
+			item->set_expand_right(0, true);
+		}
 		item->set_selectable(0, subsection_selectable);
 		item->set_editable(1, false);
 		item->set_selectable(1, subsection_selectable);
+
+		if (use_folding) {
+			if (!obj->editor_is_section_unfolded(p_path)) {
+				updating_folding = true;
+				item->set_collapsed(true);
+				updating_folding = false;
+			}
+			item->set_metadata(0, p_path);
+		}
 
 		if (item->get_parent() == root) {
 
@@ -2930,17 +2947,21 @@ void PropertyEditor::update_tree() {
 			TreeItem *sep = tree->create_item(root);
 			current_category = sep;
 			String type = p.name;
-			/*if (has_icon(type,"EditorIcons"))
-				sep->set_icon(0,get_icon(type,"EditorIcons") );
+			//*
+			if (has_icon(type, "EditorIcons"))
+				sep->set_icon(0, get_icon(type, "EditorIcons"));
 			else
-				sep->set_icon(0,get_icon("Object","EditorIcons") );
-			print_line("CATEGORY: "+type);
-			*/
+				sep->set_icon(0, get_icon("Object", "EditorIcons"));
+
+			//*/
 			sep->set_text(0, type);
+			sep->set_expand_right(0, true);
 			sep->set_selectable(0, false);
 			sep->set_selectable(1, false);
 			sep->set_custom_bg_color(0, get_color("prop_category", "Editor"));
 			sep->set_custom_bg_color(1, get_color("prop_category", "Editor"));
+			sep->set_text_align(0, TreeItem::ALIGN_CENTER);
+			sep->set_disable_folding(true);
 
 			if (use_doc_hints) {
 				StringName type = p.name;
@@ -2971,6 +2992,8 @@ void PropertyEditor::update_tree() {
 			if (group_base != "") {
 				if (basename.begins_with(group_base)) {
 					basename = basename.replace_first(group_base, "");
+				} else if (group_base.begins_with(basename)) {
+					//keep it, this is used pretty often
 				} else {
 					group = ""; //no longer using group base, clear
 				}
@@ -3000,7 +3023,7 @@ void PropertyEditor::update_tree() {
 		}
 
 		//printf("property %s\n",basename.ascii().get_data());
-		TreeItem *parent = get_parent_node(path, item_path, current_category ? current_category : root);
+		TreeItem *parent = get_parent_node(path, item_path, root, current_category);
 		/*
 		if (parent->get_parent()==root)
 			parent=root;
@@ -3540,17 +3563,21 @@ void PropertyEditor::update_tree() {
 
 				item->set_cell_mode(1, TreeItem::CELL_MODE_CUSTOM);
 				item->set_editable(1, !read_only);
-				item->add_button(1, get_icon("EditResource", "EditorIcons"));
+				//item->add_button(1, get_icon("EditResource", "EditorIcons"));
 				String type;
 				if (p.hint == PROPERTY_HINT_RESOURCE_TYPE)
 					type = p.hint_string;
 
-				if (obj->get(p.name).get_type() == Variant::NIL || obj->get(p.name).operator RefPtr().is_null()) {
+				RES res = obj->get(p.name).operator RefPtr();
+
+				if (obj->get(p.name).get_type() == Variant::NIL || res.is_null()) {
 					item->set_text(1, "<null>");
 					item->set_icon(1, Ref<Texture>());
+					item->set_custom_as_button(1, false);
 
-				} else {
-					RES res = obj->get(p.name).operator RefPtr();
+				} else if (res.is_valid()) {
+
+					item->set_custom_as_button(1, true);
 
 					if (res->is_class("Texture")) {
 						int tw = EditorSettings::get_singleton()->get("docks/property_editor/texture_preview_width");
@@ -3668,11 +3695,21 @@ void PropertyEditor::_draw_transparency(Object *t, const Rect2 &p_rect) {
 
 	// make a little space between consecutive color fields
 	Rect2 area = p_rect;
-	area.pos.y += 1;
+	area.position.y += 1;
 	area.size.height -= 2;
 	area.size.width -= arrow->get_size().width + 5;
 	tree->draw_texture_rect(get_icon("Transparent", "EditorIcons"), area, true);
 	tree->draw_rect(area, color);
+}
+
+void PropertyEditor::_item_folded(Object *item_obj) {
+
+	if (updating_folding)
+		return;
+
+	TreeItem *item = item_obj->cast_to<TreeItem>();
+
+	obj->editor_set_section_unfold(item->get_metadata(0), !item->is_collapsed());
 }
 
 void PropertyEditor::_item_selected() {
@@ -3854,6 +3891,16 @@ void PropertyEditor::_item_edited() {
 			_edit_set(name, NodePath(item->get_text(1)), refresh_all);
 
 		} break;
+		case Variant::OBJECT: {
+			if (!item->is_custom_set_as_button(1))
+				break;
+
+			RES res = obj->get(name);
+			if (res.is_valid()) {
+				emit_signal("resource_selected", res.get_ref_ptr(), name);
+			}
+
+		} break;
 
 		case Variant::DICTIONARY: {
 
@@ -3926,7 +3973,7 @@ void PropertyEditor::_custom_editor_request(bool p_arrow) {
 	int hint = d.has("hint") ? d["hint"].operator int() : -1;
 	String hint_text = d.has("hint_text") ? d["hint_text"] : "";
 	Rect2 where = tree->get_custom_popup_rect();
-	custom_editor->set_position(where.pos);
+	custom_editor->set_position(where.position);
 
 	if (custom_editor->edit(obj, name, type, v, hint, hint_text)) {
 		custom_editor->popup();
@@ -4033,9 +4080,9 @@ void PropertyEditor::_edit_button(Object *p_item, int p_column, int p_button) {
 			Variant v = obj->get(n);
 			custom_editor->edit(obj, n, (Variant::Type)t, v, h, ht);
 			Rect2 where = tree->get_item_rect(ti, 1);
-			where.pos -= tree->get_scroll();
-			where.pos += tree->get_global_position();
-			custom_editor->set_position(where.pos);
+			where.position -= tree->get_scroll();
+			where.position += tree->get_global_position();
+			custom_editor->set_position(where.position);
 			custom_editor->popup();
 
 		} else if (t == Variant::STRING) {
@@ -4046,9 +4093,9 @@ void PropertyEditor::_edit_button(Object *p_item, int p_column, int p_button) {
 			if (h == PROPERTY_HINT_FILE || h == PROPERTY_HINT_DIR || h == PROPERTY_HINT_GLOBAL_DIR || h == PROPERTY_HINT_GLOBAL_FILE) {
 
 				Rect2 where = tree->get_item_rect(ti, 1);
-				where.pos -= tree->get_scroll();
-				where.pos += tree->get_global_position();
-				custom_editor->set_position(where.pos);
+				where.position -= tree->get_scroll();
+				where.position += tree->get_global_position();
+				custom_editor->set_position(where.position);
 				custom_editor->popup();
 			} else {
 				custom_editor->popup_centered_ratio();
@@ -4124,7 +4171,7 @@ void PropertyEditor::_draw_flags(Object *t, const Rect2 &p_rect) {
 		if (i == 1)
 			ofs.y += bsize + 1;
 
-		ofs += p_rect.pos;
+		ofs += p_rect.position;
 		for (int j = 0; j < 10; j++) {
 
 			Point2 o = ofs + Point2(j * (bsize + 1), 0);
@@ -4168,6 +4215,7 @@ void PropertyEditor::_bind_methods() {
 
 	ClassDB::bind_method("_item_edited", &PropertyEditor::_item_edited);
 	ClassDB::bind_method("_item_selected", &PropertyEditor::_item_selected);
+	ClassDB::bind_method("_item_folded", &PropertyEditor::_item_folded);
 	ClassDB::bind_method("_custom_editor_request", &PropertyEditor::_custom_editor_request);
 	ClassDB::bind_method("_custom_editor_edited", &PropertyEditor::_custom_editor_edited);
 	ClassDB::bind_method("_custom_editor_edited_field", &PropertyEditor::_custom_editor_edited_field, DEFVAL(""));
@@ -4273,11 +4321,18 @@ void PropertyEditor::set_subsection_selectable(bool p_selectable) {
 	update_tree();
 }
 
+void PropertyEditor::set_use_folding(bool p_enable) {
+
+	use_folding = p_enable;
+	tree->set_hide_folding(false);
+}
+
 PropertyEditor::PropertyEditor() {
 
 	_prop_edited = "property_edited";
 
 	hide_script = false;
+	use_folding = false;
 
 	undo_redo = NULL;
 	obj = NULL;
@@ -4310,6 +4365,7 @@ PropertyEditor::PropertyEditor() {
 
 	tree->connect("item_edited", this, "_item_edited", varray(), CONNECT_DEFERRED);
 	tree->connect("cell_selected", this, "_item_selected");
+	tree->connect("item_collapsed", this, "_item_folded");
 
 	tree->set_drag_forwarding(this);
 
@@ -4339,6 +4395,7 @@ PropertyEditor::PropertyEditor() {
 	show_categories = false;
 	refresh_countdown = 0;
 	use_doc_hints = false;
+	updating_folding = true;
 	use_filter = false;
 	subsection_selectable = false;
 	show_type_icons = EDITOR_DEF("interface/show_type_icons", false);

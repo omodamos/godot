@@ -50,10 +50,9 @@
 #include "scene/gui/tab_container.h"
 #include "scene/gui/texture_rect.h"
 #include "scene/gui/tree.h"
-#include "scene/main/scene_main_loop.h"
+#include "scene/main/scene_tree.h"
 
 #include "scene/3d/camera.h"
-#include "scene/3d/test_cube.h"
 #include "scene/main/viewport.h"
 
 namespace TestGUI {
@@ -86,10 +85,6 @@ public:
 		Camera *camera = memnew( Camera );
 		vp->add_child(camera);
 		camera->make_current();
-
-		TestCube *testcube = memnew( TestCube );
-		vp->add_child(testcube);
-		testcube->set_transform(Transform( Basis().rotated(Vector3(0,1,0),Math_PI*0.25), Vector3(0,0,-8)));
 
 		Sprite *sp = memnew( Sprite );
 		sp->set_texture( vp->get_render_target_texture() );
@@ -375,6 +370,6 @@ MainLoop *test() {
 
 	return memnew(TestMainLoop);
 }
-}
+} // namespace TestGUI
 
 #endif

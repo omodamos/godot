@@ -165,6 +165,7 @@ public:
 	virtual Ref<InputEvent> xformed_by(const Transform2D &p_xform, const Vector2 &p_local_ofs = Vector2()) const;
 
 	virtual bool action_match(const Ref<InputEvent> &p_event) const;
+	virtual bool shortcut_match(const Ref<InputEvent> &p_event) const;
 	virtual bool is_action_type() const;
 
 	InputEvent();
@@ -243,8 +244,11 @@ public:
 	uint32_t get_scancode_with_modifiers() const;
 
 	virtual bool action_match(const Ref<InputEvent> &p_event) const;
+	virtual bool shortcut_match(const Ref<InputEvent> &p_event) const;
 
 	virtual bool is_action_type() const { return true; }
+
+	virtual String as_text() const;
 
 	InputEventKey();
 };
@@ -265,11 +269,11 @@ public:
 	void set_button_mask(int p_mask);
 	int get_button_mask() const;
 
-	void set_pos(const Vector2 &p_pos);
-	Vector2 get_pos() const;
+	void set_position(const Vector2 &p_pos);
+	Vector2 get_position() const;
 
-	void set_global_pos(const Vector2 &p_global_pos);
-	Vector2 get_global_pos() const;
+	void set_global_position(const Vector2 &p_global_pos);
+	Vector2 get_global_position() const;
 
 	InputEventMouse();
 };
@@ -390,8 +394,8 @@ public:
 	void set_index(int p_index);
 	int get_index() const;
 
-	void set_pos(const Vector2 &p_pos);
-	Vector2 get_pos() const;
+	void set_position(const Vector2 &p_pos);
+	Vector2 get_position() const;
 
 	void set_pressed(bool p_pressed);
 	virtual bool is_pressed() const;
@@ -416,8 +420,8 @@ public:
 	void set_index(int p_index);
 	int get_index() const;
 
-	void set_pos(const Vector2 &p_pos);
-	Vector2 get_pos() const;
+	void set_position(const Vector2 &p_pos);
+	Vector2 get_position() const;
 
 	void set_relative(const Vector2 &p_relative);
 	Vector2 get_relative() const;

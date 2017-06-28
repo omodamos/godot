@@ -190,12 +190,12 @@ void PopupMenu::_activate_submenu(int over) {
 	PopupMenu *pum = pm->cast_to<PopupMenu>();
 	if (pum) {
 
-		pr.pos -= pum->get_global_position();
+		pr.position -= pum->get_global_position();
 		pum->clear_autohide_areas();
-		pum->add_autohide_area(Rect2(pr.pos.x, pr.pos.y, pr.size.x, items[over]._ofs_cache));
+		pum->add_autohide_area(Rect2(pr.position.x, pr.position.y, pr.size.x, items[over]._ofs_cache));
 		if (over < items.size() - 1) {
 			int from = items[over + 1]._ofs_cache;
-			pum->add_autohide_area(Rect2(pr.pos.x, pr.pos.y + from, pr.size.x, pr.size.y - from));
+			pum->add_autohide_area(Rect2(pr.position.x, pr.position.y + from, pr.size.x, pr.size.y - from));
 		}
 	}
 }
@@ -284,7 +284,7 @@ void PopupMenu::_gui_input(const Ref<InputEvent> &p_event) {
 					//update hover
 					Ref<InputEventMouseMotion> ie;
 					ie.instance();
-					ie->set_pos(b->get_pos() + Vector2(0, s));
+					ie->set_position(b->get_position() + Vector2(0, s));
 					_gui_input(ie);
 				}
 			} break;
@@ -303,13 +303,13 @@ void PopupMenu::_gui_input(const Ref<InputEvent> &p_event) {
 					//update hover
 					Ref<InputEventMouseMotion> ie;
 					ie.instance();
-					ie->set_pos(b->get_pos() - Vector2(0, s));
+					ie->set_position(b->get_position() - Vector2(0, s));
 					_gui_input(ie);
 				}
 			} break;
 			case BUTTON_LEFT: {
 
-				int over = _get_mouse_over(b->get_pos());
+				int over = _get_mouse_over(b->get_position());
 
 				if (invalidated_click) {
 					invalidated_click = false;
@@ -348,13 +348,13 @@ void PopupMenu::_gui_input(const Ref<InputEvent> &p_event) {
 
 		for (List<Rect2>::Element *E = autohide_areas.front(); E; E = E->next()) {
 
-			if (!Rect2(Point2(), get_size()).has_point(m->get_pos()) && E->get().has_point(m->get_pos())) {
+			if (!Rect2(Point2(), get_size()).has_point(m->get_position()) && E->get().has_point(m->get_position())) {
 				call_deferred("hide");
 				return;
 			}
 		}
 
-		int over = _get_mouse_over(m->get_pos());
+		int over = _get_mouse_over(m->get_position());
 		int id = (over < 0 || items[over].separator || items[over].disabled) ? -1 : (items[over].ID >= 0 ? items[over].ID : over);
 
 		if (id < 0) {
@@ -884,7 +884,7 @@ void PopupMenu::activate_item(int p_item) {
 	while (pop) {
 		// We close all parents that are chained together,
 		// with hide_on_item_selection enabled
-		if (hide_on_item_selection && pop->is_hide_on_item_selection()) {
+		if ((items[p_item].checkable && hide_on_checkable_item_selection && pop->is_hide_on_checkable_item_selection()) || (!items[p_item].checkable && hide_on_item_selection && pop->is_hide_on_item_selection())) {
 			pop->hide();
 			next = next->get_parent();
 			pop = next->cast_to<PopupMenu>();
@@ -895,8 +895,8 @@ void PopupMenu::activate_item(int p_item) {
 		}
 	}
 	// Hides popup by default; unless otherwise specified
-	// by using set_hide_on_item_selection
-	if (hide_on_item_selection) {
+	// by using set_hide_on_item_selection and set_hide_on_checkable_item_selection
+	if ((items[p_item].checkable && hide_on_checkable_item_selection) || (!items[p_item].checkable && hide_on_item_selection)) {
 		hide();
 	}
 }
@@ -1019,6 +1019,16 @@ bool PopupMenu::is_hide_on_item_selection() {
 	return hide_on_item_selection;
 }
 
+void PopupMenu::set_hide_on_checkable_item_selection(bool p_enabled) {
+
+	hide_on_checkable_item_selection = p_enabled;
+}
+
+bool PopupMenu::is_hide_on_checkable_item_selection() {
+
+	return hide_on_checkable_item_selection;
+}
+
 String PopupMenu::get_tooltip(const Point2 &p_pos) const {
 
 	int over = _get_mouse_over(p_pos);
@@ -1107,10 +1117,14 @@ void PopupMenu::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("set_hide_on_item_selection", "enable"), &PopupMenu::set_hide_on_item_selection);
 	ClassDB::bind_method(D_METHOD("is_hide_on_item_selection"), &PopupMenu::is_hide_on_item_selection);
 
+	ClassDB::bind_method(D_METHOD("set_hide_on_checkable_item_selection", "enable"), &PopupMenu::set_hide_on_checkable_item_selection);
+	ClassDB::bind_method(D_METHOD("is_hide_on_checkable_item_selection"), &PopupMenu::is_hide_on_checkable_item_selection);
+
 	ClassDB::bind_method(D_METHOD("_submenu_timeout"), &PopupMenu::_submenu_timeout);
 
 	ADD_PROPERTY(PropertyInfo(Variant::ARRAY, "items", PROPERTY_HINT_NONE, "", PROPERTY_USAGE_NOEDITOR), "_set_items", "_get_items");
 	ADD_PROPERTYNO(PropertyInfo(Variant::BOOL, "hide_on_item_selection"), "set_hide_on_item_selection", "is_hide_on_item_selection");
+	ADD_PROPERTYNO(PropertyInfo(Variant::BOOL, "hide_on_checkable_item_selection"), "set_hide_on_checkable_item_selection", "is_hide_on_checkable_item_selection");
 
 	ADD_SIGNAL(MethodInfo("id_pressed", PropertyInfo(Variant::INT, "ID")));
 	ADD_SIGNAL(MethodInfo("index_pressed", PropertyInfo(Variant::INT, "index")));
@@ -1128,6 +1142,7 @@ PopupMenu::PopupMenu() {
 	set_focus_mode(FOCUS_ALL);
 	set_as_toplevel(true);
 	set_hide_on_item_selection(true);
+	set_hide_on_checkable_item_selection(true);
 
 	submenu_timer = memnew(Timer);
 	submenu_timer->set_wait_time(0.3);

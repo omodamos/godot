@@ -28,7 +28,7 @@
 /* SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                */
 /*************************************************************************/
 #include "main.h"
-#include "app_icon.h"
+#include "app_icon.gen.h"
 #include "core/register_core_types.h"
 #include "drivers/register_driver_types.h"
 #include "global_config.h"
@@ -39,11 +39,11 @@
 #include "script_debugger_local.h"
 #include "script_debugger_remote.h"
 #include "servers/register_server_types.h"
-#include "splash.h"
+#include "splash.gen.h"
 
 #include "input_map.h"
 #include "io/resource_loader.h"
-#include "scene/main/scene_main_loop.h"
+#include "scene/main/scene_tree.h"
 #include "servers/audio_server.h"
 
 #include "io/resource_loader.h"
@@ -581,12 +581,11 @@ Error Main::setup(const char *execpath, int argc, char *argv[], bool p_second_ph
 	GLOBAL_DEF("memory/multithread/thread_rid_pool_prealloc", 60);
 
 	GLOBAL_DEF("network/debug/max_remote_stdout_chars_per_second", 2048);
-	GLOBAL_DEF("network/debug/remote_port", 6007);
 
 	if (debug_mode == "remote") {
 
 		ScriptDebuggerRemote *sdr = memnew(ScriptDebuggerRemote);
-		uint16_t debug_port = GLOBAL_GET("network/debug/remote_port");
+		uint16_t debug_port = 6007;
 		if (debug_host.find(":") != -1) {
 			int sep_pos = debug_host.find_last(":");
 			debug_port = debug_host.substr(sep_pos + 1, debug_host.length()).to_int();

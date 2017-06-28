@@ -52,7 +52,6 @@ ShaderTypes::ShaderTypes() {
 
 	shader_modes[VS::SHADER_SPATIAL].functions["vertex"]["SRC_VERTEX"] = ShaderLanguage::TYPE_VEC3;
 	shader_modes[VS::SHADER_SPATIAL].functions["vertex"]["SRC_NORMAL"] = ShaderLanguage::TYPE_VEC3;
-	shader_modes[VS::SHADER_SPATIAL].functions["vertex"]["SRC_TANGENT"] = ShaderLanguage::TYPE_VEC4;
 	shader_modes[VS::SHADER_SPATIAL].functions["vertex"]["SRC_BONES"] = ShaderLanguage::TYPE_IVEC4;
 	shader_modes[VS::SHADER_SPATIAL].functions["vertex"]["SRC_WEIGHTS"] = ShaderLanguage::TYPE_VEC4;
 
@@ -91,7 +90,8 @@ ShaderTypes::ShaderTypes() {
 	shader_modes[VS::SHADER_SPATIAL].functions["fragment"]["NORMAL"] = ShaderLanguage::TYPE_VEC3;
 	shader_modes[VS::SHADER_SPATIAL].functions["fragment"]["ALBEDO"] = ShaderLanguage::TYPE_VEC3;
 	shader_modes[VS::SHADER_SPATIAL].functions["fragment"]["ALPHA"] = ShaderLanguage::TYPE_FLOAT;
-	shader_modes[VS::SHADER_SPATIAL].functions["fragment"]["SPECULAR"] = ShaderLanguage::TYPE_VEC3;
+	shader_modes[VS::SHADER_SPATIAL].functions["fragment"]["METALLIC"] = ShaderLanguage::TYPE_FLOAT;
+	shader_modes[VS::SHADER_SPATIAL].functions["fragment"]["SPECULAR"] = ShaderLanguage::TYPE_FLOAT;
 	shader_modes[VS::SHADER_SPATIAL].functions["fragment"]["ROUGHNESS"] = ShaderLanguage::TYPE_FLOAT;
 	shader_modes[VS::SHADER_SPATIAL].functions["fragment"]["RIM"] = ShaderLanguage::TYPE_FLOAT;
 	shader_modes[VS::SHADER_SPATIAL].functions["fragment"]["RIM_TINT"] = ShaderLanguage::TYPE_FLOAT;
@@ -102,10 +102,12 @@ ShaderTypes::ShaderTypes() {
 	shader_modes[VS::SHADER_SPATIAL].functions["fragment"]["SSS_STRENGTH"] = ShaderLanguage::TYPE_FLOAT;
 	shader_modes[VS::SHADER_SPATIAL].functions["fragment"]["AO"] = ShaderLanguage::TYPE_FLOAT;
 	shader_modes[VS::SHADER_SPATIAL].functions["fragment"]["EMISSION"] = ShaderLanguage::TYPE_VEC3;
-	shader_modes[VS::SHADER_SPATIAL].functions["fragment"]["SPECIAL"] = ShaderLanguage::TYPE_FLOAT;
 	shader_modes[VS::SHADER_SPATIAL].functions["fragment"]["DISCARD"] = ShaderLanguage::TYPE_BOOL;
+	shader_modes[VS::SHADER_SPATIAL].functions["fragment"]["SCREEN_TEXTURE"] = ShaderLanguage::TYPE_SAMPLER2D;
+	shader_modes[VS::SHADER_SPATIAL].functions["fragment"]["DEPTH_TEXTURE"] = ShaderLanguage::TYPE_SAMPLER2D;
 	shader_modes[VS::SHADER_SPATIAL].functions["fragment"]["SCREEN_UV"] = ShaderLanguage::TYPE_VEC2;
 	shader_modes[VS::SHADER_SPATIAL].functions["fragment"]["POINT_COORD"] = ShaderLanguage::TYPE_VEC2;
+	shader_modes[VS::SHADER_SPATIAL].functions["fragment"]["SIDE"] = ShaderLanguage::TYPE_FLOAT;
 
 	shader_modes[VS::SHADER_SPATIAL].functions["fragment"]["WORLD_MATRIX"] = ShaderLanguage::TYPE_MAT4;
 	shader_modes[VS::SHADER_SPATIAL].functions["fragment"]["INV_CAMERA_MATRIX"] = ShaderLanguage::TYPE_MAT4;
@@ -130,6 +132,11 @@ ShaderTypes::ShaderTypes() {
 	shader_modes[VS::SHADER_SPATIAL].modes.insert("unshaded");
 	shader_modes[VS::SHADER_SPATIAL].modes.insert("ontop");
 
+	shader_modes[VS::SHADER_SPATIAL].modes.insert("diffuse_lambert");
+	shader_modes[VS::SHADER_SPATIAL].modes.insert("diffuse_half_lambert");
+	shader_modes[VS::SHADER_SPATIAL].modes.insert("diffuse_oren_nayar");
+	shader_modes[VS::SHADER_SPATIAL].modes.insert("diffuse_burley");
+
 	shader_modes[VS::SHADER_SPATIAL].modes.insert("skip_default_transform");
 
 	/************ CANVAS ITEM **************************/
@@ -145,9 +152,10 @@ ShaderTypes::ShaderTypes() {
 	shader_modes[VS::SHADER_CANVAS_ITEM].functions["vertex"]["EXTRA_MATRIX"] = ShaderLanguage::TYPE_MAT4;
 	shader_modes[VS::SHADER_CANVAS_ITEM].functions["vertex"]["TIME"] = ShaderLanguage::TYPE_FLOAT;
 	shader_modes[VS::SHADER_CANVAS_ITEM].functions["vertex"]["PARTICLE_CUSTOM"] = ShaderLanguage::TYPE_VEC4;
+	shader_modes[VS::SHADER_CANVAS_ITEM].functions["vertex"]["AT_LIGHT_PASS"] = ShaderLanguage::TYPE_BOOL;
 
 	shader_modes[VS::SHADER_CANVAS_ITEM].functions["fragment"]["SRC_COLOR"] = ShaderLanguage::TYPE_VEC4;
-	shader_modes[VS::SHADER_CANVAS_ITEM].functions["fragment"]["POSITION"] = ShaderLanguage::TYPE_VEC2;
+	shader_modes[VS::SHADER_CANVAS_ITEM].functions["fragment"]["FRAGCOORD"] = ShaderLanguage::TYPE_VEC4;
 	shader_modes[VS::SHADER_CANVAS_ITEM].functions["fragment"]["NORMAL"] = ShaderLanguage::TYPE_VEC3;
 	shader_modes[VS::SHADER_CANVAS_ITEM].functions["fragment"]["NORMALMAP"] = ShaderLanguage::TYPE_VEC3;
 	shader_modes[VS::SHADER_CANVAS_ITEM].functions["fragment"]["NORMALMAP_DEPTH"] = ShaderLanguage::TYPE_FLOAT;
@@ -156,8 +164,12 @@ ShaderTypes::ShaderTypes() {
 	shader_modes[VS::SHADER_CANVAS_ITEM].functions["fragment"]["TEXTURE"] = ShaderLanguage::TYPE_SAMPLER2D;
 	shader_modes[VS::SHADER_CANVAS_ITEM].functions["fragment"]["TEXTURE_PIXEL_SIZE"] = ShaderLanguage::TYPE_VEC2;
 	shader_modes[VS::SHADER_CANVAS_ITEM].functions["fragment"]["SCREEN_UV"] = ShaderLanguage::TYPE_VEC2;
+	shader_modes[VS::SHADER_CANVAS_ITEM].functions["fragment"]["SCREEN_PIXEL_SIZE"] = ShaderLanguage::TYPE_VEC2;
 	shader_modes[VS::SHADER_CANVAS_ITEM].functions["fragment"]["POINT_COORD"] = ShaderLanguage::TYPE_VEC2;
 	shader_modes[VS::SHADER_CANVAS_ITEM].functions["fragment"]["TIME"] = ShaderLanguage::TYPE_FLOAT;
+	shader_modes[VS::SHADER_CANVAS_ITEM].functions["fragment"]["AT_LIGHT_PASS"] = ShaderLanguage::TYPE_BOOL;
+	shader_modes[VS::SHADER_CANVAS_ITEM].functions["fragment"]["SCREEN_TEXTURE"] = ShaderLanguage::TYPE_SAMPLER2D;
+	shader_modes[VS::SHADER_CANVAS_ITEM].functions["fragment"]["SCREEN_UV"] = ShaderLanguage::TYPE_VEC2;
 
 	shader_modes[VS::SHADER_CANVAS_ITEM].functions["light"]["POSITION"] = ShaderLanguage::TYPE_VEC2;
 	shader_modes[VS::SHADER_CANVAS_ITEM].functions["light"]["NORMAL"] = ShaderLanguage::TYPE_VEC3;
@@ -165,8 +177,6 @@ ShaderTypes::ShaderTypes() {
 	shader_modes[VS::SHADER_CANVAS_ITEM].functions["light"]["COLOR"] = ShaderLanguage::TYPE_VEC4;
 	shader_modes[VS::SHADER_CANVAS_ITEM].functions["light"]["TEXTURE"] = ShaderLanguage::TYPE_SAMPLER2D;
 	shader_modes[VS::SHADER_CANVAS_ITEM].functions["light"]["TEXTURE_PIXEL_SIZE"] = ShaderLanguage::TYPE_VEC2;
-	shader_modes[VS::SHADER_CANVAS_ITEM].functions["light"]["VAR1"] = ShaderLanguage::TYPE_VEC4;
-	shader_modes[VS::SHADER_CANVAS_ITEM].functions["light"]["VAR2"] = ShaderLanguage::TYPE_VEC4;
 	shader_modes[VS::SHADER_CANVAS_ITEM].functions["light"]["SCREEN_UV"] = ShaderLanguage::TYPE_VEC2;
 	shader_modes[VS::SHADER_CANVAS_ITEM].functions["light"]["LIGHT_VEC"] = ShaderLanguage::TYPE_VEC2;
 	shader_modes[VS::SHADER_CANVAS_ITEM].functions["light"]["LIGHT_HEIGHT"] = ShaderLanguage::TYPE_FLOAT;
@@ -198,12 +208,13 @@ ShaderTypes::ShaderTypes() {
 	shader_modes[VS::SHADER_PARTICLES].functions["vertex"]["RESTART"] = ShaderLanguage::TYPE_BOOL;
 	shader_modes[VS::SHADER_PARTICLES].functions["vertex"]["CUSTOM"] = ShaderLanguage::TYPE_VEC4;
 	shader_modes[VS::SHADER_PARTICLES].functions["vertex"]["TRANSFORM"] = ShaderLanguage::TYPE_MAT4;
-	shader_modes[VS::SHADER_PARTICLES].functions["vertex"]["TIME"] = ShaderLanguage::TYPE_VEC4;
+	shader_modes[VS::SHADER_PARTICLES].functions["vertex"]["TIME"] = ShaderLanguage::TYPE_FLOAT;
 	shader_modes[VS::SHADER_PARTICLES].functions["vertex"]["LIFETIME"] = ShaderLanguage::TYPE_FLOAT;
 	shader_modes[VS::SHADER_PARTICLES].functions["vertex"]["DELTA"] = ShaderLanguage::TYPE_FLOAT;
 	shader_modes[VS::SHADER_PARTICLES].functions["vertex"]["NUMBER"] = ShaderLanguage::TYPE_UINT;
 	shader_modes[VS::SHADER_PARTICLES].functions["vertex"]["INDEX"] = ShaderLanguage::TYPE_INT;
 	shader_modes[VS::SHADER_PARTICLES].functions["vertex"]["EMISSION_TRANSFORM"] = ShaderLanguage::TYPE_MAT4;
+	shader_modes[VS::SHADER_PARTICLES].functions["vertex"]["RANDOM_SEED"] = ShaderLanguage::TYPE_UINT;
 
 	shader_modes[VS::SHADER_PARTICLES].modes.insert("billboard");
 	shader_modes[VS::SHADER_PARTICLES].modes.insert("disable_force");

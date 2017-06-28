@@ -273,10 +273,12 @@ void SpriteBase3D::_bind_methods() {
 	ADD_GROUP("Flags", "");
 	ADD_PROPERTYI(PropertyInfo(Variant::BOOL, "transparent"), "set_draw_flag", "get_draw_flag", FLAG_TRANSPARENT);
 	ADD_PROPERTYI(PropertyInfo(Variant::BOOL, "shaded"), "set_draw_flag", "get_draw_flag", FLAG_SHADED);
+	ADD_PROPERTYI(PropertyInfo(Variant::BOOL, "double_sided"), "set_draw_flag", "get_draw_flag", FLAG_DOUBLE_SIDED);
 	ADD_PROPERTY(PropertyInfo(Variant::INT, "alpha_cut", PROPERTY_HINT_ENUM, "Disabled,Discard,Opaque Pre-Pass"), "set_alpha_cut_mode", "get_alpha_cut_mode");
 
 	BIND_CONSTANT(FLAG_TRANSPARENT);
 	BIND_CONSTANT(FLAG_SHADED);
+	BIND_CONSTANT(FLAG_DOUBLE_SIDED);
 	BIND_CONSTANT(FLAG_MAX);
 
 	BIND_CONSTANT(ALPHA_CUT_DISABLED);
@@ -294,7 +296,7 @@ SpriteBase3D::SpriteBase3D() {
 	pI = NULL;
 
 	for (int i = 0; i < FLAG_MAX; i++)
-		flags[i] = i == FLAG_TRANSPARENT;
+		flags[i] = i == FLAG_TRANSPARENT || i == FLAG_DOUBLE_SIDED;
 
 	axis = Vector3::AXIS_Z;
 	pixel_size = 0.01;
@@ -335,8 +337,8 @@ void Sprite3D::_draw() {
 		s = s / Size2i(hframes, vframes);
 
 		src_rect.size = s;
-		src_rect.pos.x += (frame % hframes) * s.x;
-		src_rect.pos.y += (frame / hframes) * s.y;
+		src_rect.position.x += (frame % hframes) * s.x;
+		src_rect.position.y += (frame / hframes) * s.y;
 	}
 
 	Point2i ofs = get_offset();
@@ -360,17 +362,17 @@ void Sprite3D::_draw() {
 
 	Vector2 vertices[4] = {
 
-		(final_rect.pos + Vector2(0, final_rect.size.y)) * pixel_size,
-		(final_rect.pos + final_rect.size) * pixel_size,
-		(final_rect.pos + Vector2(final_rect.size.x, 0)) * pixel_size,
-		final_rect.pos * pixel_size,
+		(final_rect.position + Vector2(0, final_rect.size.y)) * pixel_size,
+		(final_rect.position + final_rect.size) * pixel_size,
+		(final_rect.position + Vector2(final_rect.size.x, 0)) * pixel_size,
+		final_rect.position * pixel_size,
 
 	};
 	Vector2 uvs[4] = {
-		final_src_rect.pos / tsize,
-		(final_src_rect.pos + Vector2(final_src_rect.size.x, 0)) / tsize,
-		(final_src_rect.pos + final_src_rect.size) / tsize,
-		(final_src_rect.pos + Vector2(0, final_src_rect.size.y)) / tsize,
+		final_src_rect.position / tsize,
+		(final_src_rect.position + Vector2(final_src_rect.size.x, 0)) / tsize,
+		(final_src_rect.position + final_src_rect.size) / tsize,
+		(final_src_rect.position + Vector2(0, final_src_rect.size.y)) / tsize,
 	};
 
 	if (is_flipped_h()) {
@@ -387,7 +389,7 @@ void Sprite3D::_draw() {
 	int axis = get_axis();
 	normal[axis] = 1.0;
 
-	RID mat = VS::get_singleton()->material_2d_get(get_draw_flag(FLAG_SHADED), get_draw_flag(FLAG_TRANSPARENT), get_alpha_cut_mode() == ALPHA_CUT_DISCARD, get_alpha_cut_mode() == ALPHA_CUT_OPAQUE_PREPASS);
+	RID mat = VS::get_singleton()->material_2d_get(get_draw_flag(FLAG_SHADED), get_draw_flag(FLAG_TRANSPARENT), get_draw_flag(FLAG_DOUBLE_SIDED), get_alpha_cut_mode() == ALPHA_CUT_DISCARD, get_alpha_cut_mode() == ALPHA_CUT_OPAQUE_PREPASS);
 	VS::get_singleton()->immediate_set_material(immediate, mat);
 
 	VS::get_singleton()->immediate_begin(immediate, VS::PRIMITIVE_TRIANGLE_FAN, texture->get_rid());
@@ -421,7 +423,7 @@ void Sprite3D::_draw() {
 		vtx[y_axis] = vertices[i][1];
 		VS::get_singleton()->immediate_vertex(immediate, vtx);
 		if (i == 0) {
-			aabb.pos = vtx;
+			aabb.position = vtx;
 			aabb.size = Vector3();
 		} else {
 			aabb.expand_to(vtx);
@@ -579,10 +581,12 @@ void Sprite3D::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("get_hframes"), &Sprite3D::get_hframes);
 
 	ADD_PROPERTY(PropertyInfo(Variant::OBJECT, "texture", PROPERTY_HINT_RESOURCE_TYPE, "Texture"), "set_texture", "get_texture");
+	ADD_GROUP("Animation", "");
 	ADD_PROPERTY(PropertyInfo(Variant::INT, "vframes", PROPERTY_HINT_RANGE, "1,16384,1"), "set_vframes", "get_vframes");
 	ADD_PROPERTY(PropertyInfo(Variant::INT, "hframes", PROPERTY_HINT_RANGE, "1,16384,1"), "set_hframes", "get_hframes");
 	ADD_PROPERTY(PropertyInfo(Variant::INT, "frame", PROPERTY_HINT_SPRITE_FRAME), "set_frame", "get_frame");
-	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "region"), "set_region", "is_region");
+	ADD_GROUP("Region", "region_");
+	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "region_enabled"), "set_region", "is_region");
 	ADD_PROPERTY(PropertyInfo(Variant::RECT2, "region_rect"), "set_region_rect", "get_region_rect");
 
 	ADD_SIGNAL(MethodInfo("frame_changed"));
@@ -861,17 +865,17 @@ void AnimatedSprite3D::_draw() {
 
 	Vector2 vertices[4] = {
 
-		(final_rect.pos + Vector2(0, final_rect.size.y)) * pixel_size,
-		(final_rect.pos + final_rect.size) * pixel_size,
-		(final_rect.pos + Vector2(final_rect.size.x, 0)) * pixel_size,
-		final_rect.pos * pixel_size,
+		(final_rect.position + Vector2(0, final_rect.size.y)) * pixel_size,
+		(final_rect.position + final_rect.size) * pixel_size,
+		(final_rect.position + Vector2(final_rect.size.x, 0)) * pixel_size,
+		final_rect.position * pixel_size,
 
 	};
 	Vector2 uvs[4] = {
-		final_src_rect.pos / tsize,
-		(final_src_rect.pos + Vector2(final_src_rect.size.x, 0)) / tsize,
-		(final_src_rect.pos + final_src_rect.size) / tsize,
-		(final_src_rect.pos + Vector2(0, final_src_rect.size.y)) / tsize,
+		final_src_rect.position / tsize,
+		(final_src_rect.position + Vector2(final_src_rect.size.x, 0)) / tsize,
+		(final_src_rect.position + final_src_rect.size) / tsize,
+		(final_src_rect.position + Vector2(0, final_src_rect.size.y)) / tsize,
 	};
 
 	if (is_flipped_h()) {
@@ -888,7 +892,7 @@ void AnimatedSprite3D::_draw() {
 	int axis = get_axis();
 	normal[axis] = 1.0;
 
-	RID mat = VS::get_singleton()->material_2d_get(get_draw_flag(FLAG_SHADED), get_draw_flag(FLAG_TRANSPARENT), get_alpha_cut_mode() == ALPHA_CUT_DISCARD, get_alpha_cut_mode() == ALPHA_CUT_OPAQUE_PREPASS);
+	RID mat = VS::get_singleton()->material_2d_get(get_draw_flag(FLAG_SHADED), get_draw_flag(FLAG_TRANSPARENT), get_draw_flag(FLAG_DOUBLE_SIDED), get_alpha_cut_mode() == ALPHA_CUT_DISCARD, get_alpha_cut_mode() == ALPHA_CUT_OPAQUE_PREPASS);
 	VS::get_singleton()->immediate_set_material(immediate, mat);
 
 	VS::get_singleton()->immediate_begin(immediate, VS::PRIMITIVE_TRIANGLE_FAN, texture->get_rid());
@@ -922,7 +926,7 @@ void AnimatedSprite3D::_draw() {
 		vtx[y_axis] = vertices[i][1];
 		VS::get_singleton()->immediate_vertex(immediate, vtx);
 		if (i == 0) {
-			aabb.pos = vtx;
+			aabb.position = vtx;
 			aabb.size = Vector3();
 		} else {
 			aabb.expand_to(vtx);

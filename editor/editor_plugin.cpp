@@ -147,6 +147,12 @@ void EditorPlugin::remove_tool_menu_item(const String &p_name) {
 	//EditorNode::get_singleton()->remove_tool_menu_item(p_name);
 }
 
+void EditorPlugin::set_input_event_forwarding_always_enabled() {
+	input_event_forwarding_always_enabled = true;
+	EditorPluginList *always_input_forwarding_list = EditorNode::get_singleton()->get_editor_plugins_force_input_forwarding();
+	always_input_forwarding_list->add_plugin(this);
+}
+
 Ref<SpatialEditorGizmo> EditorPlugin::create_spatial_gizmo(Spatial *p_spatial) {
 	//??
 	if (get_script_instance() && get_script_instance()->has_method("create_spatial_gizmo")) {
@@ -281,6 +287,11 @@ void EditorPlugin::add_import_plugin(const Ref<EditorImportPlugin> &p_importer) 
 	EditorFileSystem::get_singleton()->scan_changes();
 }
 
+void EditorPlugin::remove_import_plugin(const Ref<EditorImportPlugin> &p_importer) {
+	ResourceFormatImporter::get_singleton()->remove_importer(p_importer);
+	EditorFileSystem::get_singleton()->scan_changes();
+}
+
 void EditorPlugin::set_window_layout(Ref<ConfigFile> p_layout) {
 
 	if (get_script_instance() && get_script_instance()->has_method("set_window_layout")) {
@@ -366,6 +377,8 @@ void EditorPlugin::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("queue_save_layout"), &EditorPlugin::queue_save_layout);
 	ClassDB::bind_method(D_METHOD("edit_resource"), &EditorPlugin::edit_resource);
 	ClassDB::bind_method(D_METHOD("add_import_plugin"), &EditorPlugin::add_import_plugin);
+	ClassDB::bind_method(D_METHOD("remove_import_plugin"), &EditorPlugin::remove_import_plugin);
+	ClassDB::bind_method(D_METHOD("set_input_event_forwarding_always_enabled"), &EditorPlugin::set_input_event_forwarding_always_enabled);
 	ClassDB::add_virtual_method(get_class_static(), MethodInfo(Variant::BOOL, "forward_canvas_gui_input", PropertyInfo(Variant::TRANSFORM2D, "canvas_xform"), PropertyInfo(Variant::OBJECT, "event", PROPERTY_HINT_RESOURCE_TYPE, "InputEvent")));
 	ClassDB::add_virtual_method(get_class_static(), MethodInfo("forward_draw_over_canvas", PropertyInfo(Variant::TRANSFORM2D, "canvas_xform"), PropertyInfo(Variant::OBJECT, "canvas:Control")));
 	ClassDB::add_virtual_method(get_class_static(), MethodInfo(Variant::BOOL, "forward_spatial_gui_input", PropertyInfo(Variant::OBJECT, "camera", PROPERTY_HINT_RESOURCE_TYPE, "Camera"), PropertyInfo(Variant::OBJECT, "event", PROPERTY_HINT_RESOURCE_TYPE, "InputEvent")));
@@ -408,6 +421,7 @@ void EditorPlugin::_bind_methods() {
 
 EditorPlugin::EditorPlugin() {
 	undo_redo = NULL;
+	input_event_forwarding_always_enabled = false;
 }
 
 EditorPlugin::~EditorPlugin() {

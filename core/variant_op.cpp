@@ -1131,9 +1131,9 @@ void Variant::set(const Variant &p_index, const Variant &p_value, bool *r_valid)
 
 				const String *str = reinterpret_cast<const String *>(p_index._data._mem);
 				Rect2 *v = reinterpret_cast<Rect2 *>(_data._mem);
-				if (*str == "pos") {
+				if (*str == "position") {
 					valid = true;
-					v->pos = p_value;
+					v->position = p_value;
 					return;
 				} else if (*str == "size") {
 					valid = true;
@@ -1141,7 +1141,7 @@ void Variant::set(const Variant &p_index, const Variant &p_value, bool *r_valid)
 					return;
 				} else if (*str == "end") {
 					valid = true;
-					v->size = Vector2(p_value) - v->pos;
+					v->size = Vector2(p_value) - v->position;
 					return;
 				}
 			}
@@ -1304,9 +1304,9 @@ void Variant::set(const Variant &p_index, const Variant &p_value, bool *r_valid)
 
 				const String *str = reinterpret_cast<const String *>(p_index._data._mem);
 				Rect3 *v = _data._rect3;
-				if (*str == "pos") {
+				if (*str == "position") {
 					valid = true;
-					v->pos = p_value;
+					v->position = p_value;
 					return;
 				} else if (*str == "size") {
 					valid = true;
@@ -1314,7 +1314,7 @@ void Variant::set(const Variant &p_index, const Variant &p_value, bool *r_valid)
 					return;
 				} else if (*str == "end") {
 					valid = true;
-					v->size = Vector3(p_value) - v->pos;
+					v->size = Vector3(p_value) - v->position;
 					return;
 				}
 			}
@@ -1589,15 +1589,15 @@ Variant Variant::get(const Variant &p_index, bool *r_valid) const {
 
 				const String *str = reinterpret_cast<const String *>(p_index._data._mem);
 				const Rect2 *v = reinterpret_cast<const Rect2 *>(_data._mem);
-				if (*str == "pos") {
+				if (*str == "position") {
 					valid = true;
-					return v->pos;
+					return v->position;
 				} else if (*str == "size") {
 					valid = true;
 					return v->size;
 				} else if (*str == "end") {
 					valid = true;
-					return v->size + v->pos;
+					return v->size + v->position;
 				}
 			}
 		} break;
@@ -1718,15 +1718,15 @@ Variant Variant::get(const Variant &p_index, bool *r_valid) const {
 
 				const String *str = reinterpret_cast<const String *>(p_index._data._mem);
 				const Rect3 *v = _data._rect3;
-				if (*str == "pos") {
+				if (*str == "position") {
 					valid = true;
-					return v->pos;
+					return v->position;
 				} else if (*str == "size") {
 					valid = true;
 					return v->size;
 				} else if (*str == "end") {
 					valid = true;
-					return v->size + v->pos;
+					return v->size + v->position;
 				}
 			}
 		} break;
@@ -2111,7 +2111,7 @@ void Variant::get_property_list(List<PropertyInfo> *p_list) const {
 		} break; // 5
 		case RECT2: {
 
-			p_list->push_back(PropertyInfo(Variant::VECTOR2, "pos"));
+			p_list->push_back(PropertyInfo(Variant::VECTOR2, "position"));
 			p_list->push_back(PropertyInfo(Variant::VECTOR2, "size"));
 			p_list->push_back(PropertyInfo(Variant::VECTOR2, "end"));
 
@@ -2236,30 +2236,30 @@ bool Variant::iter_init(Variant &r_iter, bool &valid) const {
 			return _data._int > 0;
 		} break;
 		case REAL: {
-			r_iter = 0.0;
+			r_iter = 0;
 			return _data._real > 0.0;
 		} break;
 		case VECTOR2: {
-			real_t from = reinterpret_cast<const Vector2 *>(_data._mem)->x;
-			real_t to = reinterpret_cast<const Vector2 *>(_data._mem)->y;
+			int64_t from = reinterpret_cast<const Vector2 *>(_data._mem)->x;
+			int64_t to = reinterpret_cast<const Vector2 *>(_data._mem)->y;
 
 			r_iter = from;
 
 			return from < to;
 		} break;
 		case VECTOR3: {
-			real_t from = reinterpret_cast<const Vector3 *>(_data._mem)->x;
-			real_t to = reinterpret_cast<const Vector3 *>(_data._mem)->y;
-			real_t step = reinterpret_cast<const Vector3 *>(_data._mem)->z;
+			int64_t from = reinterpret_cast<const Vector3 *>(_data._mem)->x;
+			int64_t to = reinterpret_cast<const Vector3 *>(_data._mem)->y;
+			int64_t step = reinterpret_cast<const Vector3 *>(_data._mem)->z;
 
 			r_iter = from;
 
 			if (from == to) {
 				return false;
 			} else if (from < to) {
-				return step > 0.0;
+				return step > 0;
 			} else {
-				return step < 0.0;
+				return step < 0;
 			}
 			//return true;
 		} break;
@@ -2387,7 +2387,6 @@ bool Variant::iter_next(Variant &r_iter, bool &valid) const {
 	valid = true;
 	switch (type) {
 		case INT: {
-
 			int64_t idx = r_iter;
 			idx++;
 			if (idx >= _data._int)
@@ -2396,33 +2395,36 @@ bool Variant::iter_next(Variant &r_iter, bool &valid) const {
 			return true;
 		} break;
 		case REAL: {
-
-			double idx = r_iter;
-			idx += 1.0;
+			int64_t idx = r_iter;
+			idx++;
 			if (idx >= _data._real)
 				return false;
 			r_iter = idx;
 			return true;
 		} break;
 		case VECTOR2: {
-			real_t idx = r_iter;
-			idx += 1.0;
-			if (idx >= reinterpret_cast<const Vector2 *>(_data._mem)->y)
+			int64_t to = reinterpret_cast<const Vector3 *>(_data._mem)->y;
+
+			int64_t idx = r_iter;
+			idx++;
+
+			if (idx >= to)
 				return false;
+
 			r_iter = idx;
 			return true;
 		} break;
 		case VECTOR3: {
-			real_t to = reinterpret_cast<const Vector3 *>(_data._mem)->y;
-			real_t step = reinterpret_cast<const Vector3 *>(_data._mem)->z;
+			int64_t to = reinterpret_cast<const Vector3 *>(_data._mem)->y;
+			int64_t step = reinterpret_cast<const Vector3 *>(_data._mem)->z;
 
-			real_t idx = r_iter;
+			int64_t idx = r_iter;
 			idx += step;
 
-			if (step < 0.0 && idx <= to)
+			if (step < 0 && idx <= to)
 				return false;
 
-			if (step > 0.0 && idx >= to)
+			if (step > 0 && idx >= to)
 				return false;
 
 			r_iter = idx;
@@ -2759,7 +2761,7 @@ void Variant::blend(const Variant &a, const Variant &b, float c, Variant &r_dst)
 		case RECT2: {
 			const Rect2 *ra = reinterpret_cast<const Rect2 *>(a._data._mem);
 			const Rect2 *rb = reinterpret_cast<const Rect2 *>(b._data._mem);
-			r_dst = Rect2(ra->pos + rb->pos * c, ra->size + rb->size * c);
+			r_dst = Rect2(ra->position + rb->position * c, ra->size + rb->size * c);
 		}
 			return;
 		case VECTOR3: {
@@ -2769,7 +2771,7 @@ void Variant::blend(const Variant &a, const Variant &b, float c, Variant &r_dst)
 		case RECT3: {
 			const Rect3 *ra = reinterpret_cast<const Rect3 *>(a._data._mem);
 			const Rect3 *rb = reinterpret_cast<const Rect3 *>(b._data._mem);
-			r_dst = Rect3(ra->pos + rb->pos * c, ra->size + rb->size * c);
+			r_dst = Rect3(ra->position + rb->position * c, ra->size + rb->size * c);
 		}
 			return;
 		case QUAT: {
@@ -2879,7 +2881,7 @@ void Variant::interpolate(const Variant &a, const Variant &b, float c, Variant &
 		}
 			return;
 		case RECT2: {
-			r_dst = Rect2(reinterpret_cast<const Rect2 *>(a._data._mem)->pos.linear_interpolate(reinterpret_cast<const Rect2 *>(b._data._mem)->pos, c), reinterpret_cast<const Rect2 *>(a._data._mem)->size.linear_interpolate(reinterpret_cast<const Rect2 *>(b._data._mem)->size, c));
+			r_dst = Rect2(reinterpret_cast<const Rect2 *>(a._data._mem)->position.linear_interpolate(reinterpret_cast<const Rect2 *>(b._data._mem)->position, c), reinterpret_cast<const Rect2 *>(a._data._mem)->size.linear_interpolate(reinterpret_cast<const Rect2 *>(b._data._mem)->size, c));
 		}
 			return;
 		case VECTOR3: {
@@ -2899,7 +2901,7 @@ void Variant::interpolate(const Variant &a, const Variant &b, float c, Variant &
 		}
 			return;
 		case RECT3: {
-			r_dst = Rect3(a._data._rect3->pos.linear_interpolate(b._data._rect3->pos, c), a._data._rect3->size.linear_interpolate(b._data._rect3->size, c));
+			r_dst = Rect3(a._data._rect3->position.linear_interpolate(b._data._rect3->position, c), a._data._rect3->size.linear_interpolate(b._data._rect3->size, c));
 		}
 			return;
 		case BASIS: {

@@ -61,6 +61,8 @@ class EditorPlugin : public Node {
 
 	UndoRedo *_get_undo_redo() { return undo_redo; }
 
+	bool input_event_forwarding_always_enabled;
+
 protected:
 	static void _bind_methods();
 	UndoRedo &get_undo_redo() { return *undo_redo; }
@@ -106,6 +108,9 @@ public:
 	void add_tool_submenu_item(const String &p_name, Object *p_submenu);
 	void remove_tool_menu_item(const String &p_name);
 
+	void set_input_event_forwarding_always_enabled();
+	bool is_input_event_forwarding_always_enabled() { return input_event_forwarding_always_enabled; }
+
 	virtual Ref<SpatialEditorGizmo> create_spatial_gizmo(Spatial *p_spatial);
 	virtual bool forward_canvas_gui_input(const Transform2D &p_canvas_xform, const Ref<InputEvent> &p_event);
 	virtual void forward_draw_over_canvas(const Transform2D &p_canvas_xform, Control *p_canvas);
@@ -148,6 +153,7 @@ public:
 	virtual void save_global_state();
 
 	void add_import_plugin(const Ref<EditorImportPlugin> &p_importer);
+	void remove_import_plugin(const Ref<EditorImportPlugin> &p_importer);
 
 	EditorPlugin();
 	virtual ~EditorPlugin();

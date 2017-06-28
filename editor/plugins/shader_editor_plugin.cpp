@@ -188,7 +188,7 @@ void ShaderTextEditor::_validate_script() {
 	if (err != OK) {
 		String error_text = "error(" + itos(sl.get_error_line()) + "): " + sl.get_error_text();
 		set_error(error_text);
-		get_text_edit()->set_line_as_marked(sl.get_error_line(), true);
+		get_text_edit()->set_line_as_marked(sl.get_error_line() - 1, true);
 
 	} else {
 		for (int i = 0; i < get_text_edit()->get_line_count(); i++)
@@ -552,7 +552,8 @@ ShaderEditorPlugin::ShaderEditorPlugin(EditorNode *p_node) {
 	shader_editor = memnew(ShaderEditor);
 
 	shader_editor->set_custom_minimum_size(Size2(0, 300));
-	button = editor->add_bottom_panel_item("Shader", shader_editor);
+	button = editor->add_bottom_panel_item(TTR("Shader"), shader_editor);
+	button->hide();
 }
 
 ShaderEditorPlugin::~ShaderEditorPlugin() {

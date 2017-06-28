@@ -264,7 +264,7 @@ void RichTextLabel::_process_line(ItemFrame *p_frame, const Vector2 &p_ofs, int 
 							cw = tab_size * font->get_char_size(' ').width;
 						}
 
-						if (end > 0 && w + cw + wofs > p_width) {
+						if (end > 0 && w + cw + begin > p_width) {
 							break; //don't allow lines longer than assigned width
 						}
 
@@ -751,7 +751,7 @@ void RichTextLabel::_gui_input(Ref<InputEvent> p_event) {
 					Item *item = NULL;
 
 					bool outside;
-					_find_click(main, b->get_pos(), &item, &line, &outside);
+					_find_click(main, b->get_position(), &item, &line, &outside);
 
 					if (item) {
 
@@ -852,7 +852,7 @@ void RichTextLabel::_gui_input(Ref<InputEvent> p_event) {
 
 			int line = 0;
 			Item *item = NULL;
-			_find_click(main, m->get_pos(), &item, &line);
+			_find_click(main, m->get_position(), &item, &line);
 			if (!item)
 				return; // do not update
 
@@ -1831,7 +1831,7 @@ void RichTextLabel::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("add_image", "image:Texture"), &RichTextLabel::add_image);
 	ClassDB::bind_method(D_METHOD("newline"), &RichTextLabel::add_newline);
 	ClassDB::bind_method(D_METHOD("remove_line"), &RichTextLabel::remove_line);
-	ClassDB::bind_method(D_METHOD("push_font", "font"), &RichTextLabel::push_font);
+	ClassDB::bind_method(D_METHOD("push_font", "font:Font"), &RichTextLabel::push_font);
 	ClassDB::bind_method(D_METHOD("push_color", "color"), &RichTextLabel::push_color);
 	ClassDB::bind_method(D_METHOD("push_align", "align"), &RichTextLabel::push_align);
 	ClassDB::bind_method(D_METHOD("push_indent", "level"), &RichTextLabel::push_indent);
@@ -1854,7 +1854,7 @@ void RichTextLabel::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("set_scroll_follow", "follow"), &RichTextLabel::set_scroll_follow);
 	ClassDB::bind_method(D_METHOD("is_scroll_following"), &RichTextLabel::is_scroll_following);
 
-	ClassDB::bind_method(D_METHOD("get_v_scroll"), &RichTextLabel::get_v_scroll);
+	ClassDB::bind_method(D_METHOD("get_v_scroll:VScrollBar"), &RichTextLabel::get_v_scroll);
 
 	ClassDB::bind_method(D_METHOD("scroll_to_line", "line"), &RichTextLabel::scroll_to_line);
 

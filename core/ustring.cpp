@@ -65,7 +65,7 @@ bool CharString::operator<(const CharString &p_right) const {
 	}
 
 	const char *this_str = get_data();
-	const char *that_str = get_data();
+	const char *that_str = p_right.get_data();
 	while (true) {
 
 		if (*that_str == 0 && *this_str == 0)
@@ -96,6 +96,12 @@ const char *CharString::get_data() const {
 
 void String::copy_from(const char *p_cstr) {
 
+	if (!p_cstr) {
+
+		resize(0);
+		return;
+	}
+
 	int len = 0;
 	const char *ptr = p_cstr;
 	while (*(ptr++) != 0)
@@ -118,6 +124,12 @@ void String::copy_from(const char *p_cstr) {
 }
 
 void String::copy_from(const CharType *p_cstr, int p_clip_to) {
+
+	if (!p_cstr) {
+
+		resize(0);
+		return;
+	}
 
 	int len = 0;
 	const CharType *ptr = p_cstr;
@@ -489,6 +501,18 @@ signed char String::naturalnocasecmp_to(const String &p_str) const {
 	const CharType *that_str = p_str.c_str();
 
 	if (this_str && that_str) {
+
+		while (*this_str == '.' || *that_str == '.') {
+			if (*this_str++ != '.')
+				return 1;
+			if (*that_str++ != '.')
+				return -1;
+			if (!*that_str)
+				return 1;
+			if (!*this_str)
+				return -1;
+		}
+
 		while (*this_str) {
 
 			if (!*that_str)

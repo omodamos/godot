@@ -80,8 +80,6 @@ public:
 		FORMAT_DXT1, //s3tc bc1
 		FORMAT_DXT3, //bc2
 		FORMAT_DXT5, //bc3
-		FORMAT_LATC_L,
-		FORMAT_LATC_LA,
 		FORMAT_RGTC_R,
 		FORMAT_RGTC_RG,
 		FORMAT_BPTC_RGBA, //btpc bc7
@@ -111,20 +109,26 @@ public:
 		/* INTERPOLATE GAUSS */
 	};
 
+	enum CompressSource {
+		COMPRESS_SOURCE_GENERIC,
+		COMPRESS_SOURCE_SRGB,
+		COMPRESS_SOURCE_NORMAL
+	};
+
 	//some functions provided by something else
 
 	static Ref<Image> (*_png_mem_loader_func)(const uint8_t *p_png, int p_size);
 	static Ref<Image> (*_jpg_mem_loader_func)(const uint8_t *p_png, int p_size);
 
-	static void (*_image_compress_bc_func)(Image *);
+	static void (*_image_compress_bc_func)(Image *, CompressSource p_source);
 	static void (*_image_compress_pvrtc2_func)(Image *);
 	static void (*_image_compress_pvrtc4_func)(Image *);
-	static void (*_image_compress_etc_func)(Image *);
-	static void (*_image_compress_etc2_func)(Image *);
+	static void (*_image_compress_etc1_func)(Image *, float);
+	static void (*_image_compress_etc2_func)(Image *, float, CompressSource p_source);
 
 	static void (*_image_decompress_pvrtc)(Image *);
 	static void (*_image_decompress_bc)(Image *);
-	static void (*_image_decompress_etc)(Image *);
+	static void (*_image_decompress_etc1)(Image *);
 	static void (*_image_decompress_etc2)(Image *);
 
 	static PoolVector<uint8_t> (*lossy_packer)(const Ref<Image> &p_image, float p_quality);
@@ -164,8 +168,8 @@ private:
 	static int _get_dst_image_size(int p_width, int p_height, Format p_format, int &r_mipmaps, int p_mipmaps = -1);
 	bool _can_modify(Format p_format) const;
 
-	_FORCE_INLINE_ void _put_pixelb(int p_x, int p_y, uint32_t p_pixelsize, uint8_t *p_dst, const uint8_t *p_src);
-	_FORCE_INLINE_ void _get_pixelb(int p_x, int p_y, uint32_t p_pixelsize, const uint8_t *p_src, uint8_t *p_dst);
+	_FORCE_INLINE_ void _put_pixelb(int p_x, int p_y, uint32_t p_pixelsize, uint8_t *p_data, const uint8_t *p_pixel);
+	_FORCE_INLINE_ void _get_pixelb(int p_x, int p_y, uint32_t p_pixelsize, const uint8_t *p_data, uint8_t *p_pixel);
 
 	void _set_data(const Dictionary &p_data);
 	Dictionary _get_data() const;
@@ -269,7 +273,7 @@ public:
 		COMPRESS_ETC2,
 	};
 
-	Error compress(CompressMode p_mode = COMPRESS_S3TC);
+	Error compress(CompressMode p_mode = COMPRESS_S3TC, CompressSource p_source = COMPRESS_SOURCE_GENERIC, float p_lossy_quality = 0.7);
 	Error decompress();
 	bool is_compressed() const;
 
@@ -279,11 +283,15 @@ public:
 	void normalmap_to_xy();
 
 	void blit_rect(const Ref<Image> &p_src, const Rect2 &p_src_rect, const Point2 &p_dest);
+	void blit_rect_mask(const Ref<Image> &p_src, const Ref<Image> &p_mask, const Rect2 &p_src_rect, const Point2 &p_dest);
+	void blend_rect(const Ref<Image> &p_src, const Rect2 &p_src_rect, const Point2 &p_dest);
+	void blend_rect_mask(const Ref<Image> &p_src, const Ref<Image> &p_mask, const Rect2 &p_src_rect, const Point2 &p_dest);
+	void fill(const Color &c);
 
 	Rect2 get_used_rect() const;
 	Ref<Image> get_rect(const Rect2 &p_area) const;
 
-	static void set_compress_bc_func(void (*p_compress_func)(Image *));
+	static void set_compress_bc_func(void (*p_compress_func)(Image *, CompressSource));
 	static String get_format_name(Format p_format);
 
 	Image(const uint8_t *p_mem_png_jpg, int p_len = -1);
@@ -306,7 +314,7 @@ public:
 
 	DetectChannels get_detected_channels();
 
-	Color get_pixel(int p_x, int p_y);
+	Color get_pixel(int p_x, int p_y) const;
 	void put_pixel(int p_x, int p_y, const Color &p_color);
 
 	void copy_internals_from(const Ref<Image> &p_image) {
@@ -324,6 +332,7 @@ public:
 VARIANT_ENUM_CAST(Image::Format)
 VARIANT_ENUM_CAST(Image::Interpolation)
 VARIANT_ENUM_CAST(Image::CompressMode)
+VARIANT_ENUM_CAST(Image::CompressSource)
 VARIANT_ENUM_CAST(Image::AlphaMode)
 
 #endif

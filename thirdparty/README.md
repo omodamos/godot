@@ -37,6 +37,18 @@ Check the diff of enet.h, protocol.c, and host.c with the 1.3.13
 tarball before the next update.
 
 
+## etc2comp
+
+- Upstream: https://github.com/google/etc2comp
+- Version: 9cd0f9c (git)
+- License: Apache
+
+Files extracted from upstream source:
+
+- all .cpp and .h files in EtcLib/
+- README.md, LICENSE, AUTHORS
+
+
 ## fonts
 
 - Upstream: ?
@@ -47,7 +59,7 @@ TODO.
 ## freetype
 
 - Upstream: https://www.freetype.org
-- Version: 2.6.5
+- Version: 2.8
 - License: FreeType License (BSD-like)
 
 Files extracted from upstream source:
@@ -60,7 +72,7 @@ Files extracted from upstream source:
 ## glad
 
 - Upstream: https://github.com/Dav1dde/glad
-- Version: 0.1.13a0
+- Version: 0.1.14a0
 - License: MIT
 
 The files we package are automatically generated.
@@ -296,17 +308,6 @@ Files extracted from upstream source:
 - LICENSE.TXT
 
 
-## rg-etc1
-
-- Upstream: https://github.com/richgel999/rg-etc1
-- Version: 1.04
-- License: zlib
-
-Files extracted from upstream source:
-
-- `rg_etc1.{cpp,h}`
-
-
 ## rtaudio
 
 - Upstream: http://www.music.mcgill.ca/~gary/rtaudio/
@@ -366,3 +367,14 @@ https://github.com/godotengine/godot/commit/37f5e1dcd94611dd5b670f013abf0323e8b4
 Files extracted from upstream source:
 
 - all .c and .h files
+
+## zstd
+
+- Upstream: https://github.com/facebook/zstd
+- Version: 1.2.0
+- License: BSD-3-Clause
+
+Files extracted from upstream source:
+
+- all .c and .h under lib/
+- README.md, LICENSE, PATENTS

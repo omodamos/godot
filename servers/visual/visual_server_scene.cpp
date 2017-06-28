@@ -1347,6 +1347,8 @@ void VisualServerScene::_light_instance_update_shadow(Instance *p_instance, cons
 
 			bool overlap = VSG::storage->light_directional_get_blend_splits(p_instance->base);
 
+			float first_radius = 0.0;
+
 			for (int i = 0; i < splits; i++) {
 
 				// setup a camera matrix for that range!
@@ -1373,9 +1375,11 @@ void VisualServerScene::_light_instance_update_shadow(Instance *p_instance, cons
 
 				// obtain the light frustm ranges (given endpoints)
 
-				Vector3 x_vec = p_instance->transform.basis.get_axis(Vector3::AXIS_X).normalized();
-				Vector3 y_vec = p_instance->transform.basis.get_axis(Vector3::AXIS_Y).normalized();
-				Vector3 z_vec = p_instance->transform.basis.get_axis(Vector3::AXIS_Z).normalized();
+				Transform transform = p_instance->transform.orthonormalized(); //discard scale and stabilize light
+
+				Vector3 x_vec = transform.basis.get_axis(Vector3::AXIS_X).normalized();
+				Vector3 y_vec = transform.basis.get_axis(Vector3::AXIS_Y).normalized();
+				Vector3 z_vec = transform.basis.get_axis(Vector3::AXIS_Z).normalized();
 				//z_vec points agsint the camera, like in default opengl
 
 				float x_min, x_max;
@@ -1386,7 +1390,10 @@ void VisualServerScene::_light_instance_update_shadow(Instance *p_instance, cons
 				float y_min_cam, y_max_cam;
 				float z_min_cam, z_max_cam;
 
+				float bias_scale = 1.0;
+
 				//used for culling
+
 				for (int j = 0; j < 8; j++) {
 
 					float d_x = x_vec.dot(endpoints[j]);
@@ -1434,6 +1441,12 @@ void VisualServerScene::_light_instance_update_shadow(Instance *p_instance, cons
 					}
 
 					radius *= texture_size / (texture_size - 2.0); //add a texel by each side, so stepified texture will always fit
+
+					if (i == 0) {
+						first_radius = radius;
+					} else {
+						bias_scale = radius / first_radius;
+					}
 
 					x_max_cam = x_vec.dot(center) + radius;
 					x_min_cam = x_vec.dot(center) - radius;
@@ -1493,10 +1506,10 @@ void VisualServerScene::_light_instance_update_shadow(Instance *p_instance, cons
 					ortho_camera.set_orthogonal(-half_x, half_x, -half_y, half_y, 0, (z_max - z_min_cam));
 
 					Transform ortho_transform;
-					ortho_transform.basis = p_instance->transform.basis;
+					ortho_transform.basis = transform.basis;
 					ortho_transform.origin = x_vec * (x_min_cam + half_x) + y_vec * (y_min_cam + half_y) + z_vec * z_max;
 
-					VSG::scene_render->light_instance_set_shadow_transform(light->instance, ortho_camera, ortho_transform, 0, distances[i + 1], i);
+					VSG::scene_render->light_instance_set_shadow_transform(light->instance, ortho_camera, ortho_transform, 0, distances[i + 1], i, bias_scale);
 				}
 
 				VSG::scene_render->render_shadow(light->instance, p_shadow_atlas, i, (RasterizerScene::InstanceBase **)instance_shadow_cull_result, cull_count);
@@ -2147,6 +2160,18 @@ void VisualServerScene::_render_scene(const Transform p_cam_transform, const Cam
 	/* STEP 7 - PROCESS GEOMETRY AND DRAW SCENE*/
 
 	VSG::scene_render->render_scene(p_cam_transform, p_cam_projection, p_cam_orthogonal, (RasterizerScene::InstanceBase **)instance_cull_result, cull_count, light_instance_cull_result, light_cull_count + directional_light_count, reflection_probe_instance_cull_result, reflection_probe_cull_count, environment, p_shadow_atlas, scenario->reflection_atlas, p_reflection_probe, p_reflection_probe_pass);
+}
+
+void VisualServerScene::render_empty_scene(RID p_scenario, RID p_shadow_atlas) {
+
+	Scenario *scenario = scenario_owner.getornull(p_scenario);
+
+	RID environment;
+	if (scenario->environment.is_valid())
+		environment = scenario->environment;
+	else
+		environment = scenario->fallback_environment;
+	VSG::scene_render->render_scene(Transform(), CameraMatrix(), true, NULL, 0, NULL, 0, NULL, 0, environment, p_shadow_atlas, scenario->reflection_atlas, RID(), 0);
 }
 
 bool VisualServerScene::_render_reflection_probe_step(Instance *p_instance, int p_step) {
@@ -3308,6 +3333,36 @@ void VisualServerScene::_update_dirty_instance(Instance *p_instance) {
 					if (!mat.is_valid() || VSG::storage->material_casts_shadows(mat)) {
 						can_cast_shadows = true;
 					} else {
+						can_cast_shadows = false;
+					}
+				} else if (p_instance->base_type == VS::INSTANCE_PARTICLES) {
+
+					bool cast_shadows = false;
+
+					int dp = VSG::storage->particles_get_draw_passes(p_instance->base);
+
+					for (int i = 0; i < dp; i++) {
+
+						RID mesh = VSG::storage->particles_get_draw_pass_mesh(p_instance->base, i);
+
+						int sc = VSG::storage->mesh_get_surface_count(mesh);
+						for (int j = 0; j < sc; j++) {
+
+							RID mat = VSG::storage->mesh_surface_get_material(mesh, j);
+
+							if (!mat.is_valid()) {
+								cast_shadows = true;
+								break;
+							}
+
+							if (VSG::storage->material_casts_shadows(mat)) {
+								cast_shadows = true;
+								break;
+							}
+						}
+					}
+
+					if (!cast_shadows) {
 						can_cast_shadows = false;
 					}
 				}

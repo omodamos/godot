@@ -64,12 +64,20 @@ public:
 	virtual void environment_set_glow(RID p_env, bool p_enable, int p_level_flags, float p_intensity, float p_strength, float p_bloom_treshold, VS::EnvironmentGlowBlendMode p_blend_mode, float p_hdr_bleed_treshold, float p_hdr_bleed_scale, bool p_bicubic_upscale) = 0;
 	virtual void environment_set_fog(RID p_env, bool p_enable, float p_begin, float p_end, RID p_gradient_texture) = 0;
 
-	virtual void environment_set_ssr(RID p_env, bool p_enable, int p_max_steps, float p_accel, float p_fade, float p_depth_tolerance, bool p_smooth, bool p_roughness) = 0;
+	virtual void environment_set_ssr(RID p_env, bool p_enable, int p_max_steps, float p_fade_int, float p_fade_out, float p_depth_tolerance, bool p_roughness) = 0;
 	virtual void environment_set_ssao(RID p_env, bool p_enable, float p_radius, float p_intensity, float p_radius2, float p_intensity2, float p_bias, float p_light_affect, const Color &p_color, bool p_blur) = 0;
 
 	virtual void environment_set_tonemap(RID p_env, VS::EnvironmentToneMapper p_tone_mapper, float p_exposure, float p_white, bool p_auto_exposure, float p_min_luminance, float p_max_luminance, float p_auto_exp_speed, float p_auto_exp_scale) = 0;
 
 	virtual void environment_set_adjustment(RID p_env, bool p_enable, float p_brightness, float p_contrast, float p_saturation, RID p_ramp) = 0;
+
+	virtual void environment_set_fog(RID p_env, bool p_enable, const Color &p_color, const Color &p_sun_color, float p_sun_amount) = 0;
+	virtual void environment_set_fog_depth(RID p_env, bool p_enable, float p_depth_begin, float p_depth_curve, bool p_transmit, float p_transmit_curve) = 0;
+	virtual void environment_set_fog_height(RID p_env, bool p_enable, float p_min_height, float p_max_height, float p_height_curve) = 0;
+
+	virtual bool is_environment(RID p_env) = 0;
+	virtual VS::EnvironmentBG environment_get_background(RID p_env) = 0;
+	virtual int environment_get_canvas_max_layer(RID p_env) = 0;
 
 	struct InstanceBase : RID_Data {
 
@@ -127,7 +135,7 @@ public:
 
 	virtual RID light_instance_create(RID p_light) = 0;
 	virtual void light_instance_set_transform(RID p_light_instance, const Transform &p_transform) = 0;
-	virtual void light_instance_set_shadow_transform(RID p_light_instance, const CameraMatrix &p_projection, const Transform &p_transform, float p_far, float p_split, int p_pass) = 0;
+	virtual void light_instance_set_shadow_transform(RID p_light_instance, const CameraMatrix &p_projection, const Transform &p_transform, float p_far, float p_split, int p_pass, float p_bias_scale = 1.0) = 0;
 	virtual void light_instance_mark_visible(RID p_light_instance) = 0;
 
 	virtual RID reflection_atlas_create() = 0;
@@ -151,6 +159,7 @@ public:
 	virtual void render_shadow(RID p_light, RID p_shadow_atlas, int p_pass, InstanceBase **p_cull_result, int p_cull_count) = 0;
 
 	virtual void set_scene_pass(uint64_t p_pass) = 0;
+	virtual void set_debug_draw_mode(VS::ViewportDebugDraw p_debug_draw) = 0;
 
 	virtual bool free(RID p_rid) = 0;
 
@@ -184,6 +193,7 @@ public:
 
 	virtual void texture_set_detect_3d_callback(RID p_texture, VisualServer::TextureDetectCallback p_callback, void *p_userdata) = 0;
 	virtual void texture_set_detect_srgb_callback(RID p_texture, VisualServer::TextureDetectCallback p_callback, void *p_userdata) = 0;
+	virtual void texture_set_detect_normal_callback(RID p_texture, VisualServer::TextureDetectCallback p_callback, void *p_userdata) = 0;
 
 	virtual void textures_keep_original(bool p_enable) = 0;
 
@@ -438,6 +448,7 @@ public:
 	virtual void particles_set_emitting(RID p_particles, bool p_emitting) = 0;
 	virtual void particles_set_amount(RID p_particles, int p_amount) = 0;
 	virtual void particles_set_lifetime(RID p_particles, float p_lifetime) = 0;
+	virtual void particles_set_one_shot(RID p_particles, bool p_one_shot) = 0;
 	virtual void particles_set_pre_process_time(RID p_particles, float p_time) = 0;
 	virtual void particles_set_explosiveness_ratio(RID p_particles, float p_ratio) = 0;
 	virtual void particles_set_randomness_ratio(RID p_particles, float p_ratio) = 0;
@@ -447,6 +458,7 @@ public:
 	virtual void particles_set_process_material(RID p_particles, RID p_material) = 0;
 	virtual void particles_set_fixed_fps(RID p_particles, int p_fps) = 0;
 	virtual void particles_set_fractional_delta(RID p_particles, bool p_enable) = 0;
+	virtual void particles_restart(RID p_particles) = 0;
 
 	virtual void particles_set_draw_order(RID p_particles, VS::ParticlesDrawOrder p_order) = 0;
 
@@ -459,11 +471,15 @@ public:
 
 	virtual void particles_set_emission_transform(RID p_particles, const Transform &p_transform) = 0;
 
+	virtual int particles_get_draw_passes(RID p_particles) const = 0;
+	virtual RID particles_get_draw_pass_mesh(RID p_particles, int p_pass) const = 0;
+
 	/* RENDER TARGET */
 
 	enum RenderTargetFlags {
 		RENDER_TARGET_VFLIP,
 		RENDER_TARGET_TRANSPARENT,
+		RENDER_TARGET_NO_3D_EFFECTS,
 		RENDER_TARGET_NO_3D,
 		RENDER_TARGET_NO_SAMPLING,
 		RENDER_TARGET_HDR,
@@ -474,7 +490,8 @@ public:
 	virtual void render_target_set_size(RID p_render_target, int p_width, int p_height) = 0;
 	virtual RID render_target_get_texture(RID p_render_target) const = 0;
 	virtual void render_target_set_flag(RID p_render_target, RenderTargetFlags p_flag, bool p_value) = 0;
-	virtual bool render_target_renedered_in_frame(RID p_render_target) = 0;
+	virtual bool render_target_was_used(RID p_render_target) = 0;
+	virtual void render_target_clear_used(RID p_render_target) = 0;
 	virtual void render_target_set_msaa(RID p_render_target, VS::ViewportMSAA p_msaa) = 0;
 
 	/* CANVAS SHADOW */
@@ -493,7 +510,15 @@ public:
 
 	virtual void update_dirty_resources() = 0;
 
-	static RasterizerStorage *base_signleton;
+	virtual void set_debug_generate_wireframes(bool p_generate) = 0;
+
+	virtual void render_info_begin_capture() = 0;
+	virtual void render_info_end_capture() = 0;
+	virtual int get_captured_render_info(VS::RenderInfo p_info) = 0;
+
+	virtual int get_render_info(VS::RenderInfo p_info) = 0;
+
+	static RasterizerStorage *base_singleton;
 	RasterizerStorage();
 	virtual ~RasterizerStorage() {}
 };
@@ -506,7 +531,8 @@ public:
 		CANVAS_RECT_TILE = 2,
 		CANVAS_RECT_FLIP_H = 4,
 		CANVAS_RECT_FLIP_V = 8,
-		CANVAS_RECT_TRANSPOSE = 16
+		CANVAS_RECT_TRANSPOSE = 16,
+		CANVAS_RECT_CLIP_UV = 32
 	};
 
 	struct Light : public RID_Data {
@@ -532,6 +558,7 @@ public:
 		float shadow_gradient_length;
 		VS::CanvasLightShadowFilter shadow_filter;
 		Color shadow_color;
+		float shadow_smooth;
 
 		void *texture_cache; // implementation dependent
 		Rect2 rect_cache;
@@ -570,6 +597,7 @@ public:
 			shadow_buffer_size = 256;
 			shadow_gradient_length = 0;
 			shadow_filter = VS::CANVAS_LIGHT_FILTER_NONE;
+			shadow_smooth = 0.0;
 		}
 	};
 
@@ -590,6 +618,7 @@ public:
 				TYPE_POLYGON,
 				TYPE_MESH,
 				TYPE_MULTIMESH,
+				TYPE_PARTICLES,
 				TYPE_CIRCLE,
 				TYPE_TRANSFORM,
 				TYPE_CLIP_IGNORE,
@@ -612,6 +641,7 @@ public:
 
 			Rect2 rect;
 			RID texture;
+			RID normal_map;
 			Color modulate;
 			Rect2 source;
 			uint8_t flags;
@@ -627,6 +657,7 @@ public:
 			Rect2 rect;
 			Rect2 source;
 			RID texture;
+			RID normal_map;
 			float margin[4];
 			bool draw_center;
 			Color color;
@@ -644,6 +675,7 @@ public:
 			Vector<Point2> uvs;
 			Vector<Color> colors;
 			RID texture;
+			RID normal_map;
 			float width;
 
 			CommandPrimitive() {
@@ -659,6 +691,7 @@ public:
 			Vector<Point2> uvs;
 			Vector<Color> colors;
 			RID texture;
+			RID normal_map;
 			int count;
 
 			CommandPolygon() {
@@ -679,6 +712,16 @@ public:
 			RID multimesh;
 			RID skeleton;
 			CommandMultiMesh() { type = TYPE_MULTIMESH; }
+		};
+
+		struct CommandParticles : public Command {
+
+			RID particles;
+			RID texture;
+			RID normal_map;
+			int h_frames;
+			int v_frames;
+			CommandParticles() { type = TYPE_PARTICLES; }
 		};
 
 		struct CommandCircle : public Command {
@@ -769,7 +812,7 @@ public:
 					case Item::Command::TYPE_LINE: {
 
 						const Item::CommandLine *line = static_cast<const Item::CommandLine *>(c);
-						r.pos = line->from;
+						r.position = line->from;
 						r.expand_to(line->to);
 					} break;
 					case Item::Command::TYPE_RECT: {
@@ -786,7 +829,7 @@ public:
 					case Item::Command::TYPE_PRIMITIVE: {
 
 						const Item::CommandPrimitive *primitive = static_cast<const Item::CommandPrimitive *>(c);
-						r.pos = primitive->points[0];
+						r.position = primitive->points[0];
 						for (int i = 1; i < primitive->points.size(); i++) {
 
 							r.expand_to(primitive->points[i]);
@@ -797,7 +840,7 @@ public:
 						const Item::CommandPolygon *polygon = static_cast<const Item::CommandPolygon *>(c);
 						int l = polygon->points.size();
 						const Point2 *pp = &polygon->points[0];
-						r.pos = pp[0];
+						r.position = pp[0];
 						for (int i = 1; i < l; i++) {
 
 							r.expand_to(pp[i]);
@@ -806,23 +849,32 @@ public:
 					case Item::Command::TYPE_MESH: {
 
 						const Item::CommandMesh *mesh = static_cast<const Item::CommandMesh *>(c);
-						Rect3 aabb = RasterizerStorage::base_signleton->mesh_get_aabb(mesh->mesh, mesh->skeleton);
+						Rect3 aabb = RasterizerStorage::base_singleton->mesh_get_aabb(mesh->mesh, mesh->skeleton);
 
-						r = Rect2(aabb.pos.x, aabb.pos.y, aabb.size.x, aabb.size.y);
+						r = Rect2(aabb.position.x, aabb.position.y, aabb.size.x, aabb.size.y);
 
 					} break;
 					case Item::Command::TYPE_MULTIMESH: {
 
 						const Item::CommandMultiMesh *multimesh = static_cast<const Item::CommandMultiMesh *>(c);
-						Rect3 aabb = RasterizerStorage::base_signleton->multimesh_get_aabb(multimesh->multimesh);
+						Rect3 aabb = RasterizerStorage::base_singleton->multimesh_get_aabb(multimesh->multimesh);
 
-						r = Rect2(aabb.pos.x, aabb.pos.y, aabb.size.x, aabb.size.y);
+						r = Rect2(aabb.position.x, aabb.position.y, aabb.size.x, aabb.size.y);
+
+					} break;
+					case Item::Command::TYPE_PARTICLES: {
+
+						const Item::CommandParticles *particles_cmd = static_cast<const Item::CommandParticles *>(c);
+						if (particles_cmd->particles.is_valid()) {
+							Rect3 aabb = RasterizerStorage::base_singleton->particles_get_aabb(particles_cmd->particles);
+							r = Rect2(aabb.position.x, aabb.position.y, aabb.size.x, aabb.size.y);
+						}
 
 					} break;
 					case Item::Command::TYPE_CIRCLE: {
 
 						const Item::CommandCircle *circle = static_cast<const Item::CommandCircle *>(c);
-						r.pos = Point2(-circle->radius, -circle->radius) + circle->pos;
+						r.position = Point2(-circle->radius, -circle->radius) + circle->pos;
 						r.size = Point2(circle->radius * 2.0, circle->radius * 2.0);
 					} break;
 					case Item::Command::TYPE_TRANSFORM: {

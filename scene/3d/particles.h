@@ -58,6 +58,7 @@ private:
 	RID particles;
 
 	bool emitting;
+	bool one_shot;
 	int amount;
 	float lifetime;
 	float pre_process_time;
@@ -86,6 +87,7 @@ public:
 	void set_emitting(bool p_emitting);
 	void set_amount(int p_amount);
 	void set_lifetime(float p_lifetime);
+	void set_one_shot(bool p_enabled);
 	void set_pre_process_time(float p_time);
 	void set_explosiveness_ratio(float p_ratio);
 	void set_randomness_ratio(float p_ratio);
@@ -97,6 +99,7 @@ public:
 	bool is_emitting() const;
 	int get_amount() const;
 	float get_lifetime() const;
+	bool get_one_shot() const;
 	float get_pre_process_time() const;
 	float get_explosiveness_ratio() const;
 	float get_randomness_ratio() const;
@@ -121,6 +124,8 @@ public:
 	Ref<Mesh> get_draw_pass_mesh(int p_pass) const;
 
 	virtual String get_configuration_warning() const;
+
+	void restart();
 
 	Rect3 capture_aabb() const;
 	Particles();
@@ -154,6 +159,8 @@ public:
 	enum Flags {
 		FLAG_ALIGN_Y_TO_VELOCITY,
 		FLAG_ROTATE_Y,
+		FLAG_DISABLE_Z,
+		FLAG_ANIM_LOOP,
 		FLAG_MAX
 	};
 
@@ -171,11 +178,12 @@ private:
 		struct {
 			uint32_t texture_mask : 16;
 			uint32_t texture_color : 1;
-			uint32_t flags : 2;
+			uint32_t flags : 4;
 			uint32_t emission_shape : 2;
 			uint32_t trail_size_texture : 1;
 			uint32_t trail_color_texture : 1;
 			uint32_t invalid_key : 1;
+			uint32_t has_emission_color : 1;
 		};
 
 		uint32_t key;
@@ -213,6 +221,7 @@ private:
 		mk.emission_shape = emission_shape;
 		mk.trail_color_texture = trail_color_modifier.is_valid() ? 1 : 0;
 		mk.trail_size_texture = trail_size_modifier.is_valid() ? 1 : 0;
+		mk.has_emission_color = emission_shape >= EMISSION_SHAPE_POINTS && emission_color_texture.is_valid();
 
 		return mk;
 	}
@@ -269,6 +278,7 @@ private:
 		StringName emission_texture_point_count;
 		StringName emission_texture_points;
 		StringName emission_texture_normal;
+		StringName emission_texture_color;
 
 		StringName trail_divisor;
 		StringName trail_size_modifier;
@@ -302,7 +312,10 @@ private:
 	Vector3 emission_box_extents;
 	Ref<Texture> emission_point_texture;
 	Ref<Texture> emission_normal_texture;
+	Ref<Texture> emission_color_texture;
 	int emission_point_count;
+
+	bool anim_loop;
 
 	int trail_divisor;
 
@@ -347,6 +360,7 @@ public:
 	void set_emission_box_extents(Vector3 p_extents);
 	void set_emission_point_texture(const Ref<Texture> &p_points);
 	void set_emission_normal_texture(const Ref<Texture> &p_normals);
+	void set_emission_color_texture(const Ref<Texture> &p_colors);
 	void set_emission_point_count(int p_count);
 
 	EmissionShape get_emission_shape() const;
@@ -354,6 +368,7 @@ public:
 	Vector3 get_emission_box_extents() const;
 	Ref<Texture> get_emission_point_texture() const;
 	Ref<Texture> get_emission_normal_texture() const;
+	Ref<Texture> get_emission_color_texture() const;
 	int get_emission_point_count() const;
 
 	void set_trail_divisor(int p_divisor);

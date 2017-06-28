@@ -350,7 +350,7 @@ public:                                                        \
 private:
 
 class ScriptInstance;
-typedef uint32_t ObjectID;
+typedef uint64_t ObjectID;
 
 class Object {
 public:
@@ -423,13 +423,14 @@ private:
 	bool _block_signals;
 	int _predelete_ok;
 	Set<Object *> change_receptors;
-	uint32_t _instance_ID;
+	ObjectID _instance_ID;
 	bool _predelete();
 	void _postinitialize();
 	bool _can_translate;
 #ifdef TOOLS_ENABLED
 	bool _edited;
 	uint32_t _edited_version;
+	Set<String> editor_section_folding;
 #endif
 	ScriptInstance *script_instance;
 	RefPtr script;
@@ -442,6 +443,7 @@ private:
 	Variant _emit_signal(const Variant **p_args, int p_argcount, Variant::CallError &r_error);
 	Array _get_signal_list() const;
 	Array _get_signal_connection_list(const String &p_signal) const;
+	Array _get_incoming_connections() const;
 	void _set_bind(const String &p_set, const Variant &p_value);
 	Variant _get_bind(const String &p_name) const;
 
@@ -666,6 +668,11 @@ public:
 	_FORCE_INLINE_ void set_message_translation(bool p_enable) { _can_translate = p_enable; }
 	_FORCE_INLINE_ bool can_translate_messages() const { return _can_translate; }
 
+#ifdef TOOLS_ENABLED
+	void editor_set_section_unfold(const String &p_section, bool p_unfolded);
+	bool editor_is_section_unfolded(const String &p_section);
+#endif
+
 	void clear_internal_resource_paths();
 
 	Object();
@@ -690,16 +697,16 @@ class ObjectDB {
 		}
 	};
 
-	static HashMap<uint32_t, Object *> instances;
+	static HashMap<ObjectID, Object *> instances;
 	static HashMap<Object *, ObjectID, ObjectPtrHash> instance_checks;
 
-	static uint32_t instance_counter;
+	static ObjectID instance_counter;
 	friend class Object;
 	friend void unregister_core_types();
 
 	static RWLock *rw_lock;
 	static void cleanup();
-	static uint32_t add_instance(Object *p_object);
+	static ObjectID add_instance(Object *p_object);
 	static void remove_instance(Object *p_object);
 	friend void register_core_types();
 	static void setup();
@@ -707,7 +714,7 @@ class ObjectDB {
 public:
 	typedef void (*DebugFunc)(Object *p_obj);
 
-	static Object *get_instance(uint32_t p_instance_ID);
+	static Object *get_instance(ObjectID p_instance_ID);
 	static void debug_objects(DebugFunc p_func);
 	static int get_object_count();
 

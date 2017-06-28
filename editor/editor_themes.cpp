@@ -145,8 +145,8 @@ Ref<Theme> create_editor_theme() {
 	theme->set_icon("unchecked", "PopupMenu", theme->get_icon("Unchecked", "EditorIcons"));
 
 	// Editor background
-	Ref<StyleBoxFlat> style_background = make_flat_stylebox(dark_color_2, 4, 4, 4, 4);
-	theme->set_stylebox("Background", "EditorStyles", style_background);
+	Ref<StyleBoxFlat> style_panel = make_flat_stylebox(dark_color_2, 4, 4, 4, 4);
+	theme->set_stylebox("Background", "EditorStyles", style_panel);
 
 	// Focus
 	Ref<StyleBoxFlat> focus_sbt = make_flat_stylebox(light_color_1, 4, 4, 4, 4);
@@ -193,9 +193,9 @@ Ref<Theme> create_editor_theme() {
 	theme->set_stylebox("MenuHover", "EditorStyles", style_menu_hover_border);
 
 	// Content of each tab
-	Ref<StyleBoxFlat> style_panel = make_flat_stylebox(base_color, 1, 4, 1, 1);
-	theme->set_stylebox("panel", "TabContainer", style_panel);
-	theme->set_stylebox("Content", "EditorStyles", style_panel);
+	Ref<StyleBoxFlat> style_content_panel = make_flat_stylebox(base_color, 1, 4, 1, 1);
+	theme->set_stylebox("panel", "TabContainer", style_content_panel);
+	theme->set_stylebox("Content", "EditorStyles", style_content_panel);
 
 	// Button
 	Ref<StyleBoxFlat> style_button = make_flat_stylebox(dark_color_1, 4, 4, 4, 4);
@@ -235,10 +235,12 @@ Ref<Theme> create_editor_theme() {
 	style_popup_menu->set_dark_color(light_color_1);
 	theme->set_stylebox("panel", "PopupMenu", style_popup_menu);
 
-	// Tree & script background
-	Ref<StyleBoxFlat> style_bg = make_flat_stylebox(dark_color_1, 0, 0, 0, 0);
-	theme->set_stylebox("bg", "Tree", style_bg);
-	theme->set_stylebox("ScriptPanel", "EditorStyles", style_bg);
+	// Tree & ItemList background
+	Ref<StyleBoxFlat> style_tree_bg = make_flat_stylebox(dark_color_1, 2, 4, 2, 4);
+	theme->set_stylebox("bg", "Tree", style_tree_bg);
+	// Script background
+	Ref<StyleBoxFlat> style_script_bg = make_flat_stylebox(dark_color_1, 0, 0, 0, 0);
+	theme->set_stylebox("ScriptPanel", "EditorStyles", style_script_bg);
 
 	// Tree
 	theme->set_icon("checked", "Tree", theme->get_icon("Checked", "EditorIcons"));
@@ -247,14 +249,18 @@ Ref<Theme> create_editor_theme() {
 	theme->set_icon("arrow_collapsed", "Tree", theme->get_icon("TreeArrowRight", "EditorIcons"));
 	theme->set_icon("select_arrow", "Tree", theme->get_icon("Dropdown", "EditorIcons"));
 	theme->set_stylebox("bg_focus", "Tree", focus_sbt);
+	theme->set_stylebox("custom_button", "Tree", style_button);
+	theme->set_stylebox("custom_button_pressed", "Tree", style_button);
+	theme->set_stylebox("custom_button_hover", "Tree", style_button);
+	theme->set_color("custom_button_font_highlight", "Tree", HIGHLIGHT_COLOR_LIGHT);
 
 	Ref<StyleBox> style_tree_btn = make_flat_stylebox(light_color_1, 2, 4, 2, 4);
 	theme->set_stylebox("button_pressed", "Tree", style_tree_btn);
 
-	Ref<StyleBoxFlat> style_tree_focus = make_flat_stylebox(HIGHLIGHT_COLOR_DARK, 4, 4, 4, 4);
+	Ref<StyleBoxFlat> style_tree_focus = make_flat_stylebox(HIGHLIGHT_COLOR_DARK, 2, 2, 2, 2);
 	theme->set_stylebox("selected_focus", "Tree", style_tree_focus);
 
-	Ref<StyleBoxFlat> style_tree_selected = make_flat_stylebox(light_color_1, 4, 4, 4, 4);
+	Ref<StyleBoxFlat> style_tree_selected = make_flat_stylebox(light_color_1, 2, 2, 2, 2);
 	theme->set_stylebox("selected", "Tree", style_tree_selected);
 
 	Ref<StyleBoxFlat> style_tree_cursor = make_flat_stylebox(HIGHLIGHT_COLOR_DARK, 4, 4, 4, 4);
@@ -277,17 +283,19 @@ Ref<Theme> create_editor_theme() {
 	theme->set_color("drop_position_color", "Tree", highlight_color);
 
 	// ItemList
-	Ref<StyleBoxFlat> style_itemlist_cursor = make_flat_stylebox(highlight_color, 8, 8, 8, 8);
+	Ref<StyleBoxFlat> style_itemlist_bg = make_flat_stylebox(dark_color_1, 4, 4, 4, 4);
+	Ref<StyleBoxFlat> style_itemlist_cursor = make_flat_stylebox(highlight_color, 0, 0, 0, 0);
 	style_itemlist_cursor->set_draw_center(false);
 	style_itemlist_cursor->set_border_size(1 * EDSCALE);
-	style_itemlist_cursor->set_light_color(light_color_1);
-	style_itemlist_cursor->set_dark_color(light_color_1);
+	style_itemlist_cursor->set_light_color(HIGHLIGHT_COLOR_DARK);
+	style_itemlist_cursor->set_dark_color(HIGHLIGHT_COLOR_DARK);
 	theme->set_stylebox("cursor", "ItemList", style_itemlist_cursor);
 	theme->set_stylebox("cursor_unfocused", "ItemList", style_itemlist_cursor);
 	theme->set_stylebox("selected_focus", "ItemList", style_tree_focus);
 	theme->set_stylebox("selected", "ItemList", style_tree_selected);
 	theme->set_stylebox("bg_focus", "ItemList", focus_sbt);
-	theme->set_stylebox("bg", "ItemList", style_bg);
+	theme->set_stylebox("bg", "ItemList", style_itemlist_bg);
+	theme->set_constant("vseparation", "ItemList", 5 * EDSCALE);
 
 	Ref<StyleBoxFlat> style_tab_fg = make_flat_stylebox(base_color, 15, 5, 15, 5);
 	Ref<StyleBoxFlat> style_tab_bg = make_flat_stylebox(base_color, 15, 5, 15, 5);
@@ -302,6 +310,8 @@ Ref<Theme> create_editor_theme() {
 	theme->set_color("font_color_bg", "TabContainer", light_color_2);
 	theme->set_icon("menu", "TabContainer", theme->get_icon("TabMenu", "EditorIcons"));
 	theme->set_icon("menu_hl", "TabContainer", theme->get_icon("TabMenu", "EditorIcons"));
+	theme->set_stylebox("SceneTabFG", "EditorStyles", make_flat_stylebox(base_color, 10, 5, 10, 5));
+	theme->set_stylebox("SceneTabBG", "EditorStyles", make_empty_stylebox(6, 5, 6, 5));
 
 	// Debugger
 	Ref<StyleBoxFlat> style_panel_debugger = make_flat_stylebox(dark_color_2, 0, 4, 0, 0);
@@ -389,6 +399,9 @@ Ref<Theme> create_editor_theme() {
 	theme->set_stylebox("slider", "VSlider", make_stylebox(theme->get_icon("VsliderBg", "EditorIcons"), 4, 4, 4, 4));
 	theme->set_icon("grabber", "VSlider", theme->get_icon("SliderGrabber", "EditorIcons"));
 	theme->set_icon("grabber_highlight", "VSlider", theme->get_icon("SliderGrabberHl", "EditorIcons"));
+
+	// Panel
+	theme->set_stylebox("panel", "Panel", style_panel);
 
 	// TooltipPanel
 	Ref<StyleBoxFlat> style_tooltip = make_flat_stylebox(Color(1, 1, 1, 0.8), 8, 8, 8, 8);

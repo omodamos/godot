@@ -69,6 +69,19 @@ Ref<Script> GDScriptLanguage::get_template(const String &p_class_name, const Str
 	return script;
 }
 
+bool GDScriptLanguage::is_using_templates() {
+
+	return true;
+}
+
+void GDScriptLanguage::make_template(const String &p_class_name, const String &p_base_class_name, Ref<Script> &p_script) {
+
+	String src = p_script->get_source_code();
+	src = src.replace("%BASE%", p_base_class_name);
+	src = src.replace("%TS%", _get_indentation());
+	p_script->set_source_code(src);
+}
+
 bool GDScriptLanguage::validate(const String &p_script, int &r_line_error, int &r_col_error, String &r_test_error, const String &p_path, List<String> *r_functions) const {
 
 	GDParser parser;
@@ -1263,7 +1276,7 @@ static void _find_identifiers_in_class(GDCompletionContext &context, bool p_stat
 				}
 			}
 			List<MethodInfo> methods;
-			ClassDB::get_method_list(type, &methods);
+			ClassDB::get_method_list(type, &methods, false, true);
 			for (List<MethodInfo>::Element *E = methods.front(); E; E = E->next()) {
 				if (E->get().name.begins_with("_"))
 					continue;
@@ -1630,7 +1643,7 @@ static void _find_type_arguments(GDCompletionContext &context, const GDParser::N
 		} else {
 			//regular method
 
-			if (p_method.operator String() == "connect") {
+			if (p_method.operator String() == "connect" || (p_method.operator String() == "emit_signal" && p_argidx == 0)) {
 
 				if (p_argidx == 0) {
 					List<MethodInfo> sigs;
@@ -2238,7 +2251,7 @@ Error GDScriptLanguage::complete_code(const String &p_code, const String &p_base
 					}
 
 					List<MethodInfo> mi;
-					ClassDB::get_method_list(t.obj_type, &mi);
+					ClassDB::get_method_list(t.obj_type, &mi, false, true);
 					for (List<MethodInfo>::Element *E = mi.front(); E; E = E->next()) {
 
 						if (E->get().name.begins_with("_"))
