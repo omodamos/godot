@@ -53,7 +53,6 @@ void TileSetEditor::_import_node(Node *p_node, Ref<TileSet> p_library) {
 
 		Sprite *mi = child->cast_to<Sprite>();
 		Ref<Texture> texture = mi->get_texture();
-		Ref<Texture> normal_map = mi->get_normal_map();
 		Ref<ShaderMaterial> material = mi->get_material();
 
 		if (texture.is_null())
@@ -68,7 +67,6 @@ void TileSetEditor::_import_node(Node *p_node, Ref<TileSet> p_library) {
 		}
 
 		p_library->tile_set_texture(id, texture);
-		p_library->tile_set_normal_map(id, normal_map);
 		p_library->tile_set_material(id, material);
 
 		p_library->tile_set_modulate(id, mi->get_modulate());
@@ -107,16 +105,13 @@ void TileSetEditor::_import_node(Node *p_node, Ref<TileSet> p_library) {
 			if (!child2->cast_to<StaticBody2D>())
 				continue;
 			StaticBody2D *sb = child2->cast_to<StaticBody2D>();
-
-			List<uint32_t> shapes;
-			sb->get_shape_owners(&shapes);
-
-			for (List<uint32_t>::Element *E = shapes.front(); E; E = E->next()) {
-
-				for (int k = 0; k < sb->shape_owner_get_shape_count(E->get()); k++) {
-
-					Ref<Shape> shape = sb->shape_owner_get_shape(E->get(), k);
-					collisions.push_back(shape); //uh what about transform?
+			int shape_count = sb->get_shape_count();
+			if (shape_count == 0)
+				continue;
+			for (int shape_index = 0; shape_index < shape_count; ++shape_index) {
+				Ref<Shape2D> collision = sb->get_shape(shape_index);
+				if (collision.is_valid()) {
+					collisions.push_back(collision);
 				}
 			}
 		}
