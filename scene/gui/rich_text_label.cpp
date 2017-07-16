@@ -848,6 +848,31 @@ void RichTextLabel::_gui_input(Ref<InputEvent> p_event) {
 		if (main->first_invalid_line < main->lines.size())
 			return;
 
+		if (true) {
+			int line = 0;
+			Item *item = NULL;
+			bool outside;
+			_find_click(main, m->get_position(), &item, &line, &outside);
+			Variant meta;
+
+			if (item) {
+				if (!outside && _find_meta(item, &meta) && meta != hovering_meta) {
+					if (hovering_meta.get_type() != Variant::NIL) {
+						emit_signal("meta_exited", hovering_meta);
+					}
+					emit_signal("meta_entered", meta);
+					hovering_meta = meta;
+				}
+			}
+
+			if (!item || !_find_meta(item, &meta)) {
+				if (hovering_meta.get_type() != Variant::NIL) {
+					emit_signal("meta_exited", hovering_meta);
+					hovering_meta = Variant();
+				}
+			}
+		}
+
 		if (selection.click) {
 
 			int line = 0;
@@ -1867,6 +1892,7 @@ void RichTextLabel::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("set_table_column_expand", "column", "expand", "ratio"), &RichTextLabel::set_table_column_expand);
 	ClassDB::bind_method(D_METHOD("push_cell"), &RichTextLabel::push_cell);
 	ClassDB::bind_method(D_METHOD("pop"), &RichTextLabel::pop);
+	ClassDB::bind_method(D_METHOD("get_line_count"), &RichTextLabel::get_line_count);
 
 	ClassDB::bind_method(D_METHOD("clear"), &RichTextLabel::clear);
 
@@ -1914,6 +1940,8 @@ void RichTextLabel::_bind_methods() {
 	ADD_PROPERTY(PropertyInfo(Variant::REAL, "percent_visible", PROPERTY_HINT_RANGE, "0,1,0.001"), "set_percent_visible", "get_percent_visible");
 
 	ADD_SIGNAL(MethodInfo("meta_clicked", PropertyInfo(Variant::NIL, "meta")));
+	ADD_SIGNAL(MethodInfo("meta_entered", PropertyInfo(Variant::NIL, "meta")));
+	ADD_SIGNAL(MethodInfo("meta_exited", PropertyInfo(Variant::NIL, "meta")));
 
 	BIND_CONSTANT(ALIGN_LEFT);
 	BIND_CONSTANT(ALIGN_CENTER);
@@ -1994,6 +2022,8 @@ RichTextLabel::RichTextLabel() {
 
 	visible_characters = -1;
 	percent_visible = 1;
+
+	hovering_meta = Variant();
 
 	set_clip_contents(true);
 }

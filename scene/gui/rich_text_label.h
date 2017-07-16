@@ -281,6 +281,8 @@ private:
 
 	void _update_all_lines();
 
+	Variant hovering_meta;
+
 protected:
 	void _notification(int p_what);
 
