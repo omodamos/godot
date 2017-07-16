@@ -177,6 +177,7 @@ public:
 	virtual Variant material_get_param(RID p_material, const StringName &p_param) const = 0;
 
 	virtual void material_set_line_width(RID p_material, float p_width) = 0;
+	virtual void material_set_next_pass(RID p_material, RID p_next_material) = 0;
 
 	/* MESH API */
 
@@ -462,6 +463,9 @@ public:
 	virtual void gi_probe_set_bias(RID p_probe, float p_range) = 0;
 	virtual float gi_probe_get_bias(RID p_probe) const = 0;
 
+	virtual void gi_probe_set_normal_bias(RID p_probe, float p_range) = 0;
+	virtual float gi_probe_get_normal_bias(RID p_probe) const = 0;
+
 	virtual void gi_probe_set_propagation(RID p_probe, float p_range) = 0;
 	virtual float gi_probe_get_propagation(RID p_probe) const = 0;
 
@@ -657,7 +661,7 @@ public:
 		GLOW_BLEND_MODE_SOFTLIGHT,
 		GLOW_BLEND_MODE_REPLACE,
 	};
-	virtual void environment_set_glow(RID p_env, bool p_enable, int p_level_flags, float p_intensity, float p_strength, float p_bloom_treshold, EnvironmentGlowBlendMode p_blend_mode, float p_hdr_bleed_treshold, float p_hdr_bleed_scale, bool p_bicubic_upscale) = 0;
+	virtual void environment_set_glow(RID p_env, bool p_enable, int p_level_flags, float p_intensity, float p_strength, float p_bloom_threshold, EnvironmentGlowBlendMode p_blend_mode, float p_hdr_bleed_threshold, float p_hdr_bleed_scale, bool p_bicubic_upscale) = 0;
 
 	enum EnvironmentToneMapper {
 		ENV_TONE_MAPPER_LINEAR,
@@ -787,6 +791,7 @@ public:
 	};
 
 	virtual void canvas_item_add_line(RID p_item, const Point2 &p_from, const Point2 &p_to, const Color &p_color, float p_width = 1.0, bool p_antialiased = false) = 0;
+	virtual void canvas_item_add_polyline(RID p_item, const Vector<Point2> &p_points, const Vector<Color> &p_colors, float p_width = 1.0, bool p_antialiased = false) = 0;
 	virtual void canvas_item_add_rect(RID p_item, const Rect2 &p_rect, const Color &p_color) = 0;
 	virtual void canvas_item_add_circle(RID p_item, const Point2 &p_pos, float p_radius, const Color &p_color) = 0;
 	virtual void canvas_item_add_texture_rect(RID p_item, const Rect2 &p_rect, RID p_texture, bool p_tile = false, const Color &p_modulate = Color(1, 1, 1), bool p_transpose = false, RID p_normal_map = RID()) = 0;

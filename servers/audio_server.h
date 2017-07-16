@@ -113,7 +113,7 @@ private:
 	uint64_t mix_count;
 	uint64_t mix_frames;
 
-	float channel_disable_treshold_db;
+	float channel_disable_threshold_db;
 	uint32_t channel_disable_frames;
 
 	int to_mix;
@@ -215,6 +215,7 @@ public:
 
 	void set_bus_name(int p_bus, const String &p_name);
 	String get_bus_name(int p_bus) const;
+	int get_bus_index(const StringName &p_bus_name) const;
 
 	void set_bus_volume_db(int p_bus, float p_volume_db);
 	float get_bus_volume_db(int p_bus) const;

@@ -30,6 +30,7 @@
 #include "visual_script_flow_control.h"
 
 #include "global_config.h"
+#include "io/resource_loader.h"
 #include "os/keyboard.h"
 
 //////////////////////////////////////////
@@ -119,8 +120,8 @@ void VisualScriptReturn::_bind_methods() {
 		argt += "," + Variant::get_type_name(Variant::Type(i));
 	}
 
-	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "return_value/enabled"), "set_enable_return_value", "is_return_value_enabled");
-	ADD_PROPERTY(PropertyInfo(Variant::INT, "return_value/type", PROPERTY_HINT_ENUM, argt), "set_return_type", "get_return_type");
+	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "return_enabled"), "set_enable_return_value", "is_return_value_enabled");
+	ADD_PROPERTY(PropertyInfo(Variant::INT, "return_type", PROPERTY_HINT_ENUM, argt), "set_return_type", "get_return_type");
 }
 
 class VisualScriptNodeInstanceReturn : public VisualScriptNodeInstance {
@@ -943,7 +944,7 @@ bool VisualScriptInputFilter::_set(const StringName &p_name, const Variant &p_va
 			filters[idx] = Ref<InputEvent>();
 			filters[idx].type = Ref<InputEvent>::Type(int(p_value));
 			if (filters[idx].type == Ref<InputEvent>::JOYPAD_MOTION) {
-				filters[idx].joy_motion.axis_value = 0.5; //for treshold
+				filters[idx].joy_motion.axis_value = 0.5; //for threshold
 			} else if (filters[idx].type == Ref<InputEvent>::KEY) {
 				filters[idx]->is_pressed() = true; //put these as true to make it more user friendly
 			} else if (filters[idx].type == Ref<InputEvent>::MOUSE_BUTTON) {
@@ -1070,7 +1071,7 @@ bool VisualScriptInputFilter::_set(const StringName &p_name, const Variant &p_va
 					filters[idx].joy_motion.axis = int(p_value) << 1 | filters[idx].joy_motion.axis;
 				} else if (what == "mode") {
 					filters[idx].joy_motion.axis |= int(p_value);
-				} else if (what == "treshold") {
+				} else if (what == "threshold") {
 					filters[idx].joy_motion.axis_value = p_value;
 				} else {
 					return false;
@@ -1280,7 +1281,7 @@ bool VisualScriptInputFilter::_get(const StringName &p_name, Variant &r_ret) con
 					r_ret = filters[idx].joy_motion.axis >> 1;
 				} else if (what == "mode") {
 					r_ret = filters[idx].joy_motion.axis & 1;
-				} else if (what == "treshold") {
+				} else if (what == "threshold") {
 					r_ret = filters[idx].joy_motion.axis_value;
 				} else {
 					return false;
@@ -1433,7 +1434,7 @@ void VisualScriptInputFilter::_get_property_list(List<PropertyInfo> *p_list) con
 
 				p_list->push_back(PropertyInfo(Variant::INT, base + "axis_index"));
 				p_list->push_back(PropertyInfo(Variant::INT, base + "mode", PROPERTY_HINT_ENUM, "Min,Max"));
-				p_list->push_back(PropertyInfo(Variant::REAL, base + "treshold", PROPERTY_HINT_RANGE, "0,1,0.01"));
+				p_list->push_back(PropertyInfo(Variant::REAL, base + "threshold", PROPERTY_HINT_RANGE, "0,1,0.01"));
 			} break;
 			case Ref<InputEvent>::JOYPAD_BUTTON: {
 				p_list->push_back(PropertyInfo(Variant::INT, base + "button_index"));
@@ -1725,6 +1726,20 @@ String VisualScriptTypeCast::get_base_script() const {
 	return script;
 }
 
+VisualScriptTypeCast::TypeGuess VisualScriptTypeCast::guess_output_type(TypeGuess *p_inputs, int p_output) const {
+
+	TypeGuess tg;
+	tg.type = Variant::OBJECT;
+	if (script != String()) {
+		tg.script = ResourceLoader::load(script);
+	}
+	//if (!tg.script.is_valid()) {
+	//	tg.gdclass = base_type;
+	//}
+
+	return tg;
+}
+
 class VisualScriptNodeInstanceTypeCast : public VisualScriptNodeInstance {
 public:
 	VisualScriptInstance *instance;
@@ -1815,8 +1830,8 @@ void VisualScriptTypeCast::_bind_methods() {
 		script_ext_hint += "*." + E->get();
 	}
 
-	ADD_PROPERTY(PropertyInfo(Variant::STRING, "function/base_type", PROPERTY_HINT_TYPE_STRING, "Object"), "set_base_type", "get_base_type");
-	ADD_PROPERTY(PropertyInfo(Variant::STRING, "property/base_script", PROPERTY_HINT_FILE, script_ext_hint), "set_base_script", "get_base_script");
+	ADD_PROPERTY(PropertyInfo(Variant::STRING, "base_type", PROPERTY_HINT_TYPE_STRING, "Object"), "set_base_type", "get_base_type");
+	ADD_PROPERTY(PropertyInfo(Variant::STRING, "base_script", PROPERTY_HINT_FILE, script_ext_hint), "set_base_script", "get_base_script");
 }
 
 VisualScriptTypeCast::VisualScriptTypeCast() {

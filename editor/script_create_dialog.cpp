@@ -118,13 +118,15 @@ void ScriptCreateDialog::_parent_name_changed(const String &p_parent) {
 
 void ScriptCreateDialog::_template_changed(int p_template) {
 
+	String selected_template = p_template == 0 ? "" : template_menu->get_item_text(template_menu->get_selected());
+	EditorSettings::get_singleton()->set_project_metadata("script_setup", "last_selected_template", selected_template);
 	if (p_template == 0) {
 		//default
 		script_template = "";
 		return;
 	}
 	String ext = ScriptServer::get_language(language_menu->get_selected())->get_extension();
-	String name = template_menu->get_item_text(p_template) + "." + ext;
+	String name = template_list[p_template - 1] + "." + ext;
 	script_template = EditorSettings::get_singleton()->get_settings_path() + "/script_templates/" + name;
 }
 
@@ -148,14 +150,18 @@ void ScriptCreateDialog::_create_new() {
 
 	Ref<Script> scr;
 	if (script_template != "") {
-		scr = ResourceLoader::load(script_template)->duplicate();
+		scr = ResourceLoader::load(script_template);
+		if (scr.is_null()) {
+			alert->get_ok()->set_text(TTR("OK"));
+			alert->set_text(vformat(TTR("Error loading template '%s'"), script_template));
+			alert->popup_centered();
+			return;
+		}
+		scr = scr->duplicate();
 		ScriptServer::get_language(language_menu->get_selected())->make_template(cname, parent_name->get_text(), scr);
 	} else {
 		scr = ScriptServer::get_language(language_menu->get_selected())->get_template(cname, parent_name->get_text());
 	}
-
-	String selected_language = language_menu->get_item_text(language_menu->get_selected());
-	editor_settings->set_project_metadata("script_setup", "last_selected_language", selected_language);
 
 	if (cname != "")
 		scr->set_name(cname);
@@ -239,15 +245,30 @@ void ScriptCreateDialog::_lang_changed(int l) {
 
 	bool use_templates = language->is_using_templates();
 	template_menu->set_disabled(!use_templates);
+	template_menu->clear();
 	if (use_templates) {
-		Vector<String> template_list = EditorSettings::get_singleton()->get_script_templates(language->get_extension());
 
-		template_menu->clear();
+		template_list = EditorSettings::get_singleton()->get_script_templates(language->get_extension());
+
+		String last_lang = EditorSettings::get_singleton()->get_project_metadata("script_setup", "last_selected_language", "");
+		String last_template = EditorSettings::get_singleton()->get_project_metadata("script_setup", "last_selected_template", "");
+
 		template_menu->add_item(TTR("Default"));
 		for (int i = 0; i < template_list.size(); i++) {
-			template_menu->add_item(template_list[i].capitalize());
+			String s = template_list[i].capitalize();
+			template_menu->add_item(s);
+			if (language_menu->get_item_text(language_menu->get_selected()) == last_lang && last_template == s) {
+				template_menu->select(i + 1);
+			}
 		}
+	} else {
+
+		template_menu->add_item(TTR("N/A"));
+		script_template = "";
 	}
+
+	_template_changed(template_menu->get_selected());
+	EditorSettings::get_singleton()->set_project_metadata("script_setup", "last_selected_language", language_menu->get_item_text(language_menu->get_selected()));
 
 	_update_dialog();
 }
@@ -271,10 +292,8 @@ void ScriptCreateDialog::_browse_path(bool browse_parent) {
 	file_browse->clear_filters();
 	List<String> extensions;
 
-	// get all possible extensions for script
-	for (int l = 0; l < language_menu->get_item_count(); l++) {
-		ScriptServer::get_language(l)->get_recognized_extensions(&extensions);
-	}
+	int lang = language_menu->get_selected();
+	ScriptServer::get_language(lang)->get_recognized_extensions(&extensions);
 
 	for (List<String>::Element *E = extensions.front(); E; E = E->next()) {
 		file_browse->add_filter("*." + E->get());
@@ -508,8 +527,6 @@ void ScriptCreateDialog::_bind_methods() {
 
 ScriptCreateDialog::ScriptCreateDialog() {
 
-	editor_settings = EditorSettings::get_singleton();
-
 	GridContainer *gc = memnew(GridContainer);
 	VBoxContainer *vb = memnew(VBoxContainer);
 	HBoxContainer *hb = memnew(HBoxContainer);
@@ -615,7 +632,7 @@ ScriptCreateDialog::ScriptCreateDialog() {
 		}
 	}
 
-	String last_selected_language = editor_settings->get_project_metadata("script_setup", "last_selected_language", "");
+	String last_selected_language = EditorSettings::get_singleton()->get_project_metadata("script_setup", "last_selected_language", "");
 	if (last_selected_language != "") {
 		for (int i = 0; i < language_menu->get_item_count(); i++) {
 			if (language_menu->get_item_text(i) == last_selected_language) {

@@ -86,6 +86,8 @@ public:
 
 		bool generate_wireframes;
 
+		bool use_texture_array_environment;
+
 		Set<String> extensions;
 
 		bool keep_original_textures;
@@ -494,6 +496,8 @@ public:
 		Vector<RID> textures;
 		float line_width;
 
+		RID next_pass;
+
 		uint32_t index;
 		uint64_t last_pass;
 
@@ -531,6 +535,7 @@ public:
 	virtual Variant material_get_param(RID p_material, const StringName &p_param) const;
 
 	virtual void material_set_line_width(RID p_material, float p_width);
+	virtual void material_set_next_pass(RID p_material, RID p_next_material);
 
 	virtual bool material_is_animated(RID p_material);
 	virtual bool material_casts_shadows(RID p_material);
@@ -967,6 +972,7 @@ public:
 		int dynamic_range;
 		float energy;
 		float bias;
+		float normal_bias;
 		float propagation;
 		bool interior;
 		bool compress;
@@ -1000,6 +1006,9 @@ public:
 
 	virtual void gi_probe_set_bias(RID p_probe, float p_range);
 	virtual float gi_probe_get_bias(RID p_probe) const;
+
+	virtual void gi_probe_set_normal_bias(RID p_probe, float p_range);
+	virtual float gi_probe_get_normal_bias(RID p_probe) const;
 
 	virtual void gi_probe_set_propagation(RID p_probe, float p_range);
 	virtual float gi_probe_get_propagation(RID p_probe) const;

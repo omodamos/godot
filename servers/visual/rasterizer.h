@@ -61,7 +61,7 @@ public:
 
 	virtual void environment_set_dof_blur_near(RID p_env, bool p_enable, float p_distance, float p_transition, float p_far_amount, VS::EnvironmentDOFBlurQuality p_quality) = 0;
 	virtual void environment_set_dof_blur_far(RID p_env, bool p_enable, float p_distance, float p_transition, float p_far_amount, VS::EnvironmentDOFBlurQuality p_quality) = 0;
-	virtual void environment_set_glow(RID p_env, bool p_enable, int p_level_flags, float p_intensity, float p_strength, float p_bloom_treshold, VS::EnvironmentGlowBlendMode p_blend_mode, float p_hdr_bleed_treshold, float p_hdr_bleed_scale, bool p_bicubic_upscale) = 0;
+	virtual void environment_set_glow(RID p_env, bool p_enable, int p_level_flags, float p_intensity, float p_strength, float p_bloom_threshold, VS::EnvironmentGlowBlendMode p_blend_mode, float p_hdr_bleed_threshold, float p_hdr_bleed_scale, bool p_bicubic_upscale) = 0;
 	virtual void environment_set_fog(RID p_env, bool p_enable, float p_begin, float p_end, RID p_gradient_texture) = 0;
 
 	virtual void environment_set_ssr(RID p_env, bool p_enable, int p_max_steps, float p_fade_int, float p_fade_out, float p_depth_tolerance, bool p_roughness) = 0;
@@ -109,19 +109,20 @@ public:
 		bool mirror : 8;
 		bool receive_shadows : 8;
 		bool visible : 8;
+		bool baked_light : 8; //this flag is only to know if it actually did use baked light
 
 		float depth; //used for sorting
 
 		SelfList<InstanceBase> dependency_item;
-		InstanceBase *baked_light; //baked light to use
-		SelfList<InstanceBase> baked_light_item;
+		//InstanceBase *baked_light; //baked light to use
+		//SelfList<InstanceBase> baked_light_item;
 
 		virtual void base_removed() = 0;
 		virtual void base_changed() = 0;
 		virtual void base_material_changed() = 0;
 
 		InstanceBase()
-			: dependency_item(this), baked_light_item(this) {
+			: dependency_item(this) {
 
 			base_type = VS::INSTANCE_NONE;
 			cast_shadows = VS::SHADOW_CASTING_SETTING_ON;
@@ -129,7 +130,7 @@ public:
 			visible = true;
 			depth_layer = 0;
 			layer_mask = 1;
-			baked_light = NULL;
+			baked_light = false;
 		}
 	};
 
@@ -224,6 +225,8 @@ public:
 	virtual Variant material_get_param(RID p_material, const StringName &p_param) const = 0;
 
 	virtual void material_set_line_width(RID p_material, float p_width) = 0;
+
+	virtual void material_set_next_pass(RID p_material, RID p_next_material) = 0;
 
 	virtual bool material_is_animated(RID p_material) = 0;
 	virtual bool material_casts_shadows(RID p_material) = 0;
@@ -420,6 +423,9 @@ public:
 	virtual void gi_probe_set_bias(RID p_probe, float p_range) = 0;
 	virtual float gi_probe_get_bias(RID p_probe) const = 0;
 
+	virtual void gi_probe_set_normal_bias(RID p_probe, float p_range) = 0;
+	virtual float gi_probe_get_normal_bias(RID p_probe) const = 0;
+
 	virtual void gi_probe_set_propagation(RID p_probe, float p_range) = 0;
 	virtual float gi_probe_get_propagation(RID p_probe) const = 0;
 
@@ -612,6 +618,7 @@ public:
 			enum Type {
 
 				TYPE_LINE,
+				TYPE_POLYLINE,
 				TYPE_RECT,
 				TYPE_NINEPATCH,
 				TYPE_PRIMITIVE,
@@ -635,6 +642,18 @@ public:
 			float width;
 			bool antialiased;
 			CommandLine() { type = TYPE_LINE; }
+		};
+		struct CommandPolyLine : public Command {
+
+			bool antialiased;
+			Vector<Point2> triangles;
+			Vector<Color> triangle_colors;
+			Vector<Point2> lines;
+			Vector<Color> line_colors;
+			CommandPolyLine() {
+				type = TYPE_POLYLINE;
+				antialiased = false;
+			}
 		};
 
 		struct CommandRect : public Command {
@@ -814,6 +833,31 @@ public:
 						const Item::CommandLine *line = static_cast<const Item::CommandLine *>(c);
 						r.position = line->from;
 						r.expand_to(line->to);
+					} break;
+					case Item::Command::TYPE_POLYLINE: {
+
+						const Item::CommandPolyLine *pline = static_cast<const Item::CommandPolyLine *>(c);
+						if (pline->triangles.size()) {
+							for (int j = 0; j < pline->triangles.size(); j++) {
+
+								if (j == 0) {
+									r.position = pline->triangles[j];
+								} else {
+									r.expand_to(pline->triangles[j]);
+								}
+							}
+						} else {
+
+							for (int j = 0; j < pline->lines.size(); j++) {
+
+								if (j == 0) {
+									r.position = pline->lines[j];
+								} else {
+									r.expand_to(pline->lines[j]);
+								}
+							}
+						}
+
 					} break;
 					case Item::Command::TYPE_RECT: {
 

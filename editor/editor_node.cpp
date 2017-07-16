@@ -43,6 +43,7 @@
 #include "io/config_file.h"
 #include "io/stream_peer_ssl.h"
 #include "io/zip_io.h"
+#include "license.gen.h"
 #include "main/input_default.h"
 #include "message_queue.h"
 #include "os/file_access.h"
@@ -416,6 +417,8 @@ void EditorNode::_fs_changed() {
 			}
 		}
 	}
+
+	_mark_unsaved_scenes();
 }
 
 void EditorNode::_sources_changed(bool p_exist) {
@@ -976,6 +979,29 @@ void EditorNode::_save_all_scenes() {
 	}
 
 	_save_default_environment();
+}
+
+void EditorNode::_mark_unsaved_scenes() {
+
+	for (int i = 0; i < editor_data.get_edited_scene_count(); i++) {
+
+		Node *node = editor_data.get_edited_scene_root(i);
+		if (!node)
+			continue;
+
+		String path = node->get_filename();
+		if (!(path == String() || FileAccess::exists(path))) {
+
+			node->set_filename("");
+			if (i == editor_data.get_edited_scene())
+				set_current_version(-1);
+			else
+				editor_data.set_edited_scene_version(-1, i);
+		}
+	}
+
+	_update_title();
+	_update_scene_tabs();
 }
 
 void EditorNode::_import_action(const String &p_action) {
@@ -2462,6 +2488,7 @@ void EditorNode::_menu_option_confirm(int p_option, bool p_confirmed) {
 						confirmation->popup_centered_minsize();
 					} else {
 						_discard_changes();
+						break;
 					}
 				} else {
 
@@ -2488,6 +2515,8 @@ void EditorNode::_menu_option_confirm(int p_option, bool p_confirmed) {
 					}
 				}
 
+				if (OS::get_singleton()->is_window_minimized())
+					OS::get_singleton()->request_attention();
 				break;
 			}
 
@@ -2643,7 +2672,7 @@ void EditorNode::_menu_option_confirm(int p_option, bool p_confirmed) {
 			OS::get_singleton()->shell_open("https://godotengine.org/community");
 		} break;
 		case HELP_ABOUT: {
-			about->popup_centered_minsize(Size2(500, 130) * EDSCALE);
+			about->popup_centered_minsize(Size2(780, 500) * EDSCALE);
 		} break;
 		case SOURCES_REIMPORT: {
 
@@ -2724,6 +2753,8 @@ int EditorNode::_next_unsaved_scene() {
 
 	for (int i = 0; i < editor_data.get_edited_scene_count(); i++) {
 
+		if (!editor_data.get_edited_scene_root(i))
+			continue;
 		int current = editor_data.get_edited_scene();
 		bool unsaved = (i == current) ? saved_version != editor_data.get_undo_redo().get_version() : editor_data.get_scene_version(i) != 0;
 		if (unsaved) {
@@ -4354,6 +4385,10 @@ void EditorNode::_scene_tab_closed(int p_tab) {
 	current_option = SCENE_TAB_CLOSE;
 	tab_closing = p_tab;
 	Node *scene = editor_data.get_edited_scene_root(p_tab);
+	if (!scene) {
+		_discard_changes();
+		return;
+	}
 
 	bool unsaved = (p_tab == editor_data.get_edited_scene()) ?
 						   saved_version != editor_data.get_undo_redo().get_version() :
@@ -4389,10 +4424,21 @@ void EditorNode::_scene_tab_input(const Ref<InputEvent> &p_input) {
 	Ref<InputEventMouseButton> mb = p_input;
 
 	if (mb.is_valid()) {
-		if (mb->get_button_index() == BUTTON_MIDDLE && mb->is_pressed() && scene_tabs->get_hovered_tab() >= 0) {
-			_scene_tab_closed(scene_tabs->get_hovered_tab());
+		if (scene_tabs->get_hovered_tab() >= 0) {
+			if (mb->get_button_index() == BUTTON_MIDDLE && mb->is_pressed()) {
+				_scene_tab_closed(scene_tabs->get_hovered_tab());
+			}
+		} else {
+			if ((mb->get_button_index() == BUTTON_LEFT && mb->is_doubleclick()) || (mb->get_button_index() == BUTTON_MIDDLE && mb->is_pressed())) {
+				_menu_option_confirm(FILE_NEW_SCENE, true);
+			}
 		}
 	}
+}
+
+void EditorNode::_reposition_active_tab(int idx_to) {
+	editor_data.move_edited_scene_to_index(idx_to);
+	_update_scene_tabs();
 }
 
 void EditorNode::_thumbnail_done(const String &p_path, const Ref<Texture> &p_preview, const Variant &p_udata) {
@@ -4913,6 +4959,13 @@ void EditorNode::_check_gui_base_size() {
 	}
 }
 
+void EditorNode::_license_tree_selected() {
+
+	TreeItem *selected = _tpl_tree->get_selected();
+	_tpl_text->select(0, 0, 0, 0);
+	_tpl_text->set_text(selected->get_metadata(0));
+}
+
 void EditorNode::open_export_template_manager() {
 
 	export_template_manager->popup_manager();
@@ -4977,6 +5030,7 @@ void EditorNode::_bind_methods() {
 	ClassDB::bind_method("_scene_tab_hover", &EditorNode::_scene_tab_hover);
 	ClassDB::bind_method("_scene_tab_exit", &EditorNode::_scene_tab_exit);
 	ClassDB::bind_method("_scene_tab_input", &EditorNode::_scene_tab_input);
+	ClassDB::bind_method("_reposition_active_tab", &EditorNode::_reposition_active_tab);
 	ClassDB::bind_method("_thumbnail_done", &EditorNode::_thumbnail_done);
 	ClassDB::bind_method("_scene_tab_script_edited", &EditorNode::_scene_tab_script_edited);
 	ClassDB::bind_method("_set_main_scene_state", &EditorNode::_set_main_scene_state);
@@ -5001,6 +5055,8 @@ void EditorNode::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("_inherit_imported"), &EditorNode::_inherit_imported);
 	ClassDB::bind_method(D_METHOD("_dim_timeout"), &EditorNode::_dim_timeout);
 	ClassDB::bind_method(D_METHOD("_check_gui_base_size"), &EditorNode::_check_gui_base_size);
+
+	ClassDB::bind_method(D_METHOD("_license_tree_selected"), &EditorNode::_license_tree_selected);
 
 	ADD_SIGNAL(MethodInfo("play_pressed"));
 	ADD_SIGNAL(MethodInfo("pause_pressed"));
@@ -5349,6 +5405,7 @@ EditorNode::EditorNode() {
 	scene_tabs->connect("tab_hover", this, "_scene_tab_hover");
 	scene_tabs->connect("mouse_exited", this, "_scene_tab_exit");
 	scene_tabs->connect("gui_input", this, "_scene_tab_input");
+	scene_tabs->connect("reposition_active_tab_request", this, "_reposition_active_tab");
 
 	HBoxContainer *tabbar_container = memnew(HBoxContainer);
 	scene_tabs->set_h_size_flags(Control::SIZE_EXPAND_FILL);
@@ -5842,7 +5899,7 @@ EditorNode::EditorNode() {
 	search_button = memnew(ToolButton);
 	search_button->set_toggle_mode(true);
 	search_button->set_pressed(false);
-	search_button->set_icon(gui_base->get_icon("Zoom", "EditorIcons"));
+	search_button->set_icon(gui_base->get_icon("Search", "EditorIcons"));
 	prop_editor_hb->add_child(search_button);
 	search_button->connect("toggled", this, "_toggle_search_bar");
 
@@ -6039,53 +6096,159 @@ EditorNode::EditorNode() {
 	export_template_manager = memnew(ExportTemplateManager);
 	gui_base->add_child(export_template_manager);
 
-	about = memnew(AcceptDialog);
-	about->set_title(TTR("Thanks from the Godot community!"));
-	about->get_ok()->set_text(TTR("Thanks!"));
-	about->set_hide_on_ok(true);
-	gui_base->add_child(about);
-	VBoxContainer *vbc = memnew(VBoxContainer);
-	HBoxContainer *hbc = memnew(HBoxContainer);
-	hbc->set_h_size_flags(Control::SIZE_EXPAND_FILL);
-	hbc->set_alignment(BoxContainer::ALIGN_CENTER);
-	about->add_child(vbc);
-	vbc->add_child(hbc);
-	Label *about_text = memnew(Label);
-	about_text->set_text(VERSION_FULL_NAME + String::utf8("\n\u00A9 2007-2017 Juan Linietsky, Ariel Manzur.\n\u00A9 2014-2017 ") + TTR("Godot Engine contributors") + "\n");
-	TextureRect *logo = memnew(TextureRect);
-	logo->set_texture(gui_base->get_icon("Logo", "EditorIcons"));
-	hbc->add_child(logo);
-	hbc->add_child(about_text);
-	TabContainer *tc = memnew(TabContainer);
-	tc->set_custom_minimum_size(Vector2(740, 300));
-	vbc->add_child(tc);
-	ScrollContainer *dev_base = memnew(ScrollContainer);
-	dev_base->set_name(TTR("Developers"));
-	tc->add_child(dev_base);
-	HBoxContainer *dev_hbc = memnew(HBoxContainer);
-	dev_hbc->set_h_size_flags(Control::SIZE_EXPAND_FILL);
-	dev_base->add_child(dev_hbc);
-	for (int i = 0; i < 3; i++) {
-		Label *dev_label = memnew(Label);
-		dev_label->set_h_size_flags(Control::SIZE_EXPAND);
-		dev_label->set_v_size_flags(Control::SIZE_FILL);
-		dev_hbc->add_child(dev_label);
-	}
-	int dev_name_index = 0;
-	int dev_name_column = 0;
-	const int dev_index_max = AUTHORS_COUNT / 3 + (AUTHORS_COUNT % 3 == 0 ? 0 : 1);
-	String dev_name = "";
-	const char **dev_names_ptr = dev_names;
-	while (*dev_names_ptr) {
-		dev_name += String::utf8(*dev_names_ptr++);
-		if (++dev_name_index == dev_index_max || !*dev_names_ptr) {
-			dev_hbc->get_child(dev_name_column)->cast_to<Label>()->set_text(dev_name);
-			dev_name_column++;
-			dev_name = "";
-			dev_name_index = 0;
-		} else {
-			dev_name += "\n";
+	{
+
+		about = memnew(AcceptDialog);
+		about->set_title(TTR("Thanks from the Godot community!"));
+		about->get_ok()->set_text(TTR("Thanks!"));
+		about->set_hide_on_ok(true);
+		about->set_resizable(true);
+		gui_base->add_child(about);
+
+		VBoxContainer *vbc = memnew(VBoxContainer);
+		HBoxContainer *hbc = memnew(HBoxContainer);
+		hbc->set_h_size_flags(Control::SIZE_EXPAND_FILL);
+		hbc->set_alignment(BoxContainer::ALIGN_CENTER);
+		hbc->add_constant_override("separation", 30 * EDSCALE);
+		about->add_child(vbc);
+		vbc->add_child(hbc);
+
+		TextureRect *logo = memnew(TextureRect);
+		logo->set_texture(gui_base->get_icon("Logo", "EditorIcons"));
+		hbc->add_child(logo);
+
+		Label *about_text = memnew(Label);
+		about_text->set_v_size_flags(Control::SIZE_SHRINK_CENTER);
+		about_text->set_text(VERSION_FULL_NAME + String::utf8("\n\u00A9 2007-2017 Juan Linietsky, Ariel Manzur.\n\u00A9 2014-2017 ") +
+							 TTR("Godot Engine contributors") + "\n");
+		hbc->add_child(about_text);
+
+		TabContainer *tc = memnew(TabContainer);
+		tc->set_custom_minimum_size(Size2(600, 240) * EDSCALE);
+		tc->set_v_size_flags(Control::SIZE_EXPAND_FILL);
+		vbc->add_child(tc);
+
+		ScrollContainer *dev_base = memnew(ScrollContainer);
+		dev_base->set_name(TTR("Authors"));
+		dev_base->set_v_size_flags(Control::SIZE_EXPAND);
+		tc->add_child(dev_base);
+
+		VBoxContainer *dev_vbc = memnew(VBoxContainer);
+		dev_vbc->set_h_size_flags(Control::SIZE_EXPAND_FILL);
+		dev_base->add_child(dev_vbc);
+
+		List<String> dev_sections;
+		dev_sections.push_back(TTR("Project Founders"));
+		dev_sections.push_back(TTR("Lead Developer"));
+		dev_sections.push_back(TTR("Project Manager"));
+		dev_sections.push_back(TTR("Developers"));
+
+		const char **dev_src[] = { dev_founders, dev_lead, dev_manager, dev_names };
+
+		for (int i = 0; i < dev_sections.size(); i++) {
+
+			Label *lbl = memnew(Label);
+			lbl->set_text(dev_sections[i]);
+			dev_vbc->add_child(lbl);
+
+			ItemList *il = memnew(ItemList);
+			il->set_max_columns(32);
+			il->set_h_size_flags(Control::SIZE_EXPAND_FILL);
+			il->set_custom_minimum_size(Size2(0, i == 3 ? DEV_NAMES_COUNT * 7.6 : 30) * EDSCALE);
+			const char **dev_names_ptr = dev_src[i];
+			while (*dev_names_ptr)
+				il->add_item(String::utf8(*dev_names_ptr++), NULL, false);
+			dev_vbc->add_child(il);
+			il->set_fixed_column_width(240 * EDSCALE);
+
+			HSeparator *hs = memnew(HSeparator);
+			hs->set_modulate(Color(0, 0, 0, 0));
+			dev_vbc->add_child(hs);
 		}
+
+		TextEdit *license = memnew(TextEdit);
+		license->set_name(TTR("License"));
+		license->set_h_size_flags(Control::SIZE_EXPAND_FILL);
+		license->set_v_size_flags(Control::SIZE_EXPAND_FILL);
+		license->set_wrap(true);
+		license->set_readonly(true);
+		license->set_text(String::utf8(about_license));
+		tc->add_child(license);
+
+		VBoxContainer *license_thirdparty = memnew(VBoxContainer);
+		license_thirdparty->set_name(TTR("Thirdparty License"));
+		license_thirdparty->set_h_size_flags(Control::SIZE_EXPAND_FILL);
+		tc->add_child(license_thirdparty);
+
+		Label *tpl_label = memnew(Label);
+		tpl_label->set_custom_minimum_size(Size2(0, 64 * EDSCALE));
+		tpl_label->set_h_size_flags(Control::SIZE_EXPAND_FILL);
+		tpl_label->set_autowrap(true);
+		tpl_label->set_text(TTR("Godot Engine relies on a number of thirdparty free and open source libraries, all compatible with the terms of its MIT license. The following is an exhaustive list of all such thirdparty components with their respective copyright statements and license terms."));
+		license_thirdparty->add_child(tpl_label);
+
+		HSplitContainer *tpl_hbc = memnew(HSplitContainer);
+		tpl_hbc->set_h_size_flags(Control::SIZE_EXPAND_FILL);
+		tpl_hbc->set_v_size_flags(Control::SIZE_EXPAND_FILL);
+		tpl_hbc->set_split_offset(240 * EDSCALE);
+		license_thirdparty->add_child(tpl_hbc);
+
+		_tpl_tree = memnew(Tree);
+		_tpl_tree->set_hide_root(true);
+		TreeItem *root = _tpl_tree->create_item();
+		TreeItem *tpl_ti_all = _tpl_tree->create_item(root);
+		tpl_ti_all->set_text(0, TTR("All Components"));
+		TreeItem *tpl_ti_tp = _tpl_tree->create_item(root);
+		tpl_ti_tp->set_text(0, TTR("Components"));
+		tpl_ti_tp->set_selectable(0, false);
+		TreeItem *tpl_ti_lc = _tpl_tree->create_item(root);
+		tpl_ti_lc->set_text(0, TTR("Licenses"));
+		tpl_ti_lc->set_selectable(0, false);
+		int read_idx = 0;
+		String long_text = "";
+		for (int i = 0; i < THIRDPARTY_COUNT; i++) {
+
+			TreeItem *ti = _tpl_tree->create_item(tpl_ti_tp);
+			String thirdparty = String(about_thirdparty[i]);
+			ti->set_text(0, thirdparty);
+			String text = thirdparty + "\n";
+			long_text += "- " + thirdparty + "\n\n";
+			for (int j = 0; j < about_tp_copyright_count[i]; j++) {
+
+				text += "\n    Files:\n        " + String(about_tp_file[read_idx]).replace("\n", "\n        ") + "\n";
+				String copyright = String::utf8("    \u00A9 ") + String::utf8(about_tp_copyright[read_idx]).replace("\n", String::utf8("\n    \u00A9 "));
+				text += copyright;
+				long_text += copyright;
+				String license = "\n    License: " + String(about_tp_license[read_idx]) + "\n";
+				text += license;
+				long_text += license + "\n";
+				read_idx++;
+			}
+			ti->set_metadata(0, text);
+		}
+		for (int i = 0; i < LICENSE_COUNT; i++) {
+
+			TreeItem *ti = _tpl_tree->create_item(tpl_ti_lc);
+			String licensename = String(about_license_name[i]);
+			ti->set_text(0, licensename);
+			long_text += "- " + licensename + "\n\n";
+			String licensebody = String(about_license_body[i]);
+			ti->set_metadata(0, licensebody);
+			long_text += "    " + licensebody.replace("\n", "\n    ") + "\n\n";
+		}
+		tpl_ti_all->set_metadata(0, long_text);
+		tpl_hbc->add_child(_tpl_tree);
+
+		_tpl_text = memnew(TextEdit);
+		_tpl_text->set_h_size_flags(Control::SIZE_EXPAND_FILL);
+		_tpl_text->set_v_size_flags(Control::SIZE_EXPAND_FILL);
+		_tpl_text->set_wrap(true);
+		_tpl_text->set_readonly(true);
+		tpl_hbc->add_child(_tpl_text);
+
+		_tpl_tree->connect("item_selected", this, "_license_tree_selected");
+		tpl_ti_all->select(0);
+		_tpl_text->set_text(tpl_ti_all->get_metadata(0));
 	}
 
 	warning = memnew(AcceptDialog);
@@ -6180,21 +6343,17 @@ EditorNode::EditorNode() {
 
 	add_editor_plugin( memnew( ShaderEditorPlugin(this,false) ) );*/
 	add_editor_plugin(memnew(CameraEditorPlugin(this)));
-	//	add_editor_plugin( memnew( SampleEditorPlugin(this) ) );
-	//	add_editor_plugin( memnew( SampleLibraryEditorPlugin(this) ) );
 	add_editor_plugin(memnew(ThemeEditorPlugin(this)));
 	add_editor_plugin(memnew(MultiMeshEditorPlugin(this)));
 	add_editor_plugin(memnew(MeshInstanceEditorPlugin(this)));
 	add_editor_plugin(memnew(AnimationTreeEditorPlugin(this)));
-	//add_editor_plugin( memnew( SamplePlayerEditorPlugin(this) ) ); - this is kind of useless at this point
 	//add_editor_plugin( memnew( MeshLibraryEditorPlugin(this) ) );
-	//add_editor_plugin( memnew( StreamEditorPlugin(this) ) );
 	add_editor_plugin(memnew(StyleBoxEditorPlugin(this)));
 	add_editor_plugin(memnew(ParticlesEditorPlugin(this)));
 	add_editor_plugin(memnew(ResourcePreloaderEditorPlugin(this)));
 	add_editor_plugin(memnew(ItemListEditorPlugin(this)));
 	//add_editor_plugin( memnew( RichTextEditorPlugin(this) ) );
-	//add_editor_plugin( memnew( CollisionPolygonEditorPlugin(this) ) );
+	add_editor_plugin(memnew(CollisionPolygonEditorPlugin(this)));
 	add_editor_plugin(memnew(CollisionPolygon2DEditorPlugin(this)));
 	add_editor_plugin(memnew(TileSetEditorPlugin(this)));
 	add_editor_plugin(memnew(TileMapEditorPlugin(this)));
@@ -6204,7 +6363,6 @@ EditorNode::EditorNode() {
 	add_editor_plugin(memnew(GIProbeEditorPlugin(this)));
 	add_editor_plugin(memnew(Path2DEditorPlugin(this)));
 	add_editor_plugin(memnew(PathEditorPlugin(this)));
-	//add_editor_plugin( memnew( BakedLightEditorPlugin(this) ) );
 	add_editor_plugin(memnew(Line2DEditorPlugin(this)));
 	add_editor_plugin(memnew(Polygon2DEditorPlugin(this)));
 	add_editor_plugin(memnew(LightOccluder2DEditorPlugin(this)));
@@ -6373,10 +6531,10 @@ EditorNode::EditorNode() {
 	_dim_timer->connect("timeout", this, "_dim_timeout");
 	add_child(_dim_timer);
 
-	ED_SHORTCUT("editor/editor_2d", TTR("Open 2D Editor"), KEY_F2);
-	ED_SHORTCUT("editor/editor_3d", TTR("Open 3D Editor"), KEY_F3);
-	ED_SHORTCUT("editor/editor_script", TTR("Open Script Editor"), KEY_F4);
-	ED_SHORTCUT("editor/editor_help", TTR("Search Help"), KEY_F1);
+	ED_SHORTCUT("editor/editor_2d", TTR("Open 2D Editor"), KEY_F1);
+	ED_SHORTCUT("editor/editor_3d", TTR("Open 3D Editor"), KEY_F2);
+	ED_SHORTCUT("editor/editor_script", TTR("Open Script Editor"), KEY_F3); //hack neded for script editor F3 search to work :) Assign like this or don't use F3
+	ED_SHORTCUT("editor/editor_help", TTR("Search Help"), KEY_F4);
 	ED_SHORTCUT("editor/editor_assetlib", TTR("Open Asset Library"));
 	ED_SHORTCUT("editor/editor_next", TTR("Open the next Editor"));
 	ED_SHORTCUT("editor/editor_prev", TTR("Open the previous Editor"));

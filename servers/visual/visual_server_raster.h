@@ -685,6 +685,7 @@ public:
 	BIND2RC(Variant, material_get_param, RID, const StringName &)
 
 	BIND2(material_set_line_width, RID, float)
+	BIND2(material_set_next_pass, RID, RID)
 
 	/* MESH API */
 
@@ -842,6 +843,9 @@ public:
 
 	BIND2(gi_probe_set_bias, RID, float)
 	BIND1RC(float, gi_probe_get_bias, RID)
+
+	BIND2(gi_probe_set_normal_bias, RID, float)
+	BIND1RC(float, gi_probe_get_normal_bias, RID)
 
 	BIND2(gi_probe_set_propagation, RID, float)
 	BIND1RC(float, gi_probe_get_propagation, RID)
@@ -1042,6 +1046,7 @@ public:
 	BIND2(canvas_item_set_draw_behind_parent, RID, bool)
 
 	BIND6(canvas_item_add_line, RID, const Point2 &, const Point2 &, const Color &, float, bool)
+	BIND5(canvas_item_add_polyline, RID, const Vector<Point2> &, const Vector<Color> &, float, bool)
 	BIND3(canvas_item_add_rect, RID, const Rect2 &, const Color &)
 	BIND4(canvas_item_add_circle, RID, const Point2 &, float, const Color &)
 	BIND7(canvas_item_add_texture_rect, RID, const Rect2 &, RID, bool, const Color &, bool, RID)

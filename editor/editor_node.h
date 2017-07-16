@@ -431,6 +431,9 @@ private:
 	List<String> previous_scenes;
 	bool opening_prev;
 
+	Tree *_tpl_tree;
+	TextEdit *_tpl_text;
+
 	void _dialog_action(String p_file);
 
 	void _edit_current();
@@ -529,6 +532,7 @@ private:
 	bool _find_and_save_resource(RES p_res, Map<RES, bool> &processed, int32_t flags);
 	bool _find_and_save_edited_subresources(Object *obj, Map<RES, bool> &processed, int32_t flags);
 	void _save_edited_subresources(Node *scene, Map<RES, bool> &processed, int32_t flags);
+	void _mark_unsaved_scenes();
 
 	void _find_node_types(Node *p_node, int &count_2d, int &count_3d);
 	void _save_scene_with_preview(String p_file);
@@ -568,6 +572,7 @@ private:
 	void _scene_tab_hover(int p_tab);
 	void _scene_tab_exit();
 	void _scene_tab_input(const Ref<InputEvent> &p_input);
+	void _reposition_active_tab(int idx_to);
 	void _thumbnail_done(const String &p_path, const Ref<Texture> &p_preview, const Variant &p_udata);
 	void _scene_tab_script_edited(int p_tab);
 
@@ -634,6 +639,8 @@ private:
 	void _start_dimming(bool p_dimming);
 	void _dim_timeout();
 	void _check_gui_base_size();
+
+	void _license_tree_selected();
 
 protected:
 	void _notification(int p_what);

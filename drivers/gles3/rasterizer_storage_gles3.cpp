@@ -1260,6 +1260,10 @@ void RasterizerStorageGLES3::sky_set_texture(RID p_sky, RID p_panorama, int p_ra
 
 	glActiveTexture(GL_TEXTURE0);
 	glBindTexture(texture->target, texture->tex_id);
+	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR); //need this for proper sampling
 
 	if (config.srgb_decode_supported && texture->srgb && !texture->using_srgb) {
 
@@ -1275,87 +1279,200 @@ void RasterizerStorageGLES3::sky_set_texture(RID p_sky, RID p_panorama, int p_ra
 
 	glActiveTexture(GL_TEXTURE1);
 	glGenTextures(1, &sky->radiance);
-	glBindTexture(GL_TEXTURE_2D, sky->radiance);
 
-	GLuint tmp_fb;
+	if (config.use_texture_array_environment) {
 
-	glGenFramebuffers(1, &tmp_fb);
-	glBindFramebuffer(GL_FRAMEBUFFER, tmp_fb);
+		//texture3D
+		glBindTexture(GL_TEXTURE_2D_ARRAY, sky->radiance);
 
-	int size = p_radiance_size;
+		GLuint tmp_fb;
 
-	int lod = 0;
+		glGenFramebuffers(1, &tmp_fb);
+		glBindFramebuffer(GL_FRAMEBUFFER, tmp_fb);
 
-	int mipmaps = 6;
+		int size = p_radiance_size;
 
-	int mm_level = mipmaps;
+		int array_level = 6;
 
-	bool use_float = config.hdr_supported;
+		bool use_float = config.hdr_supported;
 
-	GLenum internal_format = use_float ? GL_RGBA16F : GL_RGB10_A2;
-	GLenum format = GL_RGBA;
-	GLenum type = use_float ? GL_HALF_FLOAT : GL_UNSIGNED_INT_2_10_10_10_REV;
+		GLenum internal_format = use_float ? GL_RGBA16F : GL_RGB10_A2;
+		GLenum format = GL_RGBA;
+		GLenum type = use_float ? GL_HALF_FLOAT : GL_UNSIGNED_INT_2_10_10_10_REV;
 
-	while (mm_level) {
+		glTexImage3D(GL_TEXTURE_2D_ARRAY, 0, internal_format, size, size * 2, array_level, 0, format, type, NULL);
 
-		glTexImage2D(GL_TEXTURE_2D, lod, internal_format, size, size * 2, 0, format, type, NULL);
-		lod++;
-		mm_level--;
+		glTexParameterf(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+		glTexParameterf(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 
-		if (size > 1)
-			size >>= 1;
-	}
-
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_BASE_LEVEL, 0);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LEVEL, lod - 1);
-
-	lod = 0;
-	mm_level = mipmaps;
-
-	size = p_radiance_size;
-
-	shaders.cubemap_filter.set_conditional(CubemapFilterShaderGLES3::USE_DUAL_PARABOLOID, true);
-	shaders.cubemap_filter.set_conditional(CubemapFilterShaderGLES3::USE_PANORAMA, true);
-	shaders.cubemap_filter.bind();
-
-	while (mm_level) {
-
-		glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, sky->radiance, lod);
+		GLuint tmp_fb2;
+		GLuint tmp_tex;
+		{
+			//generate another one for rendering, as can't read and write from a single texarray it seems
+			glGenFramebuffers(1, &tmp_fb2);
+			glBindFramebuffer(GL_FRAMEBUFFER, tmp_fb2);
+			glGenTextures(1, &tmp_tex);
+			glBindTexture(GL_TEXTURE_2D, tmp_tex);
+			glTexImage2D(GL_TEXTURE_2D, 0, internal_format, size, size * 2, 0, format, type, NULL);
+			glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, tmp_tex, 0);
+			glTexParameterf(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+			glTexParameterf(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 #ifdef DEBUG_ENABLED
-		GLenum status = glCheckFramebufferStatus(GL_FRAMEBUFFER);
-		ERR_CONTINUE(status != GL_FRAMEBUFFER_COMPLETE);
+			GLenum status = glCheckFramebufferStatus(GL_FRAMEBUFFER);
+			ERR_FAIL_COND(status != GL_FRAMEBUFFER_COMPLETE);
 #endif
-
-		for (int i = 0; i < 2; i++) {
-			glViewport(0, i * size, size, size);
-			glBindVertexArray(resources.quadie_array);
-
-			shaders.cubemap_filter.set_uniform(CubemapFilterShaderGLES3::Z_FLIP, i > 0);
-			shaders.cubemap_filter.set_uniform(CubemapFilterShaderGLES3::ROUGHNESS, lod / float(mipmaps - 1));
-
-			glDrawArrays(GL_TRIANGLE_FAN, 0, 4);
-			glBindVertexArray(0);
 		}
 
-		if (size > 1)
-			size >>= 1;
-		lod++;
-		mm_level--;
+		for (int j = 0; j < array_level; j++) {
+
+			glBindFramebuffer(GL_FRAMEBUFFER, tmp_fb2);
+
+			if (j == 0) {
+
+				shaders.cubemap_filter.set_conditional(CubemapFilterShaderGLES3::USE_DUAL_PARABOLOID, true);
+				shaders.cubemap_filter.set_conditional(CubemapFilterShaderGLES3::USE_SOURCE_PANORAMA, true);
+				shaders.cubemap_filter.set_conditional(CubemapFilterShaderGLES3::USE_DIRECT_WRITE, true);
+				shaders.cubemap_filter.set_conditional(CubemapFilterShaderGLES3::USE_SOURCE_DUAL_PARABOLOID_ARRAY, false);
+				shaders.cubemap_filter.bind();
+				glActiveTexture(GL_TEXTURE0);
+				glBindTexture(texture->target, texture->tex_id);
+			} else {
+
+				shaders.cubemap_filter.set_conditional(CubemapFilterShaderGLES3::USE_DUAL_PARABOLOID, true);
+				shaders.cubemap_filter.set_conditional(CubemapFilterShaderGLES3::USE_SOURCE_PANORAMA, false);
+				shaders.cubemap_filter.set_conditional(CubemapFilterShaderGLES3::USE_SOURCE_DUAL_PARABOLOID_ARRAY, true);
+				shaders.cubemap_filter.set_conditional(CubemapFilterShaderGLES3::USE_DIRECT_WRITE, false);
+				shaders.cubemap_filter.bind();
+				glActiveTexture(GL_TEXTURE0);
+				glBindTexture(GL_TEXTURE_2D_ARRAY, sky->radiance);
+				shaders.cubemap_filter.set_uniform(CubemapFilterShaderGLES3::SOURCE_ARRAY_INDEX, j - 1); //read from previous to ensure better blur
+			}
+
+			for (int i = 0; i < 2; i++) {
+				glViewport(0, i * size, size, size);
+				glBindVertexArray(resources.quadie_array);
+
+				shaders.cubemap_filter.set_uniform(CubemapFilterShaderGLES3::Z_FLIP, i > 0);
+				shaders.cubemap_filter.set_uniform(CubemapFilterShaderGLES3::ROUGHNESS, j / float(array_level - 1));
+
+				glDrawArrays(GL_TRIANGLE_FAN, 0, 4);
+				glBindVertexArray(0);
+			}
+
+			glBindFramebuffer(GL_DRAW_FRAMEBUFFER, tmp_fb);
+			glFramebufferTextureLayer(GL_DRAW_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, sky->radiance, 0, j);
+			glBindFramebuffer(GL_READ_FRAMEBUFFER, tmp_fb2);
+			glReadBuffer(GL_COLOR_ATTACHMENT0);
+			glBlitFramebuffer(0, 0, size, size * 2, 0, 0, size, size * 2, GL_COLOR_BUFFER_BIT, GL_NEAREST);
+			glBindFramebuffer(GL_READ_FRAMEBUFFER, 0);
+			glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
+		}
+
+		shaders.cubemap_filter.set_conditional(CubemapFilterShaderGLES3::USE_SOURCE_PANORAMA, false);
+		shaders.cubemap_filter.set_conditional(CubemapFilterShaderGLES3::USE_DUAL_PARABOLOID, false);
+		shaders.cubemap_filter.set_conditional(CubemapFilterShaderGLES3::USE_SOURCE_DUAL_PARABOLOID_ARRAY, false);
+		shaders.cubemap_filter.set_conditional(CubemapFilterShaderGLES3::USE_DIRECT_WRITE, false);
+
+		//restore ranges
+		glActiveTexture(GL_TEXTURE0);
+		glBindTexture(GL_TEXTURE_2D_ARRAY, sky->radiance);
+
+		glGenerateMipmap(GL_TEXTURE_2D_ARRAY);
+
+		glTexParameterf(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+		glTexParameterf(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+		glTexParameterf(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+		glTexParameterf(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+
+		glBindFramebuffer(GL_FRAMEBUFFER, RasterizerStorageGLES3::system_fbo);
+		glDeleteFramebuffers(1, &tmp_fb);
+		glDeleteFramebuffers(1, &tmp_fb2);
+		glDeleteTextures(1, &tmp_tex);
+
+	} else {
+		//regular single texture with mipmaps
+		glBindTexture(GL_TEXTURE_2D, sky->radiance);
+
+		GLuint tmp_fb;
+
+		glGenFramebuffers(1, &tmp_fb);
+		glBindFramebuffer(GL_FRAMEBUFFER, tmp_fb);
+
+		int size = p_radiance_size;
+
+		int lod = 0;
+
+		int mipmaps = 6;
+
+		int mm_level = mipmaps;
+
+		bool use_float = config.hdr_supported;
+
+		GLenum internal_format = use_float ? GL_RGBA16F : GL_RGB10_A2;
+		GLenum format = GL_RGBA;
+		GLenum type = use_float ? GL_HALF_FLOAT : GL_UNSIGNED_INT_2_10_10_10_REV;
+
+		while (mm_level) {
+
+			glTexImage2D(GL_TEXTURE_2D, lod, internal_format, size, size * 2, 0, format, type, NULL);
+			lod++;
+			mm_level--;
+
+			if (size > 1)
+				size >>= 1;
+		}
+
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_BASE_LEVEL, 0);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LEVEL, lod - 1);
+
+		lod = 0;
+		mm_level = mipmaps;
+
+		size = p_radiance_size;
+
+		shaders.cubemap_filter.set_conditional(CubemapFilterShaderGLES3::USE_DUAL_PARABOLOID, true);
+		shaders.cubemap_filter.set_conditional(CubemapFilterShaderGLES3::USE_SOURCE_PANORAMA, true);
+		shaders.cubemap_filter.bind();
+
+		while (mm_level) {
+
+			glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, sky->radiance, lod);
+#ifdef DEBUG_ENABLED
+			GLenum status = glCheckFramebufferStatus(GL_FRAMEBUFFER);
+			ERR_CONTINUE(status != GL_FRAMEBUFFER_COMPLETE);
+#endif
+
+			for (int i = 0; i < 2; i++) {
+				glViewport(0, i * size, size, size);
+				glBindVertexArray(resources.quadie_array);
+
+				shaders.cubemap_filter.set_uniform(CubemapFilterShaderGLES3::Z_FLIP, i > 0);
+				shaders.cubemap_filter.set_uniform(CubemapFilterShaderGLES3::ROUGHNESS, lod / float(mipmaps - 1));
+
+				glDrawArrays(GL_TRIANGLE_FAN, 0, 4);
+				glBindVertexArray(0);
+			}
+
+			if (size > 1)
+				size >>= 1;
+			lod++;
+			mm_level--;
+		}
+		shaders.cubemap_filter.set_conditional(CubemapFilterShaderGLES3::USE_DUAL_PARABOLOID, false);
+		shaders.cubemap_filter.set_conditional(CubemapFilterShaderGLES3::USE_SOURCE_PANORAMA, false);
+
+		//restore ranges
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_BASE_LEVEL, 0);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LEVEL, lod - 1);
+
+		glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+		glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+		glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+		glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+
+		glBindFramebuffer(GL_FRAMEBUFFER, RasterizerStorageGLES3::system_fbo);
+		glDeleteFramebuffers(1, &tmp_fb);
 	}
-	shaders.cubemap_filter.set_conditional(CubemapFilterShaderGLES3::USE_DUAL_PARABOLOID, false);
-	shaders.cubemap_filter.set_conditional(CubemapFilterShaderGLES3::USE_PANORAMA, false);
-
-	//restore ranges
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_BASE_LEVEL, 0);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LEVEL, lod - 1);
-
-	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
-	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-
-	glBindFramebuffer(GL_FRAMEBUFFER, RasterizerStorageGLES3::system_fbo);
-	glDeleteFramebuffers(1, &tmp_fb);
 }
 
 /* SHADER API */
@@ -1753,6 +1870,14 @@ void RasterizerStorageGLES3::material_set_line_width(RID p_material, float p_wid
 	material->line_width = p_width;
 }
 
+void RasterizerStorageGLES3::material_set_next_pass(RID p_material, RID p_next_material) {
+
+	Material *material = material_owner.get(p_material);
+	ERR_FAIL_COND(!material);
+
+	material->next_pass = p_next_material;
+}
+
 bool RasterizerStorageGLES3::material_is_animated(RID p_material) {
 
 	Material *material = material_owner.get(p_material);
@@ -1761,7 +1886,11 @@ bool RasterizerStorageGLES3::material_is_animated(RID p_material) {
 		_update_material(material);
 	}
 
-	return material->is_animated_cache;
+	bool animated = material->is_animated_cache;
+	if (!animated && material->next_pass.is_valid()) {
+		animated = material_is_animated(material->next_pass);
+	}
+	return animated;
 }
 bool RasterizerStorageGLES3::material_casts_shadows(RID p_material) {
 
@@ -1771,7 +1900,13 @@ bool RasterizerStorageGLES3::material_casts_shadows(RID p_material) {
 		_update_material(material);
 	}
 
-	return material->can_cast_shadow_cache;
+	bool casts_shadows = material->can_cast_shadow_cache;
+
+	if (!casts_shadows && material->next_pass.is_valid()) {
+		casts_shadows = material_casts_shadows(material->next_pass);
+	}
+
+	return casts_shadows;
 }
 
 void RasterizerStorageGLES3::material_add_instance_owner(RID p_material, RasterizerScene::InstanceBase *p_instance) {
@@ -4731,6 +4866,7 @@ RID RasterizerStorageGLES3::gi_probe_create() {
 	gip->energy = 1.0;
 	gip->propagation = 1.0;
 	gip->bias = 0.4;
+	gip->normal_bias = 0.4;
 	gip->interior = false;
 	gip->compress = false;
 	gip->version = 1;
@@ -4837,6 +4973,14 @@ void RasterizerStorageGLES3::gi_probe_set_bias(RID p_probe, float p_range) {
 	gip->bias = p_range;
 }
 
+void RasterizerStorageGLES3::gi_probe_set_normal_bias(RID p_probe, float p_range) {
+
+	GIProbe *gip = gi_probe_owner.getornull(p_probe);
+	ERR_FAIL_COND(!gip);
+
+	gip->normal_bias = p_range;
+}
+
 void RasterizerStorageGLES3::gi_probe_set_propagation(RID p_probe, float p_range) {
 
 	GIProbe *gip = gi_probe_owner.getornull(p_probe);
@@ -4890,6 +5034,14 @@ float RasterizerStorageGLES3::gi_probe_get_bias(RID p_probe) const {
 	ERR_FAIL_COND_V(!gip, 0);
 
 	return gip->bias;
+}
+
+float RasterizerStorageGLES3::gi_probe_get_normal_bias(RID p_probe) const {
+
+	const GIProbe *gip = gi_probe_owner.getornull(p_probe);
+	ERR_FAIL_COND_V(!gip, 0);
+
+	return gip->normal_bias;
 }
 
 float RasterizerStorageGLES3::gi_probe_get_propagation(RID p_probe) const {
@@ -6857,6 +7009,7 @@ void RasterizerStorageGLES3::initialize() {
 	frame.current_rt = NULL;
 	config.keep_original_textures = false;
 	config.generate_wireframes = false;
+	config.use_texture_array_environment = GLOBAL_DEF("rendering/quality/texture_array_environments", true);
 }
 
 void RasterizerStorageGLES3::finalize() {

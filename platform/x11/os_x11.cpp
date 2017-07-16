@@ -68,6 +68,8 @@
 
 #undef CursorShape
 
+#include <X11/XKBlib.h>
+
 int OS_X11::get_video_driver_count() const {
 	return 1;
 }
@@ -93,6 +95,7 @@ const char *OS_X11::get_audio_driver_name(int p_driver) const {
 
 void OS_X11::initialize(const VideoMode &p_desired, int p_video_driver, int p_audio_driver) {
 
+	long im_event_mask = 0;
 	last_button_state = 0;
 
 	xmbstring = NULL;
@@ -113,7 +116,32 @@ void OS_X11::initialize(const VideoMode &p_desired, int p_video_driver, int p_au
 	/** XLIB INITIALIZATION **/
 	x11_display = XOpenDisplay(NULL);
 
-	char *modifiers = XSetLocaleModifiers("@im=none");
+	Bool xkb_dar = False;
+	if (x11_display) {
+		XAutoRepeatOn(x11_display);
+		xkb_dar = XkbSetDetectableAutoRepeat(x11_display, True, NULL);
+	}
+
+	char *modifiers = NULL;
+
+	// Try to support IME if detectable auto-repeat is supported
+
+	if (xkb_dar == True) {
+
+// Xutf8LookupString will be used later instead of XmbLookupString before
+// the multibyte sequences can be converted to unicode string.
+
+#ifdef X_HAVE_UTF8_STRING
+		modifiers = XSetLocaleModifiers("");
+#endif
+	}
+
+	if (modifiers == NULL) {
+		if (is_stdout_verbose()) {
+			WARN_PRINT("IME is disabled");
+		}
+		modifiers = XSetLocaleModifiers("@im=none");
+	}
 	if (modifiers == NULL) {
 		WARN_PRINT("Error setting locale modifiers");
 	}
@@ -153,6 +181,14 @@ void OS_X11::initialize(const VideoMode &p_desired, int p_video_driver, int p_au
 		WARN_PRINT("XOpenIM failed");
 		xim_style = 0L;
 	} else {
+		::XIMCallback im_destroy_callback;
+		im_destroy_callback.client_data = (::XPointer)(this);
+		im_destroy_callback.callback = (::XIMProc)(xim_destroy_callback);
+		if (XSetIMValues(xim, XNDestroyCallback, &im_destroy_callback,
+					NULL) != NULL) {
+			WARN_PRINT("Error setting XIM destroy callback");
+		}
+
 		::XIMStyles *xim_styles = NULL;
 		xim_style = 0L;
 		char *imvalret = NULL;
@@ -242,6 +278,13 @@ void OS_X11::initialize(const VideoMode &p_desired, int p_video_driver, int p_au
 		xev.xclient.data.l[2] = 0;
 
 		XSendEvent(x11_display, DefaultRootWindow(x11_display), False, SubstructureNotifyMask, &xev);
+	} else if (current_videomode.borderless_window) {
+		Hints hints;
+		Atom property;
+		hints.flags = 2;
+		hints.decorations = 0;
+		property = XInternAtom(x11_display, "_MOTIF_WM_HINTS", True);
+		XChangeProperty(x11_display, x11_window, property, property, 32, PropModeReplace, (unsigned char *)&hints, 5);
 	}
 
 	// disable resizable window
@@ -303,7 +346,8 @@ void OS_X11::initialize(const VideoMode &p_desired, int p_video_driver, int p_au
 						  StructureNotifyMask |
 						  SubstructureNotifyMask | SubstructureRedirectMask |
 						  FocusChangeMask | PropertyChangeMask |
-						  ColormapChangeMask | OwnerGrabButtonMask;
+						  ColormapChangeMask | OwnerGrabButtonMask |
+						  im_event_mask;
 
 	XChangeWindowAttributes(x11_display, x11_window, CWEventMask, &new_attr);
 
@@ -327,6 +371,16 @@ void OS_X11::initialize(const VideoMode &p_desired, int p_video_driver, int p_au
 	if (xim && xim_style) {
 
 		xic = XCreateIC(xim, XNInputStyle, xim_style, XNClientWindow, x11_window, XNFocusWindow, x11_window, (char *)NULL);
+		if (XGetICValues(xic, XNFilterEvents, &im_event_mask, NULL) != NULL) {
+			WARN_PRINT("XGetICValues couldn't obtain XNFilterEvents value");
+			XDestroyIC(xic);
+			xic = NULL;
+		}
+		if (xic) {
+			XSetICFocus(xic);
+		} else {
+			WARN_PRINT("XCreateIC couldn't create xic");
+		}
 	} else {
 
 		xic = NULL;
@@ -445,6 +499,28 @@ void OS_X11::initialize(const VideoMode &p_desired, int p_video_driver, int p_au
 	_ensure_data_dir();
 }
 
+void OS_X11::xim_destroy_callback(::XIM im, ::XPointer client_data,
+		::XPointer call_data) {
+
+	WARN_PRINT("Input method stopped");
+	OS_X11 *os = reinterpret_cast<OS_X11 *>(client_data);
+	os->xim = NULL;
+	os->xic = NULL;
+}
+
+void OS_X11::set_ime_position(const Point2 &p_pos) {
+
+	if (!xic)
+		return;
+
+	::XPoint spot;
+	spot.x = short(p_pos.x);
+	spot.y = short(p_pos.y);
+	XVaNestedList preedit_attr = XVaCreateNestedList(0, XNSpotLocation, &spot, NULL);
+	XSetICValues(xic, XNPreeditAttributes, preedit_attr, NULL);
+	XFree(preedit_attr);
+}
+
 void OS_X11::finalize() {
 
 	if (main_loop)
@@ -492,8 +568,12 @@ void OS_X11::finalize() {
 			XcursorImageDestroy(img[i]);
 	};
 
-	XDestroyIC(xic);
-	XCloseIM(xim);
+	if (xic) {
+		XDestroyIC(xic);
+	}
+	if (xim) {
+		XCloseIM(xim);
+	}
 
 	XCloseDisplay(x11_display);
 	if (xmbstring)
@@ -606,6 +686,16 @@ void OS_X11::get_fullscreen_mode_list(List<VideoMode> *p_list, int p_screen) con
 }
 
 void OS_X11::set_wm_fullscreen(bool p_enabled) {
+	if (p_enabled && !is_window_resizable()) {
+		// Set the window as resizable to prevent window managers to ignore the fullscreen state flag.
+		XSizeHints *xsh;
+
+		xsh = XAllocSizeHints();
+		xsh->flags = 0L;
+		XSetWMNormalHints(x11_display, x11_window, xsh);
+		XFree(xsh);
+	}
+
 	// Using EWMH -- Extened Window Manager Hints
 	XEvent xev;
 	Atom wm_state = XInternAtom(x11_display, "_NET_WM_STATE", False);
@@ -621,6 +711,23 @@ void OS_X11::set_wm_fullscreen(bool p_enabled) {
 	xev.xclient.data.l[2] = 0;
 
 	XSendEvent(x11_display, DefaultRootWindow(x11_display), False, SubstructureRedirectMask | SubstructureNotifyMask, &xev);
+	XFlush(x11_display);
+
+	if (!p_enabled && !is_window_resizable()) {
+		// Reset the non-resizable flags if we un-set these before.
+		Size2 size = get_window_size();
+		XSizeHints *xsh;
+
+		xsh = XAllocSizeHints();
+		xsh->flags = PMinSize | PMaxSize;
+		xsh->min_width = size.x;
+		xsh->max_width = size.x;
+		xsh->min_height = size.y;
+		xsh->max_height = size.y;
+
+		XSetWMNormalHints(x11_display, x11_window, xsh);
+		XFree(xsh);
+	}
 }
 
 int OS_X11::get_screen_count() const {
@@ -940,6 +1047,25 @@ bool OS_X11::is_window_maximized() const {
 	return false;
 }
 
+void OS_X11::set_borderless_window(int p_borderless) {
+
+	if (current_videomode.borderless_window == p_borderless)
+		return;
+
+	current_videomode.borderless_window = p_borderless;
+
+	Hints hints;
+	Atom property;
+	hints.flags = 2;
+	hints.decorations = current_videomode.borderless_window ? 0 : 1;
+	property = XInternAtom(x11_display, "_MOTIF_WM_HINTS", True);
+	XChangeProperty(x11_display, x11_window, property, property, 32, PropModeReplace, (unsigned char *)&hints, 5);
+}
+
+bool OS_X11::get_borderless_window() {
+	return current_videomode.borderless_window;
+}
+
 void OS_X11::request_attention() {
 	// Using EWMH -- Extended Window Manager Hints
 	//
@@ -1041,9 +1167,61 @@ void OS_X11::handle_key_event(XKeyEvent *p_event, bool p_echo) {
 		xmblen = 8;
 	}
 
+	keysym_unicode = keysym_keycode;
+
 	if (xkeyevent->type == KeyPress && xic) {
 
 		Status status;
+#ifdef X_HAVE_UTF8_STRING
+		int utf8len = 8;
+		char *utf8string = (char *)memalloc(sizeof(char) * utf8len);
+		int utf8bytes = Xutf8LookupString(xic, xkeyevent, utf8string,
+				utf8len - 1, &keysym_unicode, &status);
+		if (status == XBufferOverflow) {
+			utf8len = utf8bytes + 1;
+			utf8string = (char *)memrealloc(utf8string, utf8len);
+			utf8bytes = Xutf8LookupString(xic, xkeyevent, utf8string,
+					utf8len - 1, &keysym_unicode, &status);
+		}
+		utf8string[utf8bytes] = '\0';
+
+		if (status == XLookupChars) {
+			bool keypress = xkeyevent->type == KeyPress;
+			unsigned int keycode = KeyMappingX11::get_keycode(keysym_keycode);
+			if (keycode >= 'a' && keycode <= 'z')
+				keycode -= 'a' - 'A';
+
+			String tmp;
+			tmp.parse_utf8(utf8string, utf8bytes);
+			for (int i = 0; i < tmp.length(); i++) {
+				Ref<InputEventKey> k;
+				k.instance();
+				if (keycode == 0 && tmp[i] == 0) {
+					continue;
+				}
+
+				get_key_modifier_state(xkeyevent->state, k);
+
+				k->set_unicode(tmp[i]);
+
+				k->set_pressed(keypress);
+
+				k->set_scancode(keycode);
+
+				k->set_echo(false);
+
+				if (k->get_scancode() == KEY_BACKTAB) {
+					//make it consistent across platforms.
+					k->set_scancode(KEY_TAB);
+					k->set_shift(true);
+				}
+
+				input->parse_input_event(k);
+			}
+			return;
+		}
+		memfree(utf8string);
+#else
 		do {
 
 			int mnbytes = XmbLookupString(xic, xkeyevent, xmbstring, xmblen - 1, &keysym_unicode, &status);
@@ -1054,6 +1232,7 @@ void OS_X11::handle_key_event(XKeyEvent *p_event, bool p_echo) {
 				xmbstring = (char *)memrealloc(xmbstring, xmblen);
 			}
 		} while (status == XBufferOverflow);
+#endif
 	}
 
 	/* Phase 2, obtain a pigui keycode from the keysym */
@@ -1082,11 +1261,6 @@ void OS_X11::handle_key_event(XKeyEvent *p_event, bool p_echo) {
 
 	bool keypress = xkeyevent->type == KeyPress;
 
-	if (xkeyevent->type == KeyPress && xic) {
-		if (XFilterEvent((XEvent *)xkeyevent, x11_window))
-			return;
-	}
-
 	if (keycode == 0 && unicode == 0)
 		return;
 
@@ -1108,9 +1282,11 @@ void OS_X11::handle_key_event(XKeyEvent *p_event, bool p_echo) {
 	// Echo characters in X11 are a keyrelease and a keypress
 	// one after the other with the (almot) same timestamp.
 	// To detect them, i use XPeekEvent and check that their
-	// difference in time is below a treshold.
+	// difference in time is below a threshold.
 
 	if (xkeyevent->type != KeyPress) {
+
+		p_echo = false;
 
 		// make sure there are events pending,
 		// so this call won't block.
@@ -1118,7 +1294,7 @@ void OS_X11::handle_key_event(XKeyEvent *p_event, bool p_echo) {
 			XEvent peek_event;
 			XPeekEvent(x11_display, &peek_event);
 
-			// I'm using a treshold of 5 msecs,
+			// I'm using a threshold of 5 msecs,
 			// since sometimes there seems to be a little
 			// jitter. I'm still not convinced that all this approach
 			// is correct, but the xorg developers are
@@ -1170,6 +1346,18 @@ void OS_X11::handle_key_event(XKeyEvent *p_event, bool p_echo) {
 			k->set_alt(false);
 		else if (k->get_scancode() == KEY_META)
 			k->set_metakey(false);
+	}
+
+	bool last_is_pressed = Input::get_singleton()->is_key_pressed(k->get_scancode());
+	if (k->is_pressed()) {
+		if (last_is_pressed) {
+			k->set_echo(true);
+		}
+	} else {
+		//ignore
+		if (last_is_pressed == false) {
+			return;
+		}
 	}
 
 	//printf("key: %x\n",k->get_scancode());
@@ -1253,6 +1441,10 @@ void OS_X11::process_xevents() {
 		XEvent event;
 		XNextEvent(x11_display, &event);
 
+		if (XFilterEvent(&event, None)) {
+			continue;
+		}
+
 		switch (event.type) {
 			case Expose:
 				Main::force_redraw();
@@ -1295,6 +1487,9 @@ void OS_X11::process_xevents() {
 							ButtonPressMask | ButtonReleaseMask | PointerMotionMask,
 							GrabModeAsync, GrabModeAsync, x11_window, None, CurrentTime);
 				}
+				if (xic) {
+					XSetICFocus(xic);
+				}
 				break;
 
 			case FocusOut:
@@ -1308,9 +1503,16 @@ void OS_X11::process_xevents() {
 					}
 					XUngrabPointer(x11_display, CurrentTime);
 				}
+				if (xic) {
+					XUnsetICFocus(xic);
+				}
 				break;
 
 			case ConfigureNotify:
+				if (xic) {
+					//  Not portable.
+					set_ime_position(Point2(0, 1));
+				}
 				/* call resizeGLScene only if our window-size changed */
 
 				if ((event.xconfigure.width == current_videomode.width) &&

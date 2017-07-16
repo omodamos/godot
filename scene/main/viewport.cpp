@@ -2057,6 +2057,10 @@ void Viewport::_gui_input_event(Ref<InputEvent> p_event) {
 		//keyboard focus
 		//if (from && p_event->is_pressed() && !p_event->get_alt() && !p_event->get_metakey() && !p_event->key->get_command()) {
 
+		Ref<InputEventKey> k = p_event;
+		//need to check for mods, otherwise any combination of alt/ctrl/shift+<up/down/left/righ/etc> is handled here when it shouldn't be.
+		bool mods = k.is_valid() && (k->get_control() || k->get_alt() || k->get_shift() || k->get_metakey());
+
 		if (from && p_event->is_pressed()) {
 			Control *next = NULL;
 
@@ -2070,22 +2074,22 @@ void Viewport::_gui_input_event(Ref<InputEvent> p_event) {
 				next = from->find_prev_valid_focus();
 			}
 
-			if (p_event->is_action("ui_up")) {
+			if (!mods && p_event->is_action("ui_up")) {
 
 				next = from->_get_focus_neighbour(MARGIN_TOP);
 			}
 
-			if (p_event->is_action("ui_left")) {
+			if (!mods && p_event->is_action("ui_left")) {
 
 				next = from->_get_focus_neighbour(MARGIN_LEFT);
 			}
 
-			if (p_event->is_action("ui_right")) {
+			if (!mods && p_event->is_action("ui_right")) {
 
 				next = from->_get_focus_neighbour(MARGIN_RIGHT);
 			}
 
-			if (p_event->is_action("ui_down")) {
+			if (!mods && p_event->is_action("ui_down")) {
 
 				next = from->_get_focus_neighbour(MARGIN_BOTTOM);
 			}
@@ -2352,7 +2356,7 @@ void Viewport::unhandled_input(const Ref<InputEvent> &p_event) {
 
 	if (physics_object_picking && !get_tree()->input_handled) {
 
-		if (p_event->cast_to<InputEventMouseButton>() || p_event->cast_to<InputEventMouseMotion>() || p_event->cast_to<InputEventScreenDrag>() || p_event->cast_to<InputEventScreenTouch>()) {
+		if (Input::get_singleton()->get_mouse_mode() != Input::MOUSE_MODE_CAPTURED && (p_event->cast_to<InputEventMouseButton>() || p_event->cast_to<InputEventMouseMotion>() || p_event->cast_to<InputEventScreenDrag>() || p_event->cast_to<InputEventScreenTouch>())) {
 			physics_picking_events.push_back(p_event);
 		}
 	}

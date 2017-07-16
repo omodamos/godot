@@ -106,6 +106,7 @@ public:
 
 	virtual void set_tooltip_request_func(String p_method, Object *p_obj) = 0;
 	virtual Control *get_edit_menu() = 0;
+	virtual void clear_edit_menu() = 0;
 
 	ScriptEditorBase() {}
 };
@@ -133,6 +134,7 @@ class ScriptEditor : public VBoxContainer {
 		FILE_CLOSE,
 		CLOSE_DOCS,
 		CLOSE_ALL,
+		TOGGLE_SCRIPTS_PANEL,
 		FILE_TOOL_RELOAD,
 		FILE_TOOL_RELOAD_SOFT,
 		DEBUG_NEXT,
@@ -362,6 +364,8 @@ public:
 	void goto_help(const String &p_desc) { _help_class_goto(p_desc); }
 
 	bool can_take_away_focus() const;
+
+	VSplitContainer *get_left_list_split() { return list_split; }
 
 	ScriptEditorDebugger *get_debugger() { return debugger; }
 	void set_live_auto_reload_running_scripts(bool p_enabled);

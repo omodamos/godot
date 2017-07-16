@@ -63,6 +63,8 @@ class PhysicsServerSW : public PhysicsServer {
 
 	//void _clear_query(QuerySW *p_query);
 public:
+	static PhysicsServerSW *singleton;
+
 	struct CollCbkData {
 
 		int max;
@@ -117,6 +119,8 @@ public:
 	virtual void area_remove_shape(RID p_area, int p_shape_idx);
 	virtual void area_clear_shapes(RID p_area);
 
+	virtual void area_set_shape_disabled(RID p_area, int p_shape_idx, bool p_disabled);
+
 	virtual void area_attach_object_instance_ID(RID p_area, ObjectID p_ID);
 	virtual ObjectID area_get_object_instance_ID(RID p_area) const;
 
@@ -156,8 +160,7 @@ public:
 	virtual RID body_get_shape(RID p_body, int p_shape_idx) const;
 	virtual Transform body_get_shape_transform(RID p_body, int p_shape_idx) const;
 
-	virtual void body_set_shape_as_trigger(RID p_body, int p_shape_idx, bool p_enable);
-	virtual bool body_is_shape_set_as_trigger(RID p_body, int p_shape_idx) const;
+	virtual void body_set_shape_disabled(RID p_body, int p_shape_idx, bool p_disabled);
 
 	virtual void body_remove_shape(RID p_body, int p_shape_idx);
 	virtual void body_clear_shapes(RID p_body);
@@ -200,8 +203,8 @@ public:
 	virtual void body_remove_collision_exception(RID p_body, RID p_body_b);
 	virtual void body_get_collision_exceptions(RID p_body, List<RID> *p_exceptions);
 
-	virtual void body_set_contacts_reported_depth_treshold(RID p_body, real_t p_treshold);
-	virtual real_t body_get_contacts_reported_depth_treshold(RID p_body) const;
+	virtual void body_set_contacts_reported_depth_threshold(RID p_body, real_t p_threshold);
+	virtual real_t body_get_contacts_reported_depth_threshold(RID p_body) const;
 
 	virtual void body_set_omit_force_integration(RID p_body, bool p_omit);
 	virtual bool body_is_omitting_force_integration(RID p_body) const;
@@ -213,6 +216,8 @@ public:
 
 	virtual void body_set_ray_pickable(RID p_body, bool p_enable);
 	virtual bool body_is_ray_pickable(RID p_body) const;
+
+	virtual bool body_test_motion(RID p_body, const Transform &p_from, const Vector3 &p_motion, float p_margin = 0.001, MotionResult *r_result = NULL);
 
 	/* JOINT API */
 

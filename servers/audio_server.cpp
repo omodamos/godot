@@ -252,7 +252,7 @@ void AudioServer::_mix_step() {
 			if (!bus->channels[k].used) {
 				//see if any audio is contained, because channel was not used
 
-				if (MAX(peak.r, peak.l) > Math::db2linear(channel_disable_treshold_db)) {
+				if (MAX(peak.r, peak.l) > Math::db2linear(channel_disable_threshold_db)) {
 					bus->channels[k].last_mix_with_audio = mix_frames;
 				} else if (mix_frames - bus->channels[k].last_mix_with_audio > channel_disable_frames) {
 					bus->channels[k].active = false;
@@ -515,6 +515,15 @@ String AudioServer::get_bus_name(int p_bus) const {
 	return buses[p_bus]->name;
 }
 
+int AudioServer::get_bus_index(const StringName &p_bus_name) const {
+	for (int i = 0; i < buses.size(); ++i) {
+		if (buses[i]->name == p_bus_name) {
+			return i;
+		}
+	}
+	return -1;
+}
+
 void AudioServer::set_bus_volume_db(int p_bus, float p_volume_db) {
 
 	ERR_FAIL_INDEX(p_bus, buses.size());
@@ -713,7 +722,7 @@ bool AudioServer::is_bus_channel_active(int p_bus, int p_channel) const {
 
 void AudioServer::init() {
 
-	channel_disable_treshold_db = GLOBAL_DEF("audio/channel_disable_treshold_db", -60.0);
+	channel_disable_threshold_db = GLOBAL_DEF("audio/channel_disable_threshold_db", -60.0);
 	channel_disable_frames = float(GLOBAL_DEF("audio/channel_disable_time", 2.0)) * get_mix_rate();
 	buffer_size = 1024; //harcoded for now
 	switch (get_speaker_mode()) {
@@ -958,6 +967,7 @@ void AudioServer::_bind_methods() {
 
 	ClassDB::bind_method(D_METHOD("set_bus_name", "bus_idx", "name"), &AudioServer::set_bus_name);
 	ClassDB::bind_method(D_METHOD("get_bus_name", "bus_idx"), &AudioServer::get_bus_name);
+	ClassDB::bind_method(D_METHOD("get_bus_index", "bus_name"), &AudioServer::get_bus_index);
 
 	ClassDB::bind_method(D_METHOD("set_bus_volume_db", "bus_idx", "volume_db"), &AudioServer::set_bus_volume_db);
 	ClassDB::bind_method(D_METHOD("get_bus_volume_db", "bus_idx"), &AudioServer::get_bus_volume_db);
