@@ -32,13 +32,13 @@
 #include "editor/editor_export.h"
 #include "editor/editor_node.h"
 #include "editor/editor_settings.h"
-#include "global_config.h"
 #include "io/marshalls.h"
 #include "io/resource_saver.h"
 #include "io/zip_io.h"
 #include "os/file_access.h"
 #include "os/os.h"
 #include "platform/osx/logo.gen.h"
+#include "project_settings.h"
 #include "string.h"
 #include "version.h"
 
@@ -60,6 +60,7 @@ protected:
 
 public:
 	virtual String get_name() const { return "iOS"; }
+	virtual String get_os_name() const { return "iOS"; }
 	virtual Ref<Texture> get_logo() const { return logo; }
 
 	virtual String get_binary_extension() const { return "xcodeproj"; }
@@ -67,13 +68,27 @@ public:
 
 	virtual bool can_export(const Ref<EditorExportPreset> &p_preset, String &r_error, bool &r_missing_templates) const;
 
+	virtual void get_platform_features(List<String> *r_features) {
+
+		r_features->push_back("mobile");
+		r_features->push_back("iOS");
+	}
+
 	EditorExportPlatformIOS();
 	~EditorExportPlatformIOS();
 };
 
 void EditorExportPlatformIOS::get_preset_features(const Ref<EditorExportPreset> &p_preset, List<String> *r_features) {
 
-	// what does this need to do?
+	if (p_preset->get("texture_format/s3tc")) {
+		r_features->push_back("s3tc");
+	}
+	if (p_preset->get("texture_format/etc")) {
+		r_features->push_back("etc");
+	}
+	if (p_preset->get("texture_format/etc2")) {
+		r_features->push_back("etc2");
+	}
 }
 
 void EditorExportPlatformIOS::get_export_options(List<ExportOption> *r_options) {
@@ -90,6 +105,10 @@ void EditorExportPlatformIOS::get_export_options(List<ExportOption> *r_options) 
 	r_options->push_back(ExportOption(PropertyInfo(Variant::STRING, "application/version"), "1.0"));
 	r_options->push_back(ExportOption(PropertyInfo(Variant::STRING, "application/copyright"), ""));
 	r_options->push_back(ExportOption(PropertyInfo(Variant::INT, "application/bits_mode", PROPERTY_HINT_ENUM, "Fat (32 & 64 bits),64 bits,32 bits"), 1));
+
+	r_options->push_back(ExportOption(PropertyInfo(Variant::BOOL, "texture_format/s3tc"), false));
+	r_options->push_back(ExportOption(PropertyInfo(Variant::BOOL, "texture_format/etc"), false));
+	r_options->push_back(ExportOption(PropertyInfo(Variant::BOOL, "texture_format/etc2"), true));
 
 	/* probably need some more info */
 }
@@ -175,8 +194,8 @@ Error EditorExportPlatformIOS::export_project(const Ref<EditorExportPreset> &p_p
 	String pkg_name;
 	if (p_preset->get("application/name") != "")
 		pkg_name = p_preset->get("application/name"); // app_name
-	else if (String(GlobalConfig::get_singleton()->get("application/name")) != "")
-		pkg_name = String(GlobalConfig::get_singleton()->get("application/name"));
+	else if (String(ProjectSettings::get_singleton()->get("application/config/name")) != "")
+		pkg_name = String(ProjectSettings::get_singleton()->get("application/config/name"));
 	else
 		pkg_name = "Unnamed";
 

@@ -36,9 +36,9 @@
 #include "geometry.h"
 #include "octree.h"
 #include "os/semaphore.h"
-#include "os/semaphore.h"
 #include "os/thread.h"
 #include "self_list.h"
+#include "servers/arvr/arvr_interface.h"
 
 class VisualServerScene {
 public:
@@ -489,7 +489,7 @@ public:
 	virtual void instance_set_scenario(RID p_instance, RID p_scenario); // from can be mesh, light, poly, area and portal so far.
 	virtual void instance_set_layer_mask(RID p_instance, uint32_t p_mask);
 	virtual void instance_set_transform(RID p_instance, const Transform &p_transform);
-	virtual void instance_attach_object_instance_ID(RID p_instance, ObjectID p_ID);
+	virtual void instance_attach_object_instance_id(RID p_instance, ObjectID p_ID);
 	virtual void instance_set_blend_shape_weight(RID p_instance, int p_shape, float p_weight);
 	virtual void instance_set_surface_material(RID p_instance, int p_surface, RID p_material);
 	virtual void instance_set_visible(RID p_instance, bool p_visible);
@@ -522,6 +522,7 @@ public:
 	void render_empty_scene(RID p_scenario, RID p_shadow_atlas);
 
 	void render_camera(RID p_camera, RID p_scenario, Size2 p_viewport_size, RID p_shadow_atlas);
+	void render_camera(Ref<ARVRInterface> &p_interface, ARVRInterface::Eyes p_eye, RID p_camera, RID p_scenario, Size2 p_viewport_size, RID p_shadow_atlas);
 	void update_dirty_instances();
 
 	//probes

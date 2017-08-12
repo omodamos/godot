@@ -28,10 +28,10 @@
 /* SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                */
 /*************************************************************************/
 #include "audio_server.h"
-#include "global_config.h"
 #include "io/resource_loader.h"
 #include "os/file_access.h"
 #include "os/os.h"
+#include "project_settings.h"
 #include "servers/audio/effects/audio_effect_compressor.h"
 #ifdef TOOLS_ENABLED
 
@@ -66,7 +66,8 @@ void AudioDriver::audio_server_process(int p_frames, int32_t *p_buffer, bool p_u
 void AudioDriver::update_mix_time(int p_frames) {
 
 	_mix_amount += p_frames;
-	_last_mix_time = OS::get_singleton()->get_ticks_usec();
+	if (OS::get_singleton())
+		_last_mix_time = OS::get_singleton()->get_ticks_usec();
 }
 
 double AudioDriver::get_mix_time() const {
@@ -771,10 +772,11 @@ void AudioServer::finish() {
 
 	buses.clear();
 
-	if (AudioDriver::get_singleton()) {
-		AudioDriver::get_singleton()->finish();
+	for (int i = 0; i < AudioDriverManager::get_driver_count(); i++) {
+		AudioDriverManager::get_driver(i)->finish();
 	}
 }
+
 void AudioServer::update() {
 }
 
@@ -984,11 +986,11 @@ void AudioServer::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("set_bus_bypass_effects", "bus_idx", "enable"), &AudioServer::set_bus_bypass_effects);
 	ClassDB::bind_method(D_METHOD("is_bus_bypassing_effects", "bus_idx"), &AudioServer::is_bus_bypassing_effects);
 
-	ClassDB::bind_method(D_METHOD("add_bus_effect", "bus_idx", "effect:AudioEffect"), &AudioServer::add_bus_effect, DEFVAL(-1));
+	ClassDB::bind_method(D_METHOD("add_bus_effect", "bus_idx", "effect", "at_pos"), &AudioServer::add_bus_effect, DEFVAL(-1));
 	ClassDB::bind_method(D_METHOD("remove_bus_effect", "bus_idx", "effect_idx"), &AudioServer::remove_bus_effect);
 
-	ClassDB::bind_method(D_METHOD("get_bus_effect_count", "bus_idx"), &AudioServer::add_bus_effect);
-	ClassDB::bind_method(D_METHOD("get_bus_effect:AudioEffect", "bus_idx", "effect_idx"), &AudioServer::get_bus_effect);
+	ClassDB::bind_method(D_METHOD("get_bus_effect_count", "bus_idx"), &AudioServer::get_bus_effect_count);
+	ClassDB::bind_method(D_METHOD("get_bus_effect", "bus_idx", "effect_idx"), &AudioServer::get_bus_effect);
 	ClassDB::bind_method(D_METHOD("swap_bus_effects", "bus_idx", "effect_idx", "by_effect_idx"), &AudioServer::swap_bus_effects);
 
 	ClassDB::bind_method(D_METHOD("set_bus_effect_enabled", "bus_idx", "effect_idx", "enabled"), &AudioServer::set_bus_effect_enabled);
@@ -1003,8 +1005,8 @@ void AudioServer::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("get_speaker_mode"), &AudioServer::get_speaker_mode);
 	ClassDB::bind_method(D_METHOD("get_mix_rate"), &AudioServer::get_mix_rate);
 
-	ClassDB::bind_method(D_METHOD("set_bus_layout", "bus_layout:AudioBusLayout"), &AudioServer::set_bus_layout);
-	ClassDB::bind_method(D_METHOD("generate_bus_layout:AudioBusLayout"), &AudioServer::generate_bus_layout);
+	ClassDB::bind_method(D_METHOD("set_bus_layout", "bus_layout"), &AudioServer::set_bus_layout);
+	ClassDB::bind_method(D_METHOD("generate_bus_layout"), &AudioServer::generate_bus_layout);
 
 	ADD_SIGNAL(MethodInfo("bus_layout_changed"));
 }

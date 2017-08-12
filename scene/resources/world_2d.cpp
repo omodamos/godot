@@ -31,7 +31,7 @@
 #include "servers/physics_2d_server.h"
 #include "servers/visual_server.h"
 //#include "servers/spatial_sound_2d_server.h"
-#include "global_config.h"
+#include "project_settings.h"
 #include "scene/2d/camera_2d.h"
 #include "scene/2d/visibility_notifier_2d.h"
 #include "scene/main/viewport.h"
@@ -371,7 +371,7 @@ void World2D::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("get_canvas"), &World2D::get_canvas);
 	ClassDB::bind_method(D_METHOD("get_space"), &World2D::get_space);
 
-	ClassDB::bind_method(D_METHOD("get_direct_space_state:Physics2DDirectSpaceState"), &World2D::get_direct_space_state);
+	ClassDB::bind_method(D_METHOD("get_direct_space_state"), &World2D::get_direct_space_state);
 }
 
 Physics2DDirectSpaceState *World2D::get_direct_space_state() {

@@ -229,8 +229,8 @@ void LineEdit::_gui_input(Ref<InputEvent> p_event) {
 			bool handled = true;
 			switch (code) {
 
-				case KEY_ENTER:
-				case KEY_RETURN: {
+				case KEY_KP_ENTER:
+				case KEY_ENTER: {
 
 					emit_signal("text_entered", text);
 					if (OS::get_singleton()->has_virtual_keyboard())
@@ -574,8 +574,12 @@ void LineEdit::_notification(int p_what) {
 			RID ci = get_canvas_item();
 
 			Ref<StyleBox> style = get_stylebox("normal");
-			if (!is_editable())
+			float disabled_alpha = 1.0; // used to set the disabled input text color
+			if (!is_editable()) {
 				style = get_stylebox("read_only");
+				disabled_alpha = .5;
+				draw_caret = false;
+			}
 
 			Ref<Font> font = get_font("font");
 
@@ -622,6 +626,13 @@ void LineEdit::_notification(int p_what) {
 			// draw placeholder color
 			if (text.empty())
 				font_color.a *= placeholder_alpha;
+			font_color.a *= disabled_alpha;
+
+			if (has_icon("right_icon")) {
+				Ref<Texture> r_icon = Control::get_icon("right_icon");
+				ofs_max -= r_icon->get_width();
+				r_icon->draw(ci, Point2(width - r_icon->get_width() - x_ofs, y_ofs), Color(1, 1, 1, disabled_alpha * .9));
+			}
 
 			int caret_height = font->get_height() > y_area ? y_area : font->get_height();
 			while (true) {
@@ -629,6 +640,35 @@ void LineEdit::_notification(int p_what) {
 				//end of string, break!
 				if (char_ofs >= t.length())
 					break;
+
+				if (char_ofs == cursor_pos) {
+					if (ime_text.length() > 0) {
+						int ofs = 0;
+						while (true) {
+							if (ofs >= ime_text.length())
+								break;
+
+							CharType cchar = (pass && !text.empty()) ? '*' : ime_text[ofs];
+							CharType next = (pass && !text.empty()) ? '*' : ime_text[ofs + 1];
+							int im_char_width = font->get_char_size(cchar, next).width;
+
+							if ((x_ofs + im_char_width) > ofs_max)
+								break;
+
+							bool selected = ofs >= ime_selection.x && ofs < ime_selection.x + ime_selection.y;
+							if (selected) {
+								VisualServer::get_singleton()->canvas_item_add_rect(ci, Rect2(Point2(x_ofs, y_ofs + caret_height), Size2(im_char_width, 3)), font_color);
+							} else {
+								VisualServer::get_singleton()->canvas_item_add_rect(ci, Rect2(Point2(x_ofs, y_ofs + caret_height), Size2(im_char_width, 1)), font_color);
+							}
+
+							font->draw_char(ci, Point2(x_ofs, y_ofs + font_ascent), cchar, next, font_color);
+
+							x_ofs += im_char_width;
+							ofs++;
+						}
+					}
+				}
 
 				CharType cchar = (pass && !text.empty()) ? '*' : t[char_ofs];
 				CharType next = (pass && !text.empty()) ? '*' : t[char_ofs + 1];
@@ -646,24 +686,54 @@ void LineEdit::_notification(int p_what) {
 				font->draw_char(ci, Point2(x_ofs, y_ofs + font_ascent), cchar, next, selected ? font_color_selected : font_color);
 
 				if (char_ofs == cursor_pos && draw_caret) {
-					VisualServer::get_singleton()->canvas_item_add_rect(ci, Rect2(
-																					Point2(x_ofs, y_ofs), Size2(1, caret_height)),
-							cursor_color);
+					if (ime_text.length() == 0) {
+						VisualServer::get_singleton()->canvas_item_add_rect(ci, Rect2(Point2(x_ofs, y_ofs), Size2(1, caret_height)), cursor_color);
+					}
 				}
 
 				x_ofs += char_width;
 				char_ofs++;
 			}
 
+			if (char_ofs == cursor_pos) {
+				if (ime_text.length() > 0) {
+					int ofs = 0;
+					while (true) {
+						if (ofs >= ime_text.length())
+							break;
+
+						CharType cchar = (pass && !text.empty()) ? '*' : ime_text[ofs];
+						CharType next = (pass && !text.empty()) ? '*' : ime_text[ofs + 1];
+						int im_char_width = font->get_char_size(cchar, next).width;
+
+						if ((x_ofs + im_char_width) > ofs_max)
+							break;
+
+						bool selected = ofs >= ime_selection.x && ofs < ime_selection.x + ime_selection.y;
+						if (selected) {
+							VisualServer::get_singleton()->canvas_item_add_rect(ci, Rect2(Point2(x_ofs, y_ofs + caret_height), Size2(im_char_width, 3)), font_color);
+						} else {
+							VisualServer::get_singleton()->canvas_item_add_rect(ci, Rect2(Point2(x_ofs, y_ofs + caret_height), Size2(im_char_width, 1)), font_color);
+						}
+
+						font->draw_char(ci, Point2(x_ofs, y_ofs + font_ascent), cchar, next, font_color);
+
+						x_ofs += im_char_width;
+						ofs++;
+					}
+				}
+			}
+
 			if (char_ofs == cursor_pos && draw_caret) { //may be at the end
-				VisualServer::get_singleton()->canvas_item_add_rect(ci, Rect2(
-																				Point2(x_ofs, y_ofs), Size2(1, caret_height)),
-						cursor_color);
+				if (ime_text.length() == 0) {
+					VisualServer::get_singleton()->canvas_item_add_rect(ci, Rect2(Point2(x_ofs, y_ofs), Size2(1, caret_height)), cursor_color);
+				}
 			}
 
 			if (has_focus()) {
 
 				OS::get_singleton()->set_ime_position(get_global_position() + Point2(x_ofs, y_ofs + caret_height));
+				OS::get_singleton()->set_ime_intermediate_text_callback(_ime_text_callback, this);
 			}
 		} break;
 		case NOTIFICATION_FOCUS_ENTER: {
@@ -674,6 +744,7 @@ void LineEdit::_notification(int p_what) {
 
 			Point2 cursor_pos = Point2(get_cursor_pos(), 1) * get_minimum_size().height;
 			OS::get_singleton()->set_ime_position(get_global_position() + cursor_pos);
+			OS::get_singleton()->set_ime_intermediate_text_callback(_ime_text_callback, this);
 
 			if (OS::get_singleton()->has_virtual_keyboard())
 				OS::get_singleton()->show_virtual_keyboard(text, get_global_rect());
@@ -682,6 +753,9 @@ void LineEdit::_notification(int p_what) {
 		case NOTIFICATION_FOCUS_EXIT: {
 
 			OS::get_singleton()->set_ime_position(Point2());
+			OS::get_singleton()->set_ime_intermediate_text_callback(NULL, NULL);
+			ime_text = "";
+			ime_selection = Point2();
 
 			if (OS::get_singleton()->has_virtual_keyboard())
 				OS::get_singleton()->hide_virtual_keyboard();
@@ -1191,7 +1265,9 @@ void LineEdit::menu_option(int p_option) {
 			select_all();
 		} break;
 		case MENU_UNDO: {
-			undo();
+			if (editable) {
+				undo();
+			}
 		} break;
 	}
 }
@@ -1216,6 +1292,13 @@ void LineEdit::set_expand_to_text_length(bool p_enabled) {
 bool LineEdit::get_expand_to_text_length() const {
 
 	return expand_to_text_length;
+}
+
+void LineEdit::_ime_text_callback(void *p_self, String p_text, Point2 p_selection) {
+	LineEdit *self = (LineEdit *)p_self;
+	self->ime_text = p_text;
+	self->ime_selection = p_selection;
+	self->update();
 }
 
 void LineEdit::_text_changed() {
@@ -1264,7 +1347,7 @@ void LineEdit::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("is_secret"), &LineEdit::is_secret);
 	ClassDB::bind_method(D_METHOD("select", "from", "to"), &LineEdit::select, DEFVAL(0), DEFVAL(-1));
 	ClassDB::bind_method(D_METHOD("menu_option", "option"), &LineEdit::menu_option);
-	ClassDB::bind_method(D_METHOD("get_menu:PopupMenu"), &LineEdit::get_menu);
+	ClassDB::bind_method(D_METHOD("get_menu"), &LineEdit::get_menu);
 
 	ADD_SIGNAL(MethodInfo("text_changed", PropertyInfo(Variant::STRING, "text")));
 	ADD_SIGNAL(MethodInfo("text_entered", PropertyInfo(Variant::STRING, "text")));

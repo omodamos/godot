@@ -103,7 +103,7 @@ bool InputEvent::is_action_type() const {
 if (String(p_method) == "is_action" && p_argidx == 0) {
 
 	List<PropertyInfo> pinfo;
-	GlobalConfig::get_singleton()->get_property_list(&pinfo);
+	ProjectSettings::get_singleton()->get_property_list(&pinfo);
 
 	for (List<PropertyInfo>::Element *E = pinfo.front(); E; E = E->next()) {
 		const PropertyInfo &pi = E->get();
@@ -134,12 +134,12 @@ void InputEvent::_bind_methods() {
 
 	ClassDB::bind_method(D_METHOD("as_text"), &InputEvent::as_text);
 
-	ClassDB::bind_method(D_METHOD("action_match", "event:InputEvent"), &InputEvent::action_match);
-	ClassDB::bind_method(D_METHOD("shortcut_match", "event:InputEvent"), &InputEvent::shortcut_match);
+	ClassDB::bind_method(D_METHOD("action_match", "event"), &InputEvent::action_match);
+	ClassDB::bind_method(D_METHOD("shortcut_match", "event"), &InputEvent::shortcut_match);
 
 	ClassDB::bind_method(D_METHOD("is_action_type"), &InputEvent::is_action_type);
 
-	ClassDB::bind_method(D_METHOD("xformed_by:InputEvent", "xform", "local_ofs"), &InputEvent::xformed_by, DEFVAL(Vector2()));
+	ClassDB::bind_method(D_METHOD("xformed_by", "xform", "local_ofs"), &InputEvent::xformed_by, DEFVAL(Vector2()));
 
 	ADD_PROPERTY(PropertyInfo(Variant::INT, "device"), "set_device", "get_device");
 }
@@ -593,6 +593,11 @@ void InputEventJoypadMotion::set_axis_value(float p_value) {
 float InputEventJoypadMotion::get_axis_value() const {
 
 	return axis_value;
+}
+
+bool InputEventJoypadMotion::is_pressed() const {
+
+	return Math::abs(axis_value) > 0.5f;
 }
 
 bool InputEventJoypadMotion::action_match(const Ref<InputEvent> &p_event) const {

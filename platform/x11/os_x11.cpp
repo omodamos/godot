@@ -497,6 +497,8 @@ void OS_X11::initialize(const VideoMode &p_desired, int p_video_driver, int p_au
 	joypad = memnew(JoypadLinux(input));
 #endif
 	_ensure_data_dir();
+
+	power_manager = memnew(PowerX11);
 }
 
 void OS_X11::xim_destroy_callback(::XIM im, ::XPointer client_data,
@@ -526,10 +528,6 @@ void OS_X11::finalize() {
 	if (main_loop)
 		memdelete(main_loop);
 	main_loop = NULL;
-
-	for (int i = 0; i < get_audio_driver_count(); i++) {
-		AudioDriverManager::get_driver(i)->finish();
-	}
 
 /*
 	if (debugger_connection_console) {
@@ -1858,7 +1856,7 @@ void OS_X11::set_clipboard(const String &p_text) {
 	XSetSelectionOwner(x11_display, XInternAtom(x11_display, "CLIPBOARD", 0), x11_window, CurrentTime);
 };
 
-static String _get_clipboard(Atom p_source, Window x11_window, ::Display *x11_display, String p_internal_clipboard) {
+static String _get_clipboard_impl(Atom p_source, Window x11_window, ::Display *x11_display, String p_internal_clipboard, Atom target) {
 
 	String ret;
 
@@ -1875,7 +1873,7 @@ static String _get_clipboard(Atom p_source, Window x11_window, ::Display *x11_di
 	};
 
 	if (Sown != None) {
-		XConvertSelection(x11_display, p_source, XA_STRING, selection,
+		XConvertSelection(x11_display, p_source, target, selection,
 				x11_window, CurrentTime);
 		XFlush(x11_display);
 		while (true) {
@@ -1915,6 +1913,18 @@ static String _get_clipboard(Atom p_source, Window x11_window, ::Display *x11_di
 	return ret;
 }
 
+static String _get_clipboard(Atom p_source, Window x11_window, ::Display *x11_display, String p_internal_clipboard) {
+	String ret;
+	Atom utf8_atom = XInternAtom(x11_display, "UTF8_STRING", True);
+	if (utf8_atom != None) {
+		ret = _get_clipboard_impl(p_source, x11_window, x11_display, p_internal_clipboard, utf8_atom);
+	}
+	if (ret == "") {
+		ret = _get_clipboard_impl(p_source, x11_window, x11_display, p_internal_clipboard, XA_STRING);
+	}
+	return ret;
+}
+
 String OS_X11::get_clipboard() const {
 
 	String ret;
@@ -1945,6 +1955,11 @@ Error OS_X11::shell_open(String p_uri) {
 		return OK;
 	ok = execute("kde-open", args, false);
 	return ok;
+}
+
+bool OS_X11::_check_internal_feature_support(const String &p_feature) {
+
+	return p_feature == "pc" || p_feature == "s3tc";
 }
 
 String OS_X11::get_system_dir(SystemDir p_dir) const {

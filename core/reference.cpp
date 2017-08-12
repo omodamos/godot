@@ -74,7 +74,8 @@ bool Reference::unreference() {
 	bool die = refcount.unref();
 
 	if (get_script_instance()) {
-		die = die && get_script_instance()->refcount_decremented();
+		bool script_ret = get_script_instance()->refcount_decremented();
+		die = die && script_ret;
 	}
 
 	return die;
@@ -107,12 +108,12 @@ Variant WeakRef::get_ref() const {
 }
 
 void WeakRef::set_obj(Object *p_object) {
-	ref = p_object ? p_object->get_instance_ID() : 0;
+	ref = p_object ? p_object->get_instance_id() : 0;
 }
 
 void WeakRef::set_ref(const REF &p_ref) {
 
-	ref = p_ref.is_valid() ? p_ref->get_instance_ID() : 0;
+	ref = p_ref.is_valid() ? p_ref->get_instance_id() : 0;
 }
 
 WeakRef::WeakRef() {
@@ -121,7 +122,7 @@ WeakRef::WeakRef() {
 
 void WeakRef::_bind_methods() {
 
-	ClassDB::bind_method(D_METHOD("get_ref:Object"), &WeakRef::get_ref);
+	ClassDB::bind_method(D_METHOD("get_ref"), &WeakRef::get_ref);
 }
 #if 0
 

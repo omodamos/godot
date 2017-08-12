@@ -30,10 +30,10 @@
 #include "editor_plugin_settings.h"
 
 #include "editor_node.h"
-#include "global_config.h"
 #include "io/config_file.h"
 #include "os/file_access.h"
 #include "os/main_loop.h"
+#include "project_settings.h"
 #include "scene/gui/margin_container.h"
 
 void EditorPluginSettings::_notification(int p_what) {
@@ -82,7 +82,7 @@ void EditorPluginSettings::update_plugins() {
 
 	plugins.sort();
 
-	Vector<String> active_plugins = GlobalConfig::get_singleton()->get("editor_plugins/enabled");
+	Vector<String> active_plugins = ProjectSettings::get_singleton()->get("editor_plugins/enabled");
 
 	for (int i = 0; i < plugins.size(); i++) {
 
@@ -193,15 +193,16 @@ EditorPluginSettings::EditorPluginSettings() {
 	plugin_list->set_column_expand(1, false);
 	plugin_list->set_column_expand(2, false);
 	plugin_list->set_column_expand(3, false);
-	plugin_list->set_column_min_width(1, 100);
-	plugin_list->set_column_min_width(2, 250);
-	plugin_list->set_column_min_width(3, 80);
+	plugin_list->set_column_min_width(1, 100 * EDSCALE);
+	plugin_list->set_column_min_width(2, 250 * EDSCALE);
+	plugin_list->set_column_min_width(3, 80 * EDSCALE);
 	plugin_list->set_hide_root(true);
 	plugin_list->connect("item_edited", this, "_plugin_activity_changed");
 
-	MarginContainer *mc = memnew(MarginContainer);
+	VBoxContainer *mc = memnew(VBoxContainer);
 	mc->add_child(plugin_list);
 	mc->set_v_size_flags(SIZE_EXPAND_FILL);
+	mc->set_h_size_flags(SIZE_EXPAND_FILL);
 
 	add_child(mc);
 

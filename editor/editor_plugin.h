@@ -52,6 +52,8 @@ class EditorImportPlugin;
 class EditorExportPlugin;
 class EditorResourcePreview;
 class EditorFileSystem;
+class EditorToolAddons;
+class ScriptEditor;
 
 class EditorPlugin : public Node {
 
@@ -62,6 +64,8 @@ class EditorPlugin : public Node {
 	UndoRedo *_get_undo_redo() { return undo_redo; }
 
 	bool input_event_forwarding_always_enabled;
+
+	String last_main_screen_name;
 
 protected:
 	static void _bind_methods();
@@ -94,7 +98,7 @@ public:
 		DOCK_SLOT_MAX
 	};
 
-	//TODO: send a resoucre for editing to the editor node?
+	//TODO: send a resource for editing to the editor node?
 
 	void add_control_to_container(CustomControlContainer p_location, Control *p_control);
 	ToolButton *add_control_to_bottom_panel(Control *p_control, const String &p_title);
@@ -112,6 +116,14 @@ public:
 
 	void set_input_event_forwarding_always_enabled();
 	bool is_input_event_forwarding_always_enabled() { return input_event_forwarding_always_enabled; }
+
+	Node *get_edited_scene_root();
+	Array get_open_scenes() const;
+	ScriptEditor *get_script_editor();
+
+	void notify_main_screen_changed(const String &screen_name);
+	void notify_scene_changed(const Node *scn_root);
+	void notify_scene_closed(const String &scene_filepath);
 
 	virtual Ref<SpatialEditorGizmo> create_spatial_gizmo(Spatial *p_spatial);
 	virtual bool forward_canvas_gui_input(const Transform2D &p_canvas_xform, const Ref<InputEvent> &p_event);

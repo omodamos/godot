@@ -29,7 +29,7 @@
 /*************************************************************************/
 #include "message_queue.h"
 
-#include "global_config.h"
+#include "project_settings.h"
 #include "script_language.h"
 
 MessageQueue *MessageQueue::singleton = NULL;
@@ -153,16 +153,16 @@ Error MessageQueue::push_notification(ObjectID p_id, int p_notification) {
 
 Error MessageQueue::push_call(Object *p_object, const StringName &p_method, VARIANT_ARG_DECLARE) {
 
-	return push_call(p_object->get_instance_ID(), p_method, VARIANT_ARG_PASS);
+	return push_call(p_object->get_instance_id(), p_method, VARIANT_ARG_PASS);
 }
 
 Error MessageQueue::push_notification(Object *p_object, int p_notification) {
 
-	return push_notification(p_object->get_instance_ID(), p_notification);
+	return push_notification(p_object->get_instance_id(), p_notification);
 }
 Error MessageQueue::push_set(Object *p_object, const StringName &p_prop, const Variant &p_value) {
 
-	return push_set(p_object->get_instance_ID(), p_prop, p_value);
+	return push_set(p_object->get_instance_id(), p_prop, p_value);
 }
 
 void MessageQueue::statistics() {
@@ -382,7 +382,7 @@ MessageQueue::MessageQueue() {
 
 	buffer_end = 0;
 	buffer_max_used = 0;
-	buffer_size = GLOBAL_DEF("memory/buffers/message_queue_max_size_kb", DEFAULT_QUEUE_SIZE_KB);
+	buffer_size = GLOBAL_DEF("memory/limits/message_queue/max_size_kb", DEFAULT_QUEUE_SIZE_KB);
 	buffer_size *= 1024;
 	buffer = memnew_arr(uint8_t, buffer_size);
 }

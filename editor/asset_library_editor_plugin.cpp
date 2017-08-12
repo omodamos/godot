@@ -98,10 +98,10 @@ EditorAssetLibraryItem::EditorAssetLibraryItem() {
 
 	Ref<StyleBoxEmpty> border;
 	border.instance();
-	/*border->set_default_margin(MARGIN_LEFT,5);
-	border->set_default_margin(MARGIN_RIGHT,5);
-	border->set_default_margin(MARGIN_BOTTOM,5);
-	border->set_default_margin(MARGIN_TOP,5);*/
+	border->set_default_margin(MARGIN_LEFT, 5);
+	border->set_default_margin(MARGIN_RIGHT, 5);
+	border->set_default_margin(MARGIN_BOTTOM, 5);
+	border->set_default_margin(MARGIN_TOP, 5);
 	add_style_override("panel", border);
 
 	HBoxContainer *hb = memnew(HBoxContainer);
@@ -1136,7 +1136,7 @@ void EditorAssetLibrary::_http_request_completed(int p_status, int p_code, const
 				item->connect("category_selected", this, "_select_category");
 
 				if (r.has("icon_url") && r["icon_url"] != "") {
-					_request_image(item->get_instance_ID(), r["icon_url"], IMAGE_QUEUE_ICON, 0);
+					_request_image(item->get_instance_id(), r["icon_url"], IMAGE_QUEUE_ICON, 0);
 				}
 			}
 		} break;
@@ -1173,7 +1173,7 @@ void EditorAssetLibrary::_http_request_completed(int p_status, int p_code, const
 			item->connect("category_selected",this,"_category_selected");*/
 
 			if (r.has("icon_url") && r["icon_url"] != "") {
-				_request_image(description->get_instance_ID(), r["icon_url"], IMAGE_QUEUE_ICON, 0);
+				_request_image(description->get_instance_id(), r["icon_url"], IMAGE_QUEUE_ICON, 0);
 			}
 
 			if (d.has("previews")) {
@@ -1195,12 +1195,12 @@ void EditorAssetLibrary::_http_request_completed(int p_status, int p_code, const
 					description->add_preview(i, is_video, video_url);
 
 					if (p.has("thumbnail")) {
-						_request_image(description->get_instance_ID(), p["thumbnail"], IMAGE_QUEUE_THUMBNAIL, i);
+						_request_image(description->get_instance_id(), p["thumbnail"], IMAGE_QUEUE_THUMBNAIL, i);
 					}
 					if (is_video) {
-						//_request_image(description->get_instance_ID(),p["link"],IMAGE_QUEUE_SCREENSHOT,i);
+						//_request_image(description->get_instance_id(),p["link"],IMAGE_QUEUE_SCREENSHOT,i);
 					} else {
-						_request_image(description->get_instance_ID(), p["link"], IMAGE_QUEUE_SCREENSHOT, i);
+						_request_image(description->get_instance_id(), p["link"], IMAGE_QUEUE_SCREENSHOT, i);
 					}
 				}
 			}
@@ -1228,8 +1228,8 @@ void EditorAssetLibrary::_asset_open() {
 
 void EditorAssetLibrary::_manage_plugins() {
 
-	ProjectSettings::get_singleton()->popup_project_settings();
-	ProjectSettings::get_singleton()->set_plugins_page();
+	ProjectSettingsEditor::get_singleton()->popup_project_settings();
+	ProjectSettingsEditor::get_singleton()->set_plugins_page();
 }
 
 void EditorAssetLibrary::_install_external_asset(String p_zip_path, String p_title) {
@@ -1260,15 +1260,6 @@ void EditorAssetLibrary::_bind_methods() {
 EditorAssetLibrary::EditorAssetLibrary(bool p_templates_only) {
 
 	templates_only = p_templates_only;
-
-	Ref<StyleBoxEmpty> border;
-	border.instance();
-	border->set_default_margin(MARGIN_LEFT, 15);
-	border->set_default_margin(MARGIN_RIGHT, 15);
-	border->set_default_margin(MARGIN_BOTTOM, 5);
-	border->set_default_margin(MARGIN_TOP, 5);
-
-	add_style_override("panel", border);
 
 	VBoxContainer *library_main = memnew(VBoxContainer);
 
@@ -1343,10 +1334,13 @@ EditorAssetLibrary::EditorAssetLibrary(bool p_templates_only) {
 	search_hb2->add_child(memnew(Label(TTR("Site:") + " ")));
 	repository = memnew(OptionButton);
 
+	// FIXME: Reenable me once GH-7147 is fixed.
+	/*
 	repository->add_item("godotengine.org");
 	repository->set_item_metadata(0, "https://godotengine.org/asset-library/api");
-	repository->add_item("localhost"); // TODO: Maybe remove?
-	repository->set_item_metadata(1, "http://127.0.0.1/asset-library/api");
+	*/
+	repository->add_item("localhost");
+	repository->set_item_metadata(/*1*/ 0, "http://127.0.0.1/asset-library/api");
 	repository->connect("item_selected", this, "_repository_changed");
 
 	search_hb2->add_child(repository);

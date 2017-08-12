@@ -187,30 +187,17 @@ private:
 		} else {
 			if (mode == MODE_NEW) {
 
-				FileAccess *f = FileAccess::open(dir.plus_file("/project.godot"), FileAccess::WRITE);
-				if (!f) {
+				ProjectSettings::CustomMap initial_settings;
+				initial_settings["application/config/name"] = project_name->get_text();
+				initial_settings["application/config/icon"] = "res://icon.png";
+				initial_settings["rendering/environment/default_environment"] = "res://default_env.tres";
+
+				if (ProjectSettings::get_singleton()->save_custom(dir.plus_file("/project.godot"), initial_settings, Vector<String>(), false)) {
 					error->set_text(TTR("Couldn't create project.godot in project path."));
 				} else {
-
-					f->store_line("; Engine configuration file.");
-					f->store_line("; It's best edited using the editor UI and not directly,");
-					f->store_line("; since the parameters that go here are not all obvious.");
-					f->store_line("; ");
-					f->store_line("; Format: ");
-					f->store_line(";   [section] ; section goes between []");
-					f->store_line(";   param=value ; assign values to parameters");
-					f->store_line("\n");
-					f->store_line("[application]");
-					f->store_line("\n");
-					f->store_line("name=\"" + project_name->get_text() + "\"");
-					f->store_line("icon=\"res://icon.png\"");
-					f->store_line("[rendering]");
-					f->store_line("viewport/default_environment=\"res://default_env.tres\"");
-					memdelete(f);
-
 					ResourceSaver::save(dir.plus_file("/icon.png"), get_icon("DefaultProjectIcon", "EditorIcons"));
 
-					f = FileAccess::open(dir.plus_file("/default_env.tres"), FileAccess::WRITE);
+					FileAccess *f = FileAccess::open(dir.plus_file("/default_env.tres"), FileAccess::WRITE);
 					if (!f) {
 						error->set_text(TTR("Couldn't create project.godot in project path."));
 					} else {
@@ -504,17 +491,8 @@ void ProjectManager::_update_project_buttons() {
 		item->update();
 	}
 
-	bool has_runnable_scene = false;
-	for (Map<String, String>::Element *E = selected_list.front(); E; E = E->next()) {
-		const String &selected_main = E->get();
-		if (selected_main == "") continue;
-		has_runnable_scene = true;
-		break;
-	}
-
 	erase_btn->set_disabled(selected_list.size() < 1);
 	open_btn->set_disabled(selected_list.size() < 1);
-	run_btn->set_disabled(!has_runnable_scene);
 }
 
 void ProjectManager::_panel_input(const Ref<InputEvent> &p_ev, Node *p_hb) {
@@ -586,7 +564,7 @@ void ProjectManager::_unhandled_input(const Ref<InputEvent> &p_ev) {
 
 		switch (k->get_scancode()) {
 
-			case KEY_RETURN: {
+			case KEY_ENTER: {
 
 				_open_project();
 			} break;
@@ -811,16 +789,16 @@ void ProjectManager::_load_recent_projects() {
 
 		String project_name = TTR("Unnamed Project");
 
-		if (cf->has_section_key("application", "name")) {
-			project_name = static_cast<String>(cf->get_value("application", "name")).xml_unescape();
+		if (cf->has_section_key("application", "config/name")) {
+			project_name = static_cast<String>(cf->get_value("application", "config/name")).xml_unescape();
 		}
 
 		if (filter_option == ProjectListFilter::FILTER_NAME && search_term != "" && project_name.findn(search_term) == -1)
 			continue;
 
 		Ref<Texture> icon;
-		if (cf->has_section_key("application", "icon")) {
-			String appicon = cf->get_value("application", "icon");
+		if (cf->has_section_key("application", "config/icon")) {
+			String appicon = cf->get_value("application", "config/icon");
 			if (appicon != "") {
 				Ref<Image> img;
 				img.instance();
@@ -840,8 +818,8 @@ void ProjectManager::_load_recent_projects() {
 		}
 
 		String main_scene;
-		if (cf->has_section_key("application", "main_scene")) {
-			main_scene = cf->get_value("application", "main_scene");
+		if (cf->has_section_key("application", "run/main_scene")) {
+			main_scene = cf->get_value("application", "run/main_scene");
 		}
 
 		selected_list_copy.erase(project);
@@ -982,10 +960,22 @@ void ProjectManager::_run_project_confirm() {
 	for (Map<String, String>::Element *E = selected_list.front(); E; E = E->next()) {
 
 		const String &selected_main = E->get();
-		if (selected_main == "") continue;
+		if (selected_main == "") {
+			run_error_diag->set_text(TTR("Can't run project: no main scene defined.\nPlease edit the project and set the main scene in \"Project Settings\" under the \"Application\" category."));
+			run_error_diag->popup_centered();
+			return;
+		}
+
 
 		const String &selected = E->key();
 		String path = EditorSettings::get_singleton()->get("projects/" + selected);
+
+		if (!DirAccess::exists(path + "/.import")) {
+			run_error_diag->set_text(TTR("Can't run project: Assets need to be imported.\nPlease edit the project to trigger the initial import."));
+			run_error_diag->popup_centered();
+			return;
+		}
+
 		print_line("OPENING: " + path + " (" + selected + ")");
 
 		List<String> args;
@@ -1403,6 +1393,10 @@ ProjectManager::ProjectManager() {
 	last_clicked = "";
 
 	SceneTree::get_singleton()->connect("files_dropped", this, "_files_dropped");
+
+	run_error_diag = memnew(AcceptDialog);
+	gui_base->add_child(run_error_diag);
+	run_error_diag->set_title(TTR("Can't run project"));
 }
 
 ProjectManager::~ProjectManager() {

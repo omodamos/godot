@@ -29,10 +29,10 @@
 /*************************************************************************/
 #include "file_access_memory.h"
 
-#include "global_config.h"
 #include "map.h"
 #include "os/copymem.h"
 #include "os/dir_access.h"
+#include "project_settings.h"
 
 static Map<String, Vector<uint8_t> > *files = NULL;
 
@@ -43,8 +43,8 @@ void FileAccessMemory::register_file(String p_name, Vector<uint8_t> p_data) {
 	}
 
 	String name;
-	if (GlobalConfig::get_singleton())
-		name = GlobalConfig::get_singleton()->globalize_path(p_name);
+	if (ProjectSettings::get_singleton())
+		name = ProjectSettings::get_singleton()->globalize_path(p_name);
 	else
 		name = p_name;
 	//name = DirAccess::normalize_path(name);

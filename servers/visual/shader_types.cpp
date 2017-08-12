@@ -66,6 +66,7 @@ ShaderTypes::ShaderTypes() {
 	shader_modes[VS::SHADER_SPATIAL].functions["vertex"]["POINT_SIZE"] = ShaderLanguage::TYPE_FLOAT;
 	shader_modes[VS::SHADER_SPATIAL].functions["vertex"]["INSTANCE_ID"] = ShaderLanguage::TYPE_INT;
 	shader_modes[VS::SHADER_SPATIAL].functions["vertex"]["INSTANCE_CUSTOM"] = ShaderLanguage::TYPE_VEC4;
+	shader_modes[VS::SHADER_SPATIAL].functions["vertex"]["ROUGHNESS"] = ShaderLanguage::TYPE_FLOAT;
 
 	//builtins
 	shader_modes[VS::SHADER_SPATIAL].functions["vertex"]["WORLD_MATRIX"] = ShaderLanguage::TYPE_MAT4;
@@ -108,6 +109,7 @@ ShaderTypes::ShaderTypes() {
 	shader_modes[VS::SHADER_SPATIAL].functions["fragment"]["SCREEN_UV"] = ShaderLanguage::TYPE_VEC2;
 	shader_modes[VS::SHADER_SPATIAL].functions["fragment"]["POINT_COORD"] = ShaderLanguage::TYPE_VEC2;
 	shader_modes[VS::SHADER_SPATIAL].functions["fragment"]["SIDE"] = ShaderLanguage::TYPE_FLOAT;
+	shader_modes[VS::SHADER_SPATIAL].functions["fragment"]["ALPHA_SCISSOR"] = ShaderLanguage::TYPE_FLOAT;
 
 	shader_modes[VS::SHADER_SPATIAL].functions["fragment"]["WORLD_MATRIX"] = ShaderLanguage::TYPE_MAT4;
 	shader_modes[VS::SHADER_SPATIAL].functions["fragment"]["INV_CAMERA_MATRIX"] = ShaderLanguage::TYPE_MAT4;
@@ -146,6 +148,8 @@ ShaderTypes::ShaderTypes() {
 
 	shader_modes[VS::SHADER_SPATIAL].modes.insert("skip_vertex_transform");
 	shader_modes[VS::SHADER_SPATIAL].modes.insert("world_vertex_coords");
+
+	shader_modes[VS::SHADER_SPATIAL].modes.insert("vertex_lighting");
 
 	/************ CANVAS ITEM **************************/
 

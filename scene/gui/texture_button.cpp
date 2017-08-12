@@ -180,21 +180,21 @@ void TextureButton::_notification(int p_what) {
 
 void TextureButton::_bind_methods() {
 
-	ClassDB::bind_method(D_METHOD("set_normal_texture", "texture:Texture"), &TextureButton::set_normal_texture);
-	ClassDB::bind_method(D_METHOD("set_pressed_texture", "texture:Texture"), &TextureButton::set_pressed_texture);
-	ClassDB::bind_method(D_METHOD("set_hover_texture", "texture:Texture"), &TextureButton::set_hover_texture);
-	ClassDB::bind_method(D_METHOD("set_disabled_texture", "texture:Texture"), &TextureButton::set_disabled_texture);
-	ClassDB::bind_method(D_METHOD("set_focused_texture", "texture:Texture"), &TextureButton::set_focused_texture);
-	ClassDB::bind_method(D_METHOD("set_click_mask", "mask:BitMap"), &TextureButton::set_click_mask);
+	ClassDB::bind_method(D_METHOD("set_normal_texture", "texture"), &TextureButton::set_normal_texture);
+	ClassDB::bind_method(D_METHOD("set_pressed_texture", "texture"), &TextureButton::set_pressed_texture);
+	ClassDB::bind_method(D_METHOD("set_hover_texture", "texture"), &TextureButton::set_hover_texture);
+	ClassDB::bind_method(D_METHOD("set_disabled_texture", "texture"), &TextureButton::set_disabled_texture);
+	ClassDB::bind_method(D_METHOD("set_focused_texture", "texture"), &TextureButton::set_focused_texture);
+	ClassDB::bind_method(D_METHOD("set_click_mask", "mask"), &TextureButton::set_click_mask);
 	ClassDB::bind_method(D_METHOD("set_expand", "p_expand"), &TextureButton::set_expand);
 	ClassDB::bind_method(D_METHOD("set_stretch_mode", "p_mode"), &TextureButton::set_stretch_mode);
 
-	ClassDB::bind_method(D_METHOD("get_normal_texture:Texture"), &TextureButton::get_normal_texture);
-	ClassDB::bind_method(D_METHOD("get_pressed_texture:Texture"), &TextureButton::get_pressed_texture);
-	ClassDB::bind_method(D_METHOD("get_hover_texture:Texture"), &TextureButton::get_hover_texture);
-	ClassDB::bind_method(D_METHOD("get_disabled_texture:Texture"), &TextureButton::get_disabled_texture);
-	ClassDB::bind_method(D_METHOD("get_focused_texture:Texture"), &TextureButton::get_focused_texture);
-	ClassDB::bind_method(D_METHOD("get_click_mask:BitMap"), &TextureButton::get_click_mask);
+	ClassDB::bind_method(D_METHOD("get_normal_texture"), &TextureButton::get_normal_texture);
+	ClassDB::bind_method(D_METHOD("get_pressed_texture"), &TextureButton::get_pressed_texture);
+	ClassDB::bind_method(D_METHOD("get_hover_texture"), &TextureButton::get_hover_texture);
+	ClassDB::bind_method(D_METHOD("get_disabled_texture"), &TextureButton::get_disabled_texture);
+	ClassDB::bind_method(D_METHOD("get_focused_texture"), &TextureButton::get_focused_texture);
+	ClassDB::bind_method(D_METHOD("get_click_mask"), &TextureButton::get_click_mask);
 	ClassDB::bind_method(D_METHOD("get_expand"), &TextureButton::get_expand);
 	ClassDB::bind_method(D_METHOD("get_stretch_mode"), &TextureButton::get_stretch_mode);
 
@@ -206,7 +206,7 @@ void TextureButton::_bind_methods() {
 	ADD_PROPERTYNZ(PropertyInfo(Variant::OBJECT, "texture_focused", PROPERTY_HINT_RESOURCE_TYPE, "Texture"), "set_focused_texture", "get_focused_texture");
 	ADD_PROPERTYNZ(PropertyInfo(Variant::OBJECT, "texture_click_mask", PROPERTY_HINT_RESOURCE_TYPE, "BitMap"), "set_click_mask", "get_click_mask");
 	ADD_PROPERTYNZ(PropertyInfo(Variant::BOOL, "expand", PROPERTY_HINT_RESOURCE_TYPE, "bool"), "set_expand", "get_expand");
-	ADD_PROPERTYNO(PropertyInfo(Variant::INT, "stretch_mode", PROPERTY_HINT_ENUM, "Scale,Tile,Keep,Keep Centered,Keep Aspect,Keep Aspect Centered,Keep Aspect Covered"), "set_stretch_mode", "get_stretch_mode");
+	ADD_PROPERTYNZ(PropertyInfo(Variant::INT, "stretch_mode", PROPERTY_HINT_ENUM, "Scale,Tile,Keep,Keep Centered,Keep Aspect,Keep Aspect Centered,Keep Aspect Covered"), "set_stretch_mode", "get_stretch_mode");
 
 	BIND_CONSTANT(STRETCH_SCALE);
 	BIND_CONSTANT(STRETCH_TILE);

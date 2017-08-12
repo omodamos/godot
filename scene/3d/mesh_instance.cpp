@@ -275,7 +275,7 @@ void MeshInstance::_mesh_changed() {
 	materials.resize(mesh->get_surface_count());
 }
 
-void MeshInstance::create_debug_tagents() {
+void MeshInstance::create_debug_tangents() {
 
 	Vector<Vector3> lines;
 	Vector<Color> colors;
@@ -352,13 +352,13 @@ void MeshInstance::create_debug_tagents() {
 
 void MeshInstance::_bind_methods() {
 
-	ClassDB::bind_method(D_METHOD("set_mesh", "mesh:Mesh"), &MeshInstance::set_mesh);
-	ClassDB::bind_method(D_METHOD("get_mesh:Mesh"), &MeshInstance::get_mesh);
-	ClassDB::bind_method(D_METHOD("set_skeleton_path", "skeleton_path:NodePath"), &MeshInstance::set_skeleton_path);
-	ClassDB::bind_method(D_METHOD("get_skeleton_path:NodePath"), &MeshInstance::get_skeleton_path);
+	ClassDB::bind_method(D_METHOD("set_mesh", "mesh"), &MeshInstance::set_mesh);
+	ClassDB::bind_method(D_METHOD("get_mesh"), &MeshInstance::get_mesh);
+	ClassDB::bind_method(D_METHOD("set_skeleton_path", "skeleton_path"), &MeshInstance::set_skeleton_path);
+	ClassDB::bind_method(D_METHOD("get_skeleton_path"), &MeshInstance::get_skeleton_path);
 
-	ClassDB::bind_method(D_METHOD("set_surface_material", "surface", "material:Material"), &MeshInstance::set_surface_material);
-	ClassDB::bind_method(D_METHOD("get_surface_material:Material", "surface"), &MeshInstance::get_surface_material);
+	ClassDB::bind_method(D_METHOD("set_surface_material", "surface", "material"), &MeshInstance::set_surface_material);
+	ClassDB::bind_method(D_METHOD("get_surface_material", "surface"), &MeshInstance::get_surface_material);
 
 	ClassDB::bind_method(D_METHOD("create_trimesh_collision"), &MeshInstance::create_trimesh_collision);
 	ClassDB::set_method_flags("MeshInstance", "create_trimesh_collision", METHOD_FLAGS_DEFAULT);
@@ -366,8 +366,8 @@ void MeshInstance::_bind_methods() {
 	ClassDB::set_method_flags("MeshInstance", "create_convex_collision", METHOD_FLAGS_DEFAULT);
 	ClassDB::bind_method(D_METHOD("_mesh_changed"), &MeshInstance::_mesh_changed);
 
-	ClassDB::bind_method(D_METHOD("create_debug_tagents"), &MeshInstance::create_debug_tagents);
-	ClassDB::set_method_flags("MeshInstance", "create_debug_tagents", METHOD_FLAGS_DEFAULT | METHOD_FLAG_EDITOR);
+	ClassDB::bind_method(D_METHOD("create_debug_tangents"), &MeshInstance::create_debug_tangents);
+	ClassDB::set_method_flags("MeshInstance", "create_debug_tangents", METHOD_FLAGS_DEFAULT | METHOD_FLAG_EDITOR);
 
 	ADD_PROPERTY(PropertyInfo(Variant::OBJECT, "mesh", PROPERTY_HINT_RESOURCE_TYPE, "Mesh"), "set_mesh", "get_mesh");
 	ADD_PROPERTY(PropertyInfo(Variant::NODE_PATH, "skeleton"), "set_skeleton_path", "get_skeleton_path");

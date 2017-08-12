@@ -28,8 +28,8 @@
 /* SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                */
 /*************************************************************************/
 #include "register_scene_types.h"
-#include "global_config.h"
 #include "os/os.h"
+#include "project_settings.h"
 #include "scene/io/resource_format_image.h"
 #include "scene/io/resource_format_wav.h"
 
@@ -199,6 +199,8 @@
 #include "scene/3d/camera.h"
 #include "scene/3d/listener.h"
 
+#include "scene/3d/arvr_nodes.h"
+
 #include "scene/3d/gi_probe.h"
 #include "scene/3d/interpolated_camera.h"
 #include "scene/3d/light.h"
@@ -271,11 +273,11 @@ void register_scene_types() {
 	ResourceLoader::add_resource_format_loader(resource_loader_theme);
 
 	bool default_theme_hidpi = GLOBAL_DEF("gui/theme/use_hidpi", false);
-	GlobalConfig::get_singleton()->set_custom_property_info("gui/theme/use_hidpi", PropertyInfo(Variant::BOOL, "gui/theme/use_hidpi", PROPERTY_HINT_NONE, "", PROPERTY_USAGE_DEFAULT | PROPERTY_USAGE_RESTART_IF_CHANGED));
+	ProjectSettings::get_singleton()->set_custom_property_info("gui/theme/use_hidpi", PropertyInfo(Variant::BOOL, "gui/theme/use_hidpi", PROPERTY_HINT_NONE, "", PROPERTY_USAGE_DEFAULT | PROPERTY_USAGE_RESTART_IF_CHANGED));
 	String theme_path = GLOBAL_DEF("gui/theme/custom", "");
-	GlobalConfig::get_singleton()->set_custom_property_info("gui/theme/custom", PropertyInfo(Variant::STRING, "gui/theme/custom", PROPERTY_HINT_FILE, "*.tres,*.res", PROPERTY_USAGE_DEFAULT | PROPERTY_USAGE_RESTART_IF_CHANGED));
+	ProjectSettings::get_singleton()->set_custom_property_info("gui/theme/custom", PropertyInfo(Variant::STRING, "gui/theme/custom", PROPERTY_HINT_FILE, "*.tres,*.res", PROPERTY_USAGE_DEFAULT | PROPERTY_USAGE_RESTART_IF_CHANGED));
 	String font_path = GLOBAL_DEF("gui/theme/custom_font", "");
-	GlobalConfig::get_singleton()->set_custom_property_info("gui/theme/custom_font", PropertyInfo(Variant::STRING, "gui/theme/custom_font", PROPERTY_HINT_FILE, "*.tres,*.res,*.font", PROPERTY_USAGE_DEFAULT | PROPERTY_USAGE_RESTART_IF_CHANGED));
+	ProjectSettings::get_singleton()->set_custom_property_info("gui/theme/custom_font", PropertyInfo(Variant::STRING, "gui/theme/custom_font", PROPERTY_HINT_FILE, "*.tres,*.res,*.font", PROPERTY_USAGE_DEFAULT | PROPERTY_USAGE_RESTART_IF_CHANGED));
 
 	if (theme_path != String()) {
 		Ref<Theme> theme = ResourceLoader::load(theme_path);
@@ -405,6 +407,10 @@ void register_scene_types() {
 	ClassDB::register_virtual_class<VisualInstance>();
 	ClassDB::register_class<Camera>();
 	ClassDB::register_class<Listener>();
+	ClassDB::register_class<ARVRCamera>();
+	ClassDB::register_class<ARVRController>();
+	ClassDB::register_class<ARVRAnchor>();
+	ClassDB::register_class<ARVROrigin>();
 	ClassDB::register_class<InterpolatedCamera>();
 	ClassDB::register_class<MeshInstance>();
 	ClassDB::register_class<ImmediateGeometry>();

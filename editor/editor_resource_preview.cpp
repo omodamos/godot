@@ -31,11 +31,11 @@
 
 #include "editor_scale.h"
 #include "editor_settings.h"
-#include "global_config.h"
 #include "io/resource_loader.h"
 #include "io/resource_saver.h"
 #include "message_queue.h"
 #include "os/file_access.h"
+#include "project_settings.h"
 
 bool EditorResourcePreviewGenerator::handles(const String &p_type) const {
 
@@ -206,7 +206,7 @@ void EditorResourcePreview::_thread() {
 				} else {
 
 					String temp_path = EditorSettings::get_singleton()->get_settings_path().plus_file("tmp");
-					String cache_base = GlobalConfig::get_singleton()->globalize_path(item.path).md5_text();
+					String cache_base = ProjectSettings::get_singleton()->globalize_path(item.path).md5_text();
 					cache_base = temp_path.plus_file("resthumb-" + cache_base);
 
 					//does not have it, try to load a cached thumbnail
@@ -295,7 +295,7 @@ void EditorResourcePreview::queue_edited_resource_preview(const Ref<Resource> &p
 
 	preview_mutex->lock();
 
-	String path_id = "ID:" + itos(p_res->get_instance_ID());
+	String path_id = "ID:" + itos(p_res->get_instance_id());
 
 	if (cache.has(path_id) && cache[path_id].last_hash == p_res->hash_edited_version()) {
 
@@ -310,7 +310,7 @@ void EditorResourcePreview::queue_edited_resource_preview(const Ref<Resource> &p
 	//print_line("send to thread "+p_path);
 	QueueItem item;
 	item.function = p_receiver_func;
-	item.id = p_receiver->get_instance_ID();
+	item.id = p_receiver->get_instance_id();
 	item.resource = p_res;
 	item.path = path_id;
 	item.userdata = p_userdata;
@@ -334,7 +334,7 @@ void EditorResourcePreview::queue_resource_preview(const String &p_path, Object 
 	//print_line("send to thread "+p_path);
 	QueueItem item;
 	item.function = p_receiver_func;
-	item.id = p_receiver->get_instance_ID();
+	item.id = p_receiver->get_instance_id();
 	item.path = p_path;
 	item.userdata = p_userdata;
 
@@ -362,10 +362,10 @@ void EditorResourcePreview::_bind_methods() {
 
 	ClassDB::bind_method("_preview_ready", &EditorResourcePreview::_preview_ready);
 
-	ClassDB::bind_method(D_METHOD("queue_resource_preview", "path", "receiver", "receiver_func", "userdata:Variant"), &EditorResourcePreview::queue_resource_preview);
-	ClassDB::bind_method(D_METHOD("queue_edited_resource_preview", "resource:Resource", "receiver", "receiver_func", "userdata:Variant"), &EditorResourcePreview::queue_edited_resource_preview);
-	ClassDB::bind_method(D_METHOD("add_preview_generator", "generator:EditorResourcePreviewGenerator"), &EditorResourcePreview::add_preview_generator);
-	ClassDB::bind_method(D_METHOD("remove_preview_generator", "generator:EditorResourcePreviewGenerator"), &EditorResourcePreview::remove_preview_generator);
+	ClassDB::bind_method(D_METHOD("queue_resource_preview", "path", "receiver", "receiver_func", "userdata"), &EditorResourcePreview::queue_resource_preview);
+	ClassDB::bind_method(D_METHOD("queue_edited_resource_preview", "resource", "receiver", "receiver_func", "userdata"), &EditorResourcePreview::queue_edited_resource_preview);
+	ClassDB::bind_method(D_METHOD("add_preview_generator", "generator"), &EditorResourcePreview::add_preview_generator);
+	ClassDB::bind_method(D_METHOD("remove_preview_generator", "generator"), &EditorResourcePreview::remove_preview_generator);
 	ClassDB::bind_method(D_METHOD("check_for_invalidation", "path"), &EditorResourcePreview::check_for_invalidation);
 
 	ADD_SIGNAL(MethodInfo("preview_invalidated", PropertyInfo(Variant::STRING, "path")));

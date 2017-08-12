@@ -355,7 +355,9 @@ void ScriptTextEditor::convert_indent_to_spaces() {
 			}
 			j++;
 		}
-		tx->set_line(i, line);
+		if (changed_indentation) {
+			tx->set_line(i, line);
+		}
 	}
 	if (changed_indentation) {
 		tx->cursor_set_column(cursor_column);
@@ -409,7 +411,9 @@ void ScriptTextEditor::convert_indent_to_tabs() {
 			}
 			j++;
 		}
-		tx->set_line(i, line);
+		if (changed_indentation) {
+			tx->set_line(i, line);
+		}
 	}
 	if (changed_indentation) {
 		tx->cursor_set_column(cursor_column);
@@ -456,7 +460,7 @@ String ScriptTextEditor::get_name() {
 	} else if (script->get_name() != "")
 		name = script->get_name();
 	else
-		name = script->get_class() + "(" + itos(script->get_instance_ID()) + ")";
+		name = script->get_class() + "(" + itos(script->get_instance_id()) + ")";
 
 	return name;
 }
@@ -634,7 +638,17 @@ void ScriptTextEditor::_lookup_symbol(const String &p_symbol, int p_row, int p_c
 	}
 
 	ScriptLanguage::LookupResult result;
-	if (script->get_language()->lookup_code(code_editor->get_text_edit()->get_text_for_lookup_completion(), p_symbol, script->get_path().get_base_dir(), base, result) == OK) {
+	if (p_symbol.is_resource_file()) {
+		List<String> scene_extensions;
+		ResourceLoader::get_recognized_extensions_for_type("PackedScene", &scene_extensions);
+
+		if (scene_extensions.find(p_symbol.get_extension())) {
+			EditorNode::get_singleton()->load_scene(p_symbol);
+		} else {
+			EditorNode::get_singleton()->load_resource(p_symbol);
+		}
+
+	} else if (script->get_language()->lookup_code(code_editor->get_text_edit()->get_text_for_lookup_completion(), p_symbol, script->get_path().get_base_dir(), base, result) == OK) {
 
 		_goto_line(p_row);
 
@@ -1276,8 +1290,6 @@ void ScriptTextEditor::_text_edit_gui_input(const Ref<InputEvent> &ev) {
 						color_picker->set_pick_color(Color(color[0], color[1], color[2], alpha));
 					}
 					color_panel->set_position(get_global_transform().xform(get_local_mouse_pos()));
-					Size2 ms = Size2(300, color_picker->get_combined_minimum_size().height + 10);
-					color_panel->set_size(ms);
 				} else {
 					have_color = false;
 				}
@@ -1360,7 +1372,6 @@ ScriptTextEditor::ScriptTextEditor() {
 	add_child(color_panel);
 	color_picker = memnew(ColorPicker);
 	color_panel->add_child(color_picker);
-	color_panel->set_child_rect(color_picker); //NOT
 	color_picker->connect("color_changed", this, "_color_changed");
 
 	edit_hb = memnew(HBoxContainer);

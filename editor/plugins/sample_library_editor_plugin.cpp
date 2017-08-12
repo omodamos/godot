@@ -32,8 +32,8 @@
 #include "sample_library_editor_plugin.h"
 
 #include "editor/editor_settings.h"
-#include "global_config.h"
 #include "io/resource_loader.h"
+#include "project_settings.h"
 #include "sample_editor_plugin.h"
 #include "scene/main/viewport.h"
 

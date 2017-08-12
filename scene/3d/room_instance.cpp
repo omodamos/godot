@@ -32,7 +32,7 @@
 #include "servers/visual_server.h"
 
 #include "geometry.h"
-#include "global_config.h"
+#include "project_settings.h"
 #include "scene/resources/surface_tool.h"
 
 void Room::_notification(int p_what) {
@@ -143,8 +143,8 @@ void Room::_bounds_changed() {
 
 void Room::_bind_methods() {
 
-	ClassDB::bind_method(D_METHOD("set_room", "room:Room"), &Room::set_room);
-	ClassDB::bind_method(D_METHOD("get_room:Room"), &Room::get_room);
+	ClassDB::bind_method(D_METHOD("set_room", "room"), &Room::set_room);
+	ClassDB::bind_method(D_METHOD("get_room"), &Room::get_room);
 
 	ADD_PROPERTY(PropertyInfo(Variant::OBJECT, "room/room", PROPERTY_HINT_RESOURCE_TYPE, "Area"), "set_room", "get_room");
 }

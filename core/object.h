@@ -105,6 +105,7 @@ enum PropertyUsageFlags {
 	PROPERTY_USAGE_STORE_IF_NULL = 16384,
 	PROPERTY_USAGE_ANIMATE_AS_TRIGGER = 32768,
 	PROPERTY_USAGE_UPDATE_ALL_IF_MODIFIED = 65536,
+	PROPERTY_USAGE_SCRIPT_DEFAULT_VALUE = 1 << 17,
 
 	PROPERTY_USAGE_DEFAULT = PROPERTY_USAGE_STORAGE | PROPERTY_USAGE_EDITOR | PROPERTY_USAGE_NETWORK,
 	PROPERTY_USAGE_DEFAULT_INTL = PROPERTY_USAGE_STORAGE | PROPERTY_USAGE_EDITOR | PROPERTY_USAGE_NETWORK | PROPERTY_USAGE_INTERNATIONALIZED,
@@ -138,17 +139,17 @@ struct PropertyInfo {
 
 	static PropertyInfo from_dict(const Dictionary &p_dict);
 
-	PropertyInfo() {
-		type = Variant::NIL;
-		hint = PROPERTY_HINT_NONE;
-		usage = PROPERTY_USAGE_DEFAULT;
+	PropertyInfo()
+		: type(Variant::NIL),
+		  hint(PROPERTY_HINT_NONE),
+		  usage(PROPERTY_USAGE_DEFAULT) {
 	}
-	PropertyInfo(Variant::Type p_type, const String p_name, PropertyHint p_hint = PROPERTY_HINT_NONE, const String &p_hint_string = "", uint32_t p_usage = PROPERTY_USAGE_DEFAULT) {
-		type = p_type;
-		name = p_name;
-		hint = p_hint;
-		hint_string = p_hint_string;
-		usage = p_usage;
+	PropertyInfo(Variant::Type p_type, const String p_name, PropertyHint p_hint = PROPERTY_HINT_NONE, const String &p_hint_string = "", uint32_t p_usage = PROPERTY_USAGE_DEFAULT)
+		: type(p_type),
+		  name(p_name),
+		  hint(p_hint),
+		  hint_string(p_hint_string),
+		  usage(p_usage) {
 	}
 	bool operator<(const PropertyInfo &p_info) const {
 		return name < p_info.name;
@@ -381,6 +382,10 @@ public:
 	};
 
 private:
+	enum {
+		MAX_SCRIPT_INSTANCE_BINDINGS = 8
+	};
+
 #ifdef DEBUG_ENABLED
 	friend class _ObjectDebugLock;
 #endif
@@ -396,9 +401,9 @@ private:
 
 			_FORCE_INLINE_ bool operator<(const Target &p_target) const { return (_id == p_target._id) ? (method < p_target.method) : (_id < p_target._id); }
 
-			Target(const ObjectID &p_id, const StringName &p_method) {
-				_id = p_id;
-				method = p_method;
+			Target(const ObjectID &p_id, const StringName &p_method)
+				: _id(p_id),
+				  method(p_method) {
 			}
 			Target() { _id = 0; }
 		};
@@ -446,6 +451,8 @@ private:
 	Array _get_incoming_connections() const;
 	void _set_bind(const String &p_set, const Variant &p_value);
 	Variant _get_bind(const String &p_name) const;
+
+	void *_script_instance_bindings[MAX_SCRIPT_INSTANCE_BINDINGS];
 
 	void property_list_changed_notify();
 
@@ -527,7 +534,7 @@ public:
 
 	bool _is_gpl_reversed() const { return false; }
 
-	_FORCE_INLINE_ ObjectID get_instance_ID() const { return _instance_ID; }
+	_FORCE_INLINE_ ObjectID get_instance_id() const { return _instance_ID; }
 	// this is used for editors
 
 	void add_change_receptor(Object *p_receptor);
@@ -645,9 +652,11 @@ public:
 	void set_script_instance(ScriptInstance *p_instance);
 	_FORCE_INLINE_ ScriptInstance *get_script_instance() const { return script_instance; }
 
+	void set_script_and_instance(const RefPtr &p_script, ScriptInstance *p_instance); //some script languages can't control instance creation, so this function eases the process
+
 	void add_user_signal(const MethodInfo &p_signal);
-	void emit_signal(const StringName &p_name, VARIANT_ARG_LIST);
-	void emit_signal(const StringName &p_name, const Variant **p_args, int p_argcount);
+	Error emit_signal(const StringName &p_name, VARIANT_ARG_LIST);
+	Error emit_signal(const StringName &p_name, const Variant **p_args, int p_argcount);
 	void get_signal_list(List<MethodInfo> *p_signals) const;
 	void get_signal_connection_list(const StringName &p_signal, List<Connection> *p_connections) const;
 	void get_all_signal_connections(List<Connection> *p_connections) const;
@@ -682,6 +691,9 @@ public:
 	void editor_set_section_unfold(const String &p_section, bool p_unfolded);
 	bool editor_is_section_unfolded(const String &p_section);
 #endif
+
+	//used by script languages to store binding data
+	void *get_script_instance_binding(int p_script_language_index);
 
 	void clear_internal_resource_paths();
 

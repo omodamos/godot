@@ -629,21 +629,21 @@ void Theme::get_type_list(List<StringName> *p_list) const {
 
 void Theme::_bind_methods() {
 
-	ClassDB::bind_method(D_METHOD("set_icon", "name", "type", "texture:Texture"), &Theme::set_icon);
-	ClassDB::bind_method(D_METHOD("get_icon:Texture", "name", "type"), &Theme::get_icon);
+	ClassDB::bind_method(D_METHOD("set_icon", "name", "type", "texture"), &Theme::set_icon);
+	ClassDB::bind_method(D_METHOD("get_icon", "name", "type"), &Theme::get_icon);
 	ClassDB::bind_method(D_METHOD("has_icon", "name", "type"), &Theme::has_icon);
 	ClassDB::bind_method(D_METHOD("clear_icon", "name", "type"), &Theme::clear_icon);
 	ClassDB::bind_method(D_METHOD("get_icon_list", "type"), &Theme::_get_icon_list);
 
-	ClassDB::bind_method(D_METHOD("set_stylebox", "name", "type", "texture:StyleBox"), &Theme::set_stylebox);
-	ClassDB::bind_method(D_METHOD("get_stylebox:StyleBox", "name", "type"), &Theme::get_stylebox);
+	ClassDB::bind_method(D_METHOD("set_stylebox", "name", "type", "texture"), &Theme::set_stylebox);
+	ClassDB::bind_method(D_METHOD("get_stylebox", "name", "type"), &Theme::get_stylebox);
 	ClassDB::bind_method(D_METHOD("has_stylebox", "name", "type"), &Theme::has_stylebox);
 	ClassDB::bind_method(D_METHOD("clear_stylebox", "name", "type"), &Theme::clear_stylebox);
 	ClassDB::bind_method(D_METHOD("get_stylebox_list", "type"), &Theme::_get_stylebox_list);
 	ClassDB::bind_method(D_METHOD("get_stylebox_types"), &Theme::_get_stylebox_types);
 
-	ClassDB::bind_method(D_METHOD("set_font", "name", "type", "font:Font"), &Theme::set_font);
-	ClassDB::bind_method(D_METHOD("get_font:Font", "name", "type"), &Theme::get_font);
+	ClassDB::bind_method(D_METHOD("set_font", "name", "type", "font"), &Theme::set_font);
+	ClassDB::bind_method(D_METHOD("get_font", "name", "type"), &Theme::get_font);
 	ClassDB::bind_method(D_METHOD("has_font", "name", "type"), &Theme::has_font);
 	ClassDB::bind_method(D_METHOD("clear_font", "name", "type"), &Theme::clear_font);
 	ClassDB::bind_method(D_METHOD("get_font_list", "type"), &Theme::_get_font_list);

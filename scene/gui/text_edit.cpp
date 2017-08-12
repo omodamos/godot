@@ -33,8 +33,8 @@
 #include "os/keyboard.h"
 #include "os/os.h"
 
-#include "global_config.h"
 #include "message_queue.h"
+#include "project_settings.h"
 #include "scene/main/viewport.h"
 
 #define TAB_PIXELS
@@ -47,6 +47,10 @@ static bool _is_text_char(CharType c) {
 static bool _is_symbol(CharType c) {
 
 	return c != '_' && ((c >= '!' && c <= '/') || (c >= ':' && c <= '@') || (c >= '[' && c <= '`') || (c >= '{' && c <= '~') || c == '\t' || c == ' ');
+}
+
+static bool _is_whitespace(CharType c) {
+	return c == '\t' || c == ' ';
 }
 
 static bool _is_char(CharType c) {
@@ -983,13 +987,41 @@ void TextEdit::_notification(int p_what) {
 						}
 
 						int caret_w = (str[j] == '\t') ? cache.font->get_char_size(' ').width : char_w;
-						if (draw_caret) {
-							if (insert_mode) {
-								int caret_h = (block_caret) ? 4 : 1;
-								VisualServer::get_singleton()->canvas_item_add_rect(ci, Rect2(cursor_pos, Size2i(caret_w, caret_h)), cache.caret_color);
-							} else {
-								caret_w = (block_caret) ? caret_w : 1;
-								VisualServer::get_singleton()->canvas_item_add_rect(ci, Rect2(cursor_pos, Size2i(caret_w, get_row_height())), cache.caret_color);
+						if (ime_text.length() > 0) {
+							int ofs = 0;
+							while (true) {
+								if (ofs >= ime_text.length())
+									break;
+
+								CharType cchar = ime_text[ofs];
+								CharType next = ime_text[ofs + 1];
+								int im_char_width = cache.font->get_char_size(cchar, next).width;
+
+								if ((char_ofs + char_margin + im_char_width) >= xmargin_end)
+									break;
+
+								bool selected = ofs >= ime_selection.x && ofs < ime_selection.x + ime_selection.y;
+								if (selected) {
+									VisualServer::get_singleton()->canvas_item_add_rect(ci, Rect2(Point2(char_ofs + char_margin, ofs_y + get_row_height()), Size2(im_char_width, 3)), color);
+								} else {
+									VisualServer::get_singleton()->canvas_item_add_rect(ci, Rect2(Point2(char_ofs + char_margin, ofs_y + get_row_height()), Size2(im_char_width, 1)), color);
+								}
+
+								cache.font->draw_char(ci, Point2(char_ofs + char_margin, ofs_y + ascent), cchar, next, color);
+
+								char_ofs += im_char_width;
+								ofs++;
+							}
+						}
+						if (ime_text.length() == 0) {
+							if (draw_caret) {
+								if (insert_mode) {
+									int caret_h = (block_caret) ? 4 : 1;
+									VisualServer::get_singleton()->canvas_item_add_rect(ci, Rect2(cursor_pos, Size2i(caret_w, caret_h)), cache.caret_color);
+								} else {
+									caret_w = (block_caret) ? caret_w : 1;
+									VisualServer::get_singleton()->canvas_item_add_rect(ci, Rect2(cursor_pos, Size2i(caret_w, get_row_height())), cache.caret_color);
+								}
 							}
 						}
 					}
@@ -1020,16 +1052,43 @@ void TextEdit::_notification(int p_what) {
 					if (insert_mode) {
 						cursor_pos.y += (get_row_height() - 3);
 					}
+					if (ime_text.length() > 0) {
+						int ofs = 0;
+						while (true) {
+							if (ofs >= ime_text.length())
+								break;
 
-					if (draw_caret) {
-						if (insert_mode) {
-							int char_w = cache.font->get_char_size(' ').width;
-							int caret_h = (block_caret) ? 4 : 1;
-							VisualServer::get_singleton()->canvas_item_add_rect(ci, Rect2(cursor_pos, Size2i(char_w, caret_h)), cache.caret_color);
-						} else {
-							int char_w = cache.font->get_char_size(' ').width;
-							int caret_w = (block_caret) ? char_w : 1;
-							VisualServer::get_singleton()->canvas_item_add_rect(ci, Rect2(cursor_pos, Size2i(caret_w, get_row_height())), cache.caret_color);
+							CharType cchar = ime_text[ofs];
+							CharType next = ime_text[ofs + 1];
+							int im_char_width = cache.font->get_char_size(cchar, next).width;
+
+							if ((char_ofs + char_margin + im_char_width) >= xmargin_end)
+								break;
+
+							bool selected = ofs >= ime_selection.x && ofs < ime_selection.x + ime_selection.y;
+							if (selected) {
+								VisualServer::get_singleton()->canvas_item_add_rect(ci, Rect2(Point2(char_ofs + char_margin, ofs_y + get_row_height()), Size2(im_char_width, 3)), color);
+							} else {
+								VisualServer::get_singleton()->canvas_item_add_rect(ci, Rect2(Point2(char_ofs + char_margin, ofs_y + get_row_height()), Size2(im_char_width, 1)), color);
+							}
+
+							cache.font->draw_char(ci, Point2(char_ofs + char_margin, ofs_y + ascent), cchar, next, color);
+
+							char_ofs += im_char_width;
+							ofs++;
+						}
+					}
+					if (ime_text.length() == 0) {
+						if (draw_caret) {
+							if (insert_mode) {
+								int char_w = cache.font->get_char_size(' ').width;
+								int caret_h = (block_caret) ? 4 : 1;
+								VisualServer::get_singleton()->canvas_item_add_rect(ci, Rect2(cursor_pos, Size2i(char_w, caret_h)), cache.caret_color);
+							} else {
+								int char_w = cache.font->get_char_size(' ').width;
+								int caret_w = (block_caret) ? char_w : 1;
+								VisualServer::get_singleton()->canvas_item_add_rect(ci, Rect2(cursor_pos, Size2i(caret_w, get_row_height())), cache.caret_color);
+							}
 						}
 					}
 				}
@@ -1193,6 +1252,7 @@ void TextEdit::_notification(int p_what) {
 
 			if (has_focus()) {
 				OS::get_singleton()->set_ime_position(get_global_position() + cursor_pos + Point2(0, get_row_height()));
+				OS::get_singleton()->set_ime_intermediate_text_callback(_ime_text_callback, this);
 			}
 		} break;
 		case NOTIFICATION_FOCUS_ENTER: {
@@ -1203,6 +1263,7 @@ void TextEdit::_notification(int p_what) {
 
 			Point2 cursor_pos = Point2(cursor_get_column(), cursor_get_line()) * get_row_height();
 			OS::get_singleton()->set_ime_position(get_global_position() + cursor_pos);
+			OS::get_singleton()->set_ime_intermediate_text_callback(_ime_text_callback, this);
 
 			if (OS::get_singleton()->has_virtual_keyboard())
 				OS::get_singleton()->show_virtual_keyboard(get_text(), get_global_rect());
@@ -1214,6 +1275,9 @@ void TextEdit::_notification(int p_what) {
 		case NOTIFICATION_FOCUS_EXIT: {
 
 			OS::get_singleton()->set_ime_position(Point2());
+			OS::get_singleton()->set_ime_intermediate_text_callback(NULL, NULL);
+			ime_text = "";
+			ime_selection = Point2();
 
 			if (OS::get_singleton()->has_virtual_keyboard())
 				OS::get_singleton()->hide_virtual_keyboard();
@@ -1222,6 +1286,13 @@ void TextEdit::_notification(int p_what) {
 			}
 		} break;
 	}
+}
+
+void TextEdit::_ime_text_callback(void *p_self, String p_text, Point2 p_selection) {
+	TextEdit *self = (TextEdit *)p_self;
+	self->ime_text = p_text;
+	self->ime_selection = p_selection;
+	self->update();
 }
 
 void TextEdit::_consume_pair_symbol(CharType ch) {
@@ -1801,7 +1872,7 @@ void TextEdit::_gui_input(const Ref<InputEvent> &p_gui_input) {
 						return;
 					}
 
-					if (k->get_scancode() == KEY_ENTER || k->get_scancode() == KEY_RETURN || k->get_scancode() == KEY_TAB) {
+					if (k->get_scancode() == KEY_KP_ENTER || k->get_scancode() == KEY_ENTER || k->get_scancode() == KEY_TAB) {
 
 						_confirm_completion();
 						accept_event();
@@ -1970,8 +2041,8 @@ void TextEdit::_gui_input(const Ref<InputEvent> &p_gui_input) {
 
 		switch (k->get_scancode()) {
 
-			case KEY_ENTER:
-			case KEY_RETURN: {
+			case KEY_KP_ENTER:
+			case KEY_ENTER: {
 
 				if (readonly)
 					break;
@@ -2096,45 +2167,43 @@ void TextEdit::_gui_input(const Ref<InputEvent> &p_gui_input) {
 					break;
 
 #ifdef APPLE_STYLE_KEYS
-				if (k->get_alt()) {
+				if (k->get_alt() && cursor.column > 1) {
 #else
 				if (k->get_alt()) {
 					scancode_handled = false;
 					break;
-				} else if (k->get_command()) {
+				} else if (k->get_command() && cursor.column > 1) {
 #endif
 					int line = cursor.line;
 					int column = cursor.column;
 
-					bool prev_char = false;
-					bool only_whitespace = true;
-
-					while (only_whitespace && line > 0) {
-
-						while (column > 0) {
-							CharType c = text[line][column - 1];
-
-							if (c != '\t' && c != ' ') {
-								only_whitespace = false;
-								break;
-							}
-
-							column--;
-						}
-
-						if (only_whitespace) {
-							line--;
-							column = text[line].length();
-						}
+					// check if we are removing a single whitespace, if so remove it and the next char type
+					// else we just remove the whitespace
+					bool only_whitespace = false;
+					if (_is_whitespace(text[line][column - 1]) && _is_whitespace(text[line][column - 2])) {
+						only_whitespace = true;
+					} else if (_is_whitespace(text[line][column - 1])) {
+						// remove the single whitespace
+						column--;
 					}
 
+					// check if its a text char
+					bool only_char = (_is_text_char(text[line][column - 1]) && !only_whitespace);
+
+					// if its not whitespace or char then symbol.
+					bool only_symbols = !(only_whitespace || only_char);
+
 					while (column > 0) {
-						bool ischar = _is_text_char(text[line][column - 1]);
+						bool is_whitespace = _is_whitespace(text[line][column - 1]);
+						bool is_text_char = _is_text_char(text[line][column - 1]);
 
-						if (prev_char && !ischar)
+						if (only_whitespace && !is_whitespace) {
 							break;
-
-						prev_char = ischar;
+						} else if (only_char && !is_text_char) {
+							break;
+						} else if (only_symbols && (is_whitespace || is_text_char)) {
+							break;
+						}
 						column--;
 					}
 
@@ -2356,52 +2425,50 @@ void TextEdit::_gui_input(const Ref<InputEvent> &p_gui_input) {
 				int next_column;
 
 #ifdef APPLE_STYLE_KEYS
-				if (k->get_alt()) {
+				if (k->get_alt() && cursor.column < curline_len - 1) {
 #else
 				if (k->get_alt()) {
 					scancode_handled = false;
 					break;
-				} else if (k->get_command()) {
+				} else if (k->get_command() && cursor.column < curline_len - 1) {
 #endif
-					int last_line = text.size() - 1;
 
 					int line = cursor.line;
 					int column = cursor.column;
 
-					bool prev_char = false;
-					bool only_whitespace = true;
-
-					while (only_whitespace && line < last_line) {
-
-						while (column < text[line].length()) {
-							CharType c = text[line][column];
-
-							if (c != '\t' && c != ' ') {
-								only_whitespace = false;
-								break;
-							}
-
-							column++;
-						}
-
-						if (only_whitespace) {
-							line++;
-							column = 0;
-						}
+					// check if we are removing a single whitespace, if so remove it and the next char type
+					// else we just remove the whitespace
+					bool only_whitespace = false;
+					if (_is_whitespace(text[line][column]) && _is_whitespace(text[line][column + 1])) {
+						only_whitespace = true;
+					} else if (_is_whitespace(text[line][column])) {
+						// remove the single whitespace
+						column++;
 					}
 
-					while (column < text[line].length()) {
+					// check if its a text char
+					bool only_char = (_is_text_char(text[line][column]) && !only_whitespace);
 
-						bool ischar = _is_text_char(text[line][column]);
+					// if its not whitespace or char then symbol.
+					bool only_symbols = !(only_whitespace || only_char);
 
-						if (prev_char && !ischar)
+					while (column < curline_len) {
+						bool is_whitespace = _is_whitespace(text[line][column]);
+						bool is_text_char = _is_text_char(text[line][column]);
+
+						if (only_whitespace && !is_whitespace) {
 							break;
-						prev_char = ischar;
+						} else if (only_char && !is_text_char) {
+							break;
+						} else if (only_symbols && (is_whitespace || is_text_char)) {
+							break;
+						}
 						column++;
 					}
 
 					next_line = line;
 					next_column = column;
+
 				} else {
 					next_column = cursor.column < curline_len ? (cursor.column + 1) : 0;
 				}
@@ -4353,6 +4420,23 @@ String TextEdit::get_word_at_pos(const Vector2 &p_pos) const {
 
 		bool symbol = beg < s.length() && _is_symbol(s[beg]); //not sure if right but most editors behave like this
 
+		bool inside_quotes = false;
+		int qbegin, qend;
+		for (int i = 0; i < s.length(); i++) {
+			if (s[i] == '"') {
+				if (inside_quotes) {
+					qend = i;
+					inside_quotes = false;
+					if (col >= qbegin && col <= qend) {
+						return s.substr(qbegin, qend - qbegin);
+					}
+				} else {
+					qbegin = i + 1;
+					inside_quotes = true;
+				}
+			}
+		}
+
 		while (beg > 0 && s[beg - 1] > 32 && (symbol == _is_symbol(s[beg - 1]))) {
 			beg--;
 		}
@@ -4579,7 +4663,7 @@ void TextEdit::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("get_selection_to_column"), &TextEdit::get_selection_to_column);
 	ClassDB::bind_method(D_METHOD("get_selection_text"), &TextEdit::get_selection_text);
 	ClassDB::bind_method(D_METHOD("get_word_under_cursor"), &TextEdit::get_word_under_cursor);
-	ClassDB::bind_method(D_METHOD("search", "flags", "from_line", "from_column", "to_line", "to_column"), &TextEdit::_search_bind);
+	ClassDB::bind_method(D_METHOD("search", "key", "flags", "from_line", "from_column"), &TextEdit::_search_bind);
 
 	ClassDB::bind_method(D_METHOD("undo"), &TextEdit::undo);
 	ClassDB::bind_method(D_METHOD("redo"), &TextEdit::redo);
@@ -4597,8 +4681,8 @@ void TextEdit::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("add_keyword_color", "keyword", "color"), &TextEdit::add_keyword_color);
 	ClassDB::bind_method(D_METHOD("add_color_region", "begin_key", "end_key", "color", "line_only"), &TextEdit::add_color_region, DEFVAL(false));
 	ClassDB::bind_method(D_METHOD("clear_colors"), &TextEdit::clear_colors);
-	ClassDB::bind_method(D_METHOD("menu_option"), &TextEdit::menu_option);
-	ClassDB::bind_method(D_METHOD("get_menu:PopupMenu"), &TextEdit::get_menu);
+	ClassDB::bind_method(D_METHOD("menu_option", "option"), &TextEdit::menu_option);
+	ClassDB::bind_method(D_METHOD("get_menu"), &TextEdit::get_menu);
 
 	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "syntax_highlighting"), "set_syntax_coloring", "is_syntax_coloring_enabled");
 	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "show_line_numbers"), "set_show_line_numbers", "is_show_line_numbers_enabled");

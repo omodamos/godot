@@ -78,7 +78,7 @@ public:
 	void move_y(float p_delta, bool p_scaled = false);
 	void translate(const Vector2 &p_amount);
 	void global_translate(const Vector2 &p_amount);
-	void scale(const Size2 &p_amount);
+	void apply_scale(const Size2 &p_amount);
 
 	Point2 get_position() const;
 	float get_rotation() const;
@@ -103,6 +103,9 @@ public:
 
 	void look_at(const Vector2 &p_pos);
 	float get_angle_to(const Vector2 &p_pos) const;
+
+	Point2 to_local(Point2 p_global) const;
+	Point2 to_global(Point2 p_local) const;
 
 	void set_z_as_relative(bool p_enabled);
 	bool is_z_relative() const;

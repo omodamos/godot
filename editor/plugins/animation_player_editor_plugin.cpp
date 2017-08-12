@@ -31,10 +31,10 @@
 
 #include "editor/animation_editor.h"
 #include "editor/editor_settings.h"
-#include "global_config.h"
 #include "io/resource_loader.h"
 #include "io/resource_saver.h"
 #include "os/keyboard.h"
+#include "project_settings.h"
 
 void AnimationPlayerEditor::_node_removed(Node *p_node) {
 
@@ -372,7 +372,7 @@ void AnimationPlayerEditor::_animation_save_in_path(const Ref<Resource> &p_resou
 		flg |= ResourceSaver::FLAG_RELATIVE_PATHS;
 	*/
 
-	String path = GlobalConfig::get_singleton()->localize_path(p_path);
+	String path = ProjectSettings::get_singleton()->localize_path(p_path);
 	Error err = ResourceSaver::save(path, p_resource, flg | ResourceSaver::FLAG_REPLACE_SUBRESOURCE_PATHS);
 
 	if (err != OK) {

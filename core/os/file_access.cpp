@@ -31,8 +31,8 @@
 
 #include "core/io/file_access_pack.h"
 #include "core/io/marshalls.h"
-#include "global_config.h"
 #include "os/os.h"
+#include "project_settings.h"
 
 #include "thirdparty/misc/md5.h"
 #include "thirdparty/misc/sha256.h"
@@ -135,10 +135,10 @@ String FileAccess::fix_path(const String &p_path) const {
 
 		case ACCESS_RESOURCES: {
 
-			if (GlobalConfig::get_singleton()) {
+			if (ProjectSettings::get_singleton()) {
 				if (r_path.begins_with("res://")) {
 
-					String resource_path = GlobalConfig::get_singleton()->get_resource_path();
+					String resource_path = ProjectSettings::get_singleton()->get_resource_path();
 					if (resource_path != "") {
 
 						return r_path.replace("res:/", resource_path);
@@ -300,6 +300,8 @@ Vector<String> FileAccess::get_csv_line(String delim) const {
 	String l;
 	int qc = 0;
 	do {
+		ERR_FAIL_COND_V(eof_reached(), Vector<String>());
+
 		l += get_line() + "\n";
 		qc = 0;
 		for (int i = 0; i < l.length(); i++) {

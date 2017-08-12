@@ -30,7 +30,6 @@
 #include "editor_settings.h"
 
 #include "editor_node.h"
-#include "global_config.h"
 #include "io/compression.h"
 #include "io/config_file.h"
 #include "io/file_access_memory.h"
@@ -41,6 +40,7 @@
 #include "os/file_access.h"
 #include "os/keyboard.h"
 #include "os/os.h"
+#include "project_settings.h"
 #include "scene/main/node.h"
 #include "scene/main/scene_tree.h"
 #include "scene/main/viewport.h"
@@ -216,17 +216,43 @@ Variant _EDITOR_DEF(const String &p_var, const Variant &p_default) {
 	return p_default;
 }
 
+static Dictionary _get_builtin_script_templates() {
+	Dictionary templates;
+
+	//No Comments
+	templates["no_comments.gd"] =
+			"extends %BASE%\n"
+			"\n"
+			"func _ready():\n"
+			"%TS%pass\n";
+
+	//Empty
+	templates["empty.gd"] =
+			"extends %BASE%"
+			"\n"
+			"\n";
+
+	return templates;
+}
+
 static void _create_script_templates(const String &p_path) {
 
-	FileAccess *file = FileAccess::open(p_path.plus_file("no_comments.gd"), FileAccess::WRITE);
-	ERR_FAIL_COND(!file);
-	String script = String("extends %BASE%\n\nfunc _ready():\n%TS%pass\n");
-	file->store_string(script);
-	file->close();
-	file->reopen(p_path.plus_file("empty.gd"), FileAccess::WRITE);
-	script = "extends %BASE%\n\n";
-	file->store_string(script);
-	file->close();
+	Dictionary templates = _get_builtin_script_templates();
+	List<Variant> keys;
+	templates.get_key_list(&keys);
+	FileAccess *file = FileAccess::create(FileAccess::ACCESS_FILESYSTEM);
+
+	DirAccess *dir = DirAccess::create(DirAccess::ACCESS_FILESYSTEM);
+	dir->change_dir(p_path);
+	for (int i = 0; i < keys.size(); i++) {
+		if (!dir->file_exists(keys[i])) {
+			file->reopen(p_path.plus_file((String)keys[i]), FileAccess::WRITE);
+			ERR_FAIL_COND(!file);
+			file->store_string(templates[keys[i]]);
+			file->close();
+		}
+	}
+
 	memdelete(file);
 }
 
@@ -308,10 +334,10 @@ void EditorSettings::create() {
 
 		if (dir->change_dir("script_templates") != OK) {
 			dir->make_dir("script_templates");
-			_create_script_templates(dir->get_current_dir() + "/script_templates");
 		} else {
 			dir->change_dir("..");
 		}
+		_create_script_templates(dir->get_current_dir() + "/script_templates");
 
 		if (dir->change_dir("tmp") != OK) {
 			dir->make_dir("tmp");
@@ -329,7 +355,7 @@ void EditorSettings::create() {
 
 		dir->change_dir("config");
 
-		String pcp = GlobalConfig::get_singleton()->get_resource_path();
+		String pcp = ProjectSettings::get_singleton()->get_resource_path();
 		if (pcp.ends_with("/"))
 			pcp = config_path.substr(0, pcp.size() - 1);
 		pcp = pcp.get_file() + "-" + pcp.md5_text();
@@ -537,12 +563,15 @@ void EditorSettings::_load_defaults(Ref<ConfigFile> p_extra_config) {
 
 	set("interface/theme/preset", 0);
 	hints["interface/theme/preset"] = PropertyInfo(Variant::INT, "interface/theme/preset", PROPERTY_HINT_ENUM, "Default,Grey,Godot 2,Arc,Custom", PROPERTY_USAGE_DEFAULT | PROPERTY_USAGE_RESTART_IF_CHANGED);
-	set("interface/theme/base_color", Color::html("#273241"));
+	set("interface/theme/base_color", Color::html("#323b4f"));
 	hints["interface/theme/highlight_color"] = PropertyInfo(Variant::COLOR, "interface/theme/highlight_color", PROPERTY_HINT_NONE, "", PROPERTY_USAGE_DEFAULT | PROPERTY_USAGE_RESTART_IF_CHANGED);
-	set("interface/theme/highlight_color", Color::html("#b79047"));
+	set("interface/theme/highlight_color", Color::html("#699ce8"));
 	hints["interface/theme/base_color"] = PropertyInfo(Variant::COLOR, "interface/theme/base_color", PROPERTY_HINT_NONE, "", PROPERTY_USAGE_DEFAULT | PROPERTY_USAGE_RESTART_IF_CHANGED);
 	set("interface/theme/contrast", 0.2);
 	hints["interface/theme/contrast"] = PropertyInfo(Variant::REAL, "interface/theme/contrast", PROPERTY_HINT_RANGE, "0.01, 1, 0.01");
+	set("interface/theme/highlight_tabs", false);
+	set("interface/theme/border_size", 1);
+	hints["interface/theme/border_size"] = PropertyInfo(Variant::INT, "interface/theme/border_size", PROPERTY_HINT_RANGE, "0,2,1", PROPERTY_USAGE_DEFAULT | PROPERTY_USAGE_RESTART_IF_CHANGED);
 	set("interface/theme/custom_theme", "");
 	hints["interface/theme/custom_theme"] = PropertyInfo(Variant::STRING, "interface/theme/custom_theme", PROPERTY_HINT_GLOBAL_FILE, "*.res,*.tres,*.theme", PROPERTY_USAGE_DEFAULT | PROPERTY_USAGE_RESTART_IF_CHANGED);
 
@@ -613,7 +642,7 @@ void EditorSettings::_load_defaults(Ref<ConfigFile> p_extra_config) {
 
 	set("editors/grid_map/pick_distance", 5000.0);
 
-	set("editors/3d/grid_color", Color(0, 1, 0, 0.2));
+	set("editors/3d/grid_color", Color(1, 1, 1, 0.2));
 	hints["editors/3d/grid_color"] = PropertyInfo(Variant::COLOR, "editors/3d/grid_color", PROPERTY_HINT_NONE, "", PROPERTY_USAGE_DEFAULT | PROPERTY_USAGE_RESTART_IF_CHANGED);
 
 	set("editors/3d/default_fov", 55.0);
@@ -635,6 +664,10 @@ void EditorSettings::_load_defaults(Ref<ConfigFile> p_extra_config) {
 	set("editors/3d/warped_mouse_panning", true);
 
 	set("editors/3d/freelook_base_speed", 1);
+
+	set("editors/3d/freelook_activation_modifier", 0);
+	hints["editors/3d/freelook_activation_modifier"] = PropertyInfo(Variant::INT, "editors/3d/freelook_activation_modifier", PROPERTY_HINT_ENUM, "None,Shift,Alt,Meta,Ctrl");
+
 	set("editors/3d/freelook_modifier_speed_factor", 5.0);
 
 	set("editors/2d/bone_width", 5);

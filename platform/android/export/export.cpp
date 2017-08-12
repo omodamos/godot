@@ -31,13 +31,13 @@
 #include "editor/editor_export.h"
 #include "editor/editor_node.h"
 #include "editor/editor_settings.h"
-#include "global_config.h"
 #include "io/marshalls.h"
 #include "io/zip_io.h"
 #include "os/file_access.h"
 #include "os/os.h"
 #include "platform/android/logo.gen.h"
 #include "platform/android/run_icon.gen.h"
+#include "project_settings.h"
 #include "version.h"
 #include <string.h>
 #if 0
@@ -219,6 +219,7 @@ class EditorExportPlatformAndroid : public EditorExportPlatform {
 	bool use_32_fb;
 	bool immersive;
 	bool export_arm;
+	bool export_arm64;
 	bool export_x86;
 	String apk_expansion_salt;
 	String apk_expansion_pkey;
@@ -319,6 +320,8 @@ bool EditorExportPlatformAndroid::_set(const StringName& p_name, const Variant& 
 		_signed=p_value;
 	else if (n=="architecture/arm")
 		export_arm=p_value;
+	else if (n=="architecture/arm64")
+		export_arm64=p_value;
 	else if (n=="architecture/x86")
 		export_x86=p_value;
 	else if (n=="screen/use_32_bits_view")
@@ -392,6 +395,8 @@ bool EditorExportPlatformAndroid::_get(const StringName& p_name,Variant &r_ret) 
 		r_ret=_signed;
 	else if (n=="architecture/arm")
 		r_ret=export_arm;
+	else if (n=="architecture/arm64")
+		r_ret=export_arm64;
 	else if (n=="architecture/x86")
 		r_ret=export_x86;
 	else if (n=="screen/use_32_bits_view")
@@ -554,9 +559,9 @@ void EditorExportPlatformAndroid::_fix_resources(Vector<uint8_t>& p_manifest) {
 			} else {
 
 				String lang = str.substr(str.find_last("-")+1,str.length()).replace("-","_");
-				String prop = "application/name_"+lang;
-				if (GlobalConfig::get_singleton()->has(prop)) {
-					str = GlobalConfig::get_singleton()->get(prop);
+				String prop = "application/config/name_"+lang;
+				if (ProjectSettings::get_singleton()->has(prop)) {
+					str = ProjectSettings::get_singleton()->get(prop);
 				} else {
 					str = get_project_name();
 				}
@@ -628,7 +633,7 @@ String EditorExportPlatformAndroid::get_project_name() const {
 	if (this->name!="") {
 		aname=this->name;
 	} else {
-		aname = GlobalConfig::get_singleton()->get("application/name");
+		aname = ProjectSettings::get_singleton()->get("application/config/name");
 
 	}
 
@@ -1144,7 +1149,7 @@ Error EditorExportPlatformAndroid::export_project(const String& p_path, bool p_d
 
 			if (!found) {
 
-				String appicon = GlobalConfig::get_singleton()->get("application/icon");
+				String appicon = ProjectSettings::get_singleton()->get("application/config/icon");
 				if (appicon!="" && appicon.ends_with(".png")) {
 					FileAccess*f = FileAccess::open(appicon,FileAccess::READ);
 					if (f) {
@@ -1162,6 +1167,10 @@ Error EditorExportPlatformAndroid::export_project(const String& p_path, bool p_d
 
 		if (file.match("lib/armeabi*/libgodot_android.so") && !export_arm) {
 			skip=true;
+		}
+
+		if (file.match("lib/arm64*/libgodot_android.so") && !export_arm64) {
+			skip = true;
 		}
 
 		if (file.begins_with("META-INF") && _signed) {
@@ -1763,7 +1772,7 @@ Error EditorExportPlatformAndroid::run(int p_device, int p_flags) {
 String EditorExportPlatformAndroid::get_package_name() {
 
 	String pname = package;
-	String basename = GlobalConfig::get_singleton()->get("application/name");
+	String basename = ProjectSettings::get_singleton()->get("application/config/name");
 	basename=basename.to_lower();
 
 	String name;
@@ -1801,6 +1810,7 @@ EditorExportPlatformAndroid::EditorExportPlatformAndroid() {
 	immersive=true;
 
 	export_arm=true;
+	export_arm64=false;
 	export_x86=false;
 
 
@@ -2050,6 +2060,7 @@ class EditorExportAndroid : public EditorExportPlatform {
 		String id;
 		String name;
 		String description;
+		int release;
 	};
 
 	struct APKExportData {
@@ -2123,6 +2134,7 @@ class EditorExportAndroid : public EditorExportPlatform {
 							if (ea->devices[j].id == ldevices[i]) {
 								d.description = ea->devices[j].description;
 								d.name = ea->devices[j].name;
+								d.release = ea->devices[j].release;
 							}
 						}
 
@@ -2143,6 +2155,7 @@ class EditorExportAndroid : public EditorExportPlatform {
 							String vendor;
 							String device;
 							d.description + "Device ID: " + d.id + "\n";
+							d.release = 0;
 							for (int j = 0; j < props.size(); j++) {
 
 								String p = props[j];
@@ -2153,7 +2166,9 @@ class EditorExportAndroid : public EditorExportPlatform {
 								} else if (p.begins_with("ro.build.display.id=")) {
 									d.description += "Build: " + p.get_slice("=", 1).strip_edges() + "\n";
 								} else if (p.begins_with("ro.build.version.release=")) {
-									d.description += "Release: " + p.get_slice("=", 1).strip_edges() + "\n";
+									const String release_str = p.get_slice("=", 1).strip_edges();
+									d.description += "Release: " + release_str + "\n";
+									d.release = release_str.to_int();
 								} else if (p.begins_with("ro.product.cpu.abi=")) {
 									d.description += "CPU: " + p.get_slice("=", 1).strip_edges() + "\n";
 								} else if (p.begins_with("ro.product.manufacturer=")) {
@@ -2208,7 +2223,7 @@ class EditorExportAndroid : public EditorExportPlatform {
 		if (p_name != "") {
 			aname = p_name;
 		} else {
-			aname = GlobalConfig::get_singleton()->get("application/name");
+			aname = ProjectSettings::get_singleton()->get("application/config/name");
 		}
 
 		if (aname == "") {
@@ -2221,7 +2236,7 @@ class EditorExportAndroid : public EditorExportPlatform {
 	String get_package_name(const String &p_package) {
 
 		String pname = p_package;
-		String basename = GlobalConfig::get_singleton()->get("application/name");
+		String basename = ProjectSettings::get_singleton()->get("application/config/name");
 		basename = basename.to_lower();
 
 		String name;
@@ -2537,6 +2552,10 @@ class EditorExportAndroid : public EditorExportPlatform {
 							}*/
 						}
 
+						if (tname == "uses-feature" && /*nspace=="android" &&*/ attrname == "glEsVersion") {
+							print_line("version number: " + itos(decode_uint32(&p_manifest[iofs + 16])));
+						}
+
 						if (tname == "uses-permission" && /*nspace=="android" &&*/ attrname == "name") {
 
 							if (value.begins_with("godot.custom")) {
@@ -2750,9 +2769,9 @@ class EditorExportAndroid : public EditorExportPlatform {
 				} else {
 
 					String lang = str.substr(str.find_last("-") + 1, str.length()).replace("-", "_");
-					String prop = "application/name_" + lang;
-					if (GlobalConfig::get_singleton()->has(prop)) {
-						str = GlobalConfig::get_singleton()->get(prop);
+					String prop = "application/config/name_" + lang;
+					if (ProjectSettings::get_singleton()->has(prop)) {
+						str = ProjectSettings::get_singleton()->get(prop);
 					} else {
 						str = get_project_name(package_name);
 					}
@@ -2826,11 +2845,17 @@ public:
 public:
 	virtual void get_preset_features(const Ref<EditorExportPreset> &p_preset, List<String> *r_features) {
 
-		r_features->push_back("etc");
+		int api = p_preset->get("graphics/api");
+		if (api == 0)
+			r_features->push_back("etc");
+		else
+			r_features->push_back("etc2");
 	}
 
 	virtual void get_export_options(List<ExportOption> *r_options) {
 
+		r_options->push_back(ExportOption(PropertyInfo(Variant::INT, "graphics/api", PROPERTY_HINT_ENUM, "OpenGL ES 2.0,OpenGL ES 3.0"), 1));
+		r_options->push_back(ExportOption(PropertyInfo(Variant::BOOL, "graphics/32_bits_framebuffer"), true));
 		r_options->push_back(ExportOption(PropertyInfo(Variant::BOOL, "one_click_deploy/clear_previous_install"), true));
 		r_options->push_back(ExportOption(PropertyInfo(Variant::STRING, "custom_package/debug", PROPERTY_HINT_GLOBAL_FILE, "apk"), ""));
 		r_options->push_back(ExportOption(PropertyInfo(Variant::STRING, "custom_package/release", PROPERTY_HINT_GLOBAL_FILE, "apk"), ""));
@@ -2843,7 +2868,6 @@ public:
 		r_options->push_back(ExportOption(PropertyInfo(Variant::BOOL, "package/signed"), true));
 		r_options->push_back(ExportOption(PropertyInfo(Variant::BOOL, "architecture/arm"), true));
 		r_options->push_back(ExportOption(PropertyInfo(Variant::BOOL, "architecture/x86"), false));
-		r_options->push_back(ExportOption(PropertyInfo(Variant::BOOL, "screen/use_32_bits_view"), true));
 		r_options->push_back(ExportOption(PropertyInfo(Variant::BOOL, "screen/immersive_mode"), true));
 		r_options->push_back(ExportOption(PropertyInfo(Variant::INT, "screen/orientation", PROPERTY_HINT_ENUM, "Landscape,Portrait"), 0));
 		r_options->push_back(ExportOption(PropertyInfo(Variant::BOOL, "screen/support_small"), true));
@@ -2875,6 +2899,11 @@ public:
 	virtual String get_name() const {
 		return "Android";
 	}
+
+	virtual String get_os_name() const {
+		return "Android";
+	}
+
 	virtual Ref<Texture> get_logo() const {
 		return logo;
 	}
@@ -2991,15 +3020,19 @@ public:
 		if (use_adb_over_usb) {
 
 			args.clear();
+			args.push_back("-s");
+			args.push_back(devices[p_device].id);
 			args.push_back("reverse");
 			args.push_back("--remove-all");
 			err = OS::get_singleton()->execute(adb, args, true, NULL, NULL, &rv);
 
-			int port = (int)EditorSettings::get_singleton()->get("network/debug/remote_port");
+			int dbg_port = EditorSettings::get_singleton()->get("network/debug/remote_port");
 			args.clear();
+			args.push_back("-s");
+			args.push_back(devices[p_device].id);
 			args.push_back("reverse");
-			args.push_back("tcp:" + itos(port));
-			args.push_back("tcp:" + itos(port));
+			args.push_back("tcp:" + itos(dbg_port));
+			args.push_back("tcp:" + itos(dbg_port));
 
 			err = OS::get_singleton()->execute(adb, args, true, NULL, NULL, &rv);
 			print_line("Reverse result: " + itos(rv));
@@ -3007,6 +3040,8 @@ public:
 			int fs_port = EditorSettings::get_singleton()->get("filesystem/file_server/port");
 
 			args.clear();
+			args.push_back("-s");
+			args.push_back(devices[p_device].id);
 			args.push_back("reverse");
 			args.push_back("tcp:" + itos(fs_port));
 			args.push_back("tcp:" + itos(fs_port));
@@ -3022,7 +3057,10 @@ public:
 		args.push_back("shell");
 		args.push_back("am");
 		args.push_back("start");
-		args.push_back("--user 0");
+		if ((bool)EditorSettings::get_singleton()->get("export/android/force_system_user") && devices[p_device].release >= 17) { // Multi-user introduced in Android 17
+			args.push_back("--user");
+			args.push_back("0");
+		}
 		args.push_back("-a");
 		args.push_back("android.intent.action.MAIN");
 		args.push_back("-n");
@@ -3030,7 +3068,7 @@ public:
 
 		err = OS::get_singleton()->execute(adb, args, true, NULL, NULL, &rv);
 		if (err || rv != 0) {
-			EditorNode::add_io_error("Could not execute ondevice.");
+			EditorNode::add_io_error("Could not execute on device.");
 			device_lock->unlock();
 			return ERR_CANT_CREATE;
 		}
@@ -3148,6 +3186,7 @@ public:
 
 		bool export_x86 = p_preset->get("architecture/x86");
 		bool export_arm = p_preset->get("architecture/arm");
+		bool export_arm64 = p_preset->get("architecture/arm64");
 
 		bool use_32_fb = p_preset->get("screen/use_32_bits_view");
 		bool immersive = p_preset->get("screen/immersive_mode");
@@ -3219,7 +3258,7 @@ public:
 
 				if (!found) {
 
-					String appicon = GlobalConfig::get_singleton()->get("application/icon");
+					String appicon = ProjectSettings::get_singleton()->get("application/config/icon");
 					if (appicon != "" && appicon.ends_with(".png")) {
 						FileAccess *f = FileAccess::open(appicon, FileAccess::READ);
 						if (f) {
@@ -3236,6 +3275,10 @@ public:
 			}
 
 			if (file.match("lib/armeabi*/libgodot_android.so") && !export_arm) {
+				skip = true;
+			}
+
+			if (file.match("lib/arm64*/libgodot_android.so") && !export_arm64) {
 				skip = true;
 			}
 
@@ -3527,6 +3570,12 @@ public:
 		return OK;
 	}
 
+	virtual void get_platform_features(List<String> *r_features) {
+
+		r_features->push_back("mobile");
+		r_features->push_back("Android");
+	}
+
 	EditorExportAndroid() {
 
 		Ref<Image> img = memnew(Image(_android_logo));
@@ -3566,6 +3615,7 @@ void register_android_exporter() {
 	EditorSettings::get_singleton()->add_property_hint(PropertyInfo(Variant::STRING, "export/android/debug_keystore", PROPERTY_HINT_GLOBAL_FILE, "keystore"));
 	EDITOR_DEF("export/android/debug_keystore_user", "androiddebugkey");
 	EDITOR_DEF("export/android/debug_keystore_pass", "android");
+	EDITOR_DEF("export/android/force_system_user", false);
 
 	EDITOR_DEF("export/android/timestamping_authority_url", "");
 	EDITOR_DEF("export/android/use_remote_debug_over_adb", false);

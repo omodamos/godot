@@ -31,10 +31,10 @@
 
 #include "editor_node.h"
 #include "editor_settings.h"
-#include "global_config.h"
 #include "io/resource_loader.h"
 #include "os/dir_access.h"
 #include "os/file_access.h"
+#include "project_settings.h"
 #include "scene/resources/packed_scene.h"
 
 void EditorHistory::_cleanup_history() {
@@ -183,7 +183,7 @@ ObjectID EditorHistory::get_current() {
 	if (!obj)
 		return 0;
 
-	return obj->get_instance_ID();
+	return obj->get_instance_id();
 }
 
 int EditorHistory::get_path_size() const {
@@ -208,7 +208,7 @@ ObjectID EditorHistory::get_path_object(int p_index) const {
 	if (!obj)
 		return 0;
 
-	return obj->get_instance_ID();
+	return obj->get_instance_id();
 }
 
 String EditorHistory::get_path_property(int p_index) const {
@@ -353,6 +353,7 @@ void EditorData::notify_edited_scene_changed() {
 	for (int i = 0; i < editor_plugins.size(); i++) {
 
 		editor_plugins[i]->edited_scene_changed();
+		editor_plugins[i]->notify_scene_changed(get_edited_scene_root());
 	}
 }
 
@@ -488,8 +489,14 @@ void EditorData::move_edited_scene_index(int p_idx, int p_to_idx) {
 }
 void EditorData::remove_scene(int p_idx) {
 	ERR_FAIL_INDEX(p_idx, edited_scene.size());
-	if (edited_scene[p_idx].root)
+	if (edited_scene[p_idx].root) {
+
+		for (int i = 0; i < editor_plugins.size(); i++) {
+			editor_plugins[i]->notify_scene_closed(edited_scene[p_idx].root->get_filename());
+		}
+
 		memdelete(edited_scene[p_idx].root);
+	}
 
 	if (current_edited_scene > p_idx)
 		current_edited_scene--;
@@ -613,6 +620,17 @@ void EditorData::set_edited_scene_root(Node *p_root) {
 int EditorData::get_edited_scene_count() const {
 
 	return edited_scene.size();
+}
+
+Vector<EditorData::EditedScene> EditorData::get_edited_scenes() const {
+
+	Vector<EditedScene> out_edited_scenes_list = Vector<EditedScene>();
+
+	for (int i = 0; i < edited_scene.size(); i++) {
+		out_edited_scenes_list.push_back(edited_scene[i]);
+	}
+
+	return out_edited_scenes_list;
 }
 
 void EditorData::set_edited_scene_version(uint64_t version, int scene_idx) {
@@ -849,8 +867,8 @@ void EditorSelection::_bind_methods() {
 
 	ClassDB::bind_method(D_METHOD("_node_removed"), &EditorSelection::_node_removed);
 	ClassDB::bind_method(D_METHOD("clear"), &EditorSelection::clear);
-	ClassDB::bind_method(D_METHOD("add_node", "node:Node"), &EditorSelection::add_node);
-	ClassDB::bind_method(D_METHOD("remove_node", "node:Node"), &EditorSelection::remove_node);
+	ClassDB::bind_method(D_METHOD("add_node", "node"), &EditorSelection::add_node);
+	ClassDB::bind_method(D_METHOD("remove_node", "node"), &EditorSelection::remove_node);
 	ClassDB::bind_method(D_METHOD("get_selected_nodes"), &EditorSelection::_get_selected_nodes);
 	ClassDB::bind_method(D_METHOD("get_transformable_selected_nodes"), &EditorSelection::_get_transformable_selected_nodes);
 	ADD_SIGNAL(MethodInfo("selection_changed"));

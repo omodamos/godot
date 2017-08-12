@@ -226,7 +226,7 @@ void Tabs::_gui_input(const Ref<InputEvent> &p_event) {
 		if (found != -1) {
 
 			set_current_tab(found);
-			emit_signal("tab_changed", found);
+			emit_signal("tab_clicked", found);
 		}
 	}
 }
@@ -419,6 +419,7 @@ int Tabs::get_tab_count() const {
 
 void Tabs::set_current_tab(int p_current) {
 
+	if (current == p_current) return;
 	ERR_FAIL_INDEX(p_current, get_tab_count());
 
 	current = p_current;
@@ -426,6 +427,8 @@ void Tabs::set_current_tab(int p_current) {
 	_change_notify("current_tab");
 	_update_cache();
 	update();
+
+	emit_signal("tab_changed", p_current);
 }
 
 int Tabs::get_current_tab() const {
@@ -630,6 +633,7 @@ int Tabs::get_tab_idx_at_point(const Point2 &p_point) const {
 
 void Tabs::set_tab_align(TabAlign p_align) {
 
+	ERR_FAIL_INDEX(p_align, ALIGN_MAX);
 	tab_align = p_align;
 	update();
 }
@@ -637,6 +641,22 @@ void Tabs::set_tab_align(TabAlign p_align) {
 Tabs::TabAlign Tabs::get_tab_align() const {
 
 	return tab_align;
+}
+
+void Tabs::move_tab(int from, int to) {
+
+	if (from == to)
+		return;
+
+	ERR_FAIL_INDEX(from, tabs.size());
+	ERR_FAIL_INDEX(to, tabs.size());
+
+	Tab tab_from = tabs[from];
+	tabs.remove(from);
+	tabs.insert(to, tab_from);
+
+	_update_cache();
+	update();
 }
 
 int Tabs::get_tab_width(int p_idx) const {
@@ -748,8 +768,15 @@ Rect2 Tabs::get_tab_rect(int p_tab) const {
 }
 
 void Tabs::set_tab_close_display_policy(CloseButtonDisplayPolicy p_policy) {
+
+	ERR_FAIL_INDEX(p_policy, CLOSE_BUTTON_MAX);
 	cb_displaypolicy = p_policy;
 	update();
+}
+
+Tabs::CloseButtonDisplayPolicy Tabs::get_tab_close_display_policy() const {
+
+	return cb_displaypolicy;
 }
 
 void Tabs::set_min_width(int p_width) {
@@ -764,31 +791,39 @@ void Tabs::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("get_current_tab"), &Tabs::get_current_tab);
 	ClassDB::bind_method(D_METHOD("set_tab_title", "tab_idx", "title"), &Tabs::set_tab_title);
 	ClassDB::bind_method(D_METHOD("get_tab_title", "tab_idx"), &Tabs::get_tab_title);
-	ClassDB::bind_method(D_METHOD("set_tab_icon", "tab_idx", "icon:Texture"), &Tabs::set_tab_icon);
-	ClassDB::bind_method(D_METHOD("get_tab_icon:Texture", "tab_idx"), &Tabs::get_tab_icon);
+	ClassDB::bind_method(D_METHOD("set_tab_icon", "tab_idx", "icon"), &Tabs::set_tab_icon);
+	ClassDB::bind_method(D_METHOD("get_tab_icon", "tab_idx"), &Tabs::get_tab_icon);
 	ClassDB::bind_method(D_METHOD("set_tab_disabled", "tab_idx", "disabled"), &Tabs::set_tab_disabled);
 	ClassDB::bind_method(D_METHOD("get_tab_disabled", "tab_idx"), &Tabs::get_tab_disabled);
 	ClassDB::bind_method(D_METHOD("remove_tab", "tab_idx"), &Tabs::remove_tab);
-	ClassDB::bind_method(D_METHOD("add_tab", "title", "icon:Texture"), &Tabs::add_tab);
+	ClassDB::bind_method(D_METHOD("add_tab", "title", "icon"), &Tabs::add_tab, DEFVAL(""), DEFVAL(Ref<Texture>()));
 	ClassDB::bind_method(D_METHOD("set_tab_align", "align"), &Tabs::set_tab_align);
 	ClassDB::bind_method(D_METHOD("get_tab_align"), &Tabs::get_tab_align);
 	ClassDB::bind_method(D_METHOD("ensure_tab_visible", "idx"), &Tabs::ensure_tab_visible);
+	ClassDB::bind_method(D_METHOD("get_tab_rect", "tab_idx"), &Tabs::get_tab_rect);
+	ClassDB::bind_method(D_METHOD("move_tab", "from", "to"), &Tabs::move_tab);
+	ClassDB::bind_method(D_METHOD("set_tab_close_display_policy", "policy"), &Tabs::set_tab_close_display_policy);
+	ClassDB::bind_method(D_METHOD("get_tab_close_display_policy"), &Tabs::get_tab_close_display_policy);
 
 	ADD_SIGNAL(MethodInfo("tab_changed", PropertyInfo(Variant::INT, "tab")));
 	ADD_SIGNAL(MethodInfo("right_button_pressed", PropertyInfo(Variant::INT, "tab")));
 	ADD_SIGNAL(MethodInfo("tab_close", PropertyInfo(Variant::INT, "tab")));
 	ADD_SIGNAL(MethodInfo("tab_hover", PropertyInfo(Variant::INT, "tab")));
 	ADD_SIGNAL(MethodInfo("reposition_active_tab_request", PropertyInfo(Variant::INT, "idx_to")));
+	ADD_SIGNAL(MethodInfo("tab_clicked", PropertyInfo(Variant::INT, "tab")));
 
 	ADD_PROPERTY(PropertyInfo(Variant::INT, "current_tab", PROPERTY_HINT_RANGE, "-1,4096,1", PROPERTY_USAGE_EDITOR), "set_current_tab", "get_current_tab");
+	ADD_PROPERTYNZ(PropertyInfo(Variant::INT, "tab_close_display_policy", PROPERTY_HINT_ENUM, "Show Never,Show Active Only,Show Always"), "set_tab_close_display_policy", "get_tab_close_display_policy");
 
 	BIND_CONSTANT(ALIGN_LEFT);
 	BIND_CONSTANT(ALIGN_CENTER);
 	BIND_CONSTANT(ALIGN_RIGHT);
+	BIND_CONSTANT(ALIGN_MAX);
 
 	BIND_CONSTANT(CLOSE_BUTTON_SHOW_ACTIVE_ONLY);
 	BIND_CONSTANT(CLOSE_BUTTON_SHOW_ALWAYS);
 	BIND_CONSTANT(CLOSE_BUTTON_SHOW_NEVER);
+	BIND_CONSTANT(CLOSE_BUTTON_MAX);
 }
 
 Tabs::Tabs() {

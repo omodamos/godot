@@ -453,7 +453,8 @@ void InputDefault::set_mouse_position(const Point2 &p_posf) {
 	mouse_speed_track.update(p_posf - mouse_pos);
 	mouse_pos = p_posf;
 	if (custom_cursor.is_valid()) {
-		VisualServer::get_singleton()->cursor_set_pos(get_mouse_position());
+		//removed, please insist that we implement hardware cursors
+		//		VisualServer::get_singleton()->cursor_set_pos(get_mouse_position());
 	}
 }
 
@@ -538,6 +539,7 @@ bool InputDefault::is_emulating_touchscreen() const {
 }
 
 void InputDefault::set_custom_mouse_cursor(const RES &p_cursor, const Vector2 &p_hotspot) {
+	/* no longer supported, leaving this for reference to anyone who might want to implement hardware cursors
 	if (custom_cursor == p_cursor)
 		return;
 
@@ -545,7 +547,8 @@ void InputDefault::set_custom_mouse_cursor(const RES &p_cursor, const Vector2 &p
 
 	if (p_cursor.is_null()) {
 		set_mouse_mode(MOUSE_MODE_VISIBLE);
-		VisualServer::get_singleton()->cursor_set_visible(false);
+		//removed, please insist us to implement hardare cursors
+		//VisualServer::get_singleton()->cursor_set_visible(false);
 	} else {
 		Ref<AtlasTexture> atex = custom_cursor;
 		Rect2 region = atex.is_valid() ? atex->get_region() : Rect2();
@@ -554,10 +557,11 @@ void InputDefault::set_custom_mouse_cursor(const RES &p_cursor, const Vector2 &p
 		VisualServer::get_singleton()->cursor_set_texture(custom_cursor->get_rid(), p_hotspot, 0, region);
 		VisualServer::get_singleton()->cursor_set_pos(get_mouse_position());
 	}
+	*/
 }
 
 void InputDefault::set_mouse_in_window(bool p_in_window) {
-
+	/* no longer supported, leaving this for reference to anyone who might want to implement hardware cursors
 	if (custom_cursor.is_valid()) {
 
 		if (p_in_window) {
@@ -568,6 +572,7 @@ void InputDefault::set_mouse_in_window(bool p_in_window) {
 			VisualServer::get_singleton()->cursor_set_visible(false);
 		}
 	}
+	*/
 }
 
 // from github.com/gabomdq/SDL_GameControllerDB
@@ -894,8 +899,14 @@ void InputDefault::joy_axis(int p_device, int p_axis, const JoyAxis &p_value) {
 		return;
 	}
 
-	if (ABS(joy.last_axis[p_axis]) > 0.5 && joy.last_axis[p_axis] * p_value.value < 0) {
-		//changed direction quickly, insert fake event to release pending inputmap actions
+	//when changing direction quickly, insert fake event to release pending inputmap actions
+	float last = joy.last_axis[p_axis];
+	if (p_value.min == 0 && (last < 0.25 || last > 0.75) && (last - 0.5) * (p_value.value - 0.5) < 0) {
+		JoyAxis jx;
+		jx.min = p_value.min;
+		jx.value = p_value.value < 0.5 ? 0.6 : 0.4;
+		joy_axis(p_device, p_axis, jx);
+	} else if (ABS(last) > 0.5 && last * p_value.value < 0) {
 		JoyAxis jx;
 		jx.min = p_value.min;
 		jx.value = p_value.value < 0 ? 0.1 : -0.1;

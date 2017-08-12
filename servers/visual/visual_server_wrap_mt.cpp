@@ -27,8 +27,8 @@
 /* SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                */
 /*************************************************************************/
 #include "visual_server_wrap_mt.h"
-#include "global_config.h"
 #include "os/os.h"
+#include "project_settings.h"
 
 void VisualServerWrapMT::thread_exit() {
 
@@ -68,7 +68,7 @@ void VisualServerWrapMT::_thread_callback(void *_instance) {
 
 void VisualServerWrapMT::thread_loop() {
 
-	server_thread = Thread::get_caller_ID();
+	server_thread = Thread::get_caller_id();
 
 	OS::get_singleton()->make_rendering_thread();
 
@@ -176,10 +176,10 @@ VisualServerWrapMT::VisualServerWrapMT(VisualServer *p_contained, bool p_create_
 	draw_pending = 0;
 	draw_thread_up = false;
 	alloc_mutex = Mutex::create();
-	pool_max_size = GLOBAL_DEF("memory/servers/thread_rid_prealloc_amount", 20);
+	pool_max_size = GLOBAL_GET("memory/limits/multithreaded_server/rid_pool_prealloc");
 
 	if (!p_create_thread) {
-		server_thread = Thread::get_caller_ID();
+		server_thread = Thread::get_caller_id();
 	} else {
 		server_thread = 0;
 	}

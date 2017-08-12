@@ -130,9 +130,9 @@ struct _VariantCall {
 		StringName name;
 		Variant::Type type;
 		Arg() { type = Variant::NIL; }
-		Arg(Variant::Type p_type, const StringName &p_name) {
-			name = p_name;
-			type = p_type;
+		Arg(Variant::Type p_type, const StringName &p_name)
+			: name(p_name),
+			  type(p_type) {
 		}
 	};
 
@@ -517,7 +517,7 @@ struct _VariantCall {
 		PoolByteArray compressed;
 		Compression::Mode mode = (Compression::Mode)(int)(*p_args[0]);
 
-		compressed.resize(Compression::get_max_compressed_buffer_size(ba->size()));
+		compressed.resize(Compression::get_max_compressed_buffer_size(ba->size(), mode));
 		int result = Compression::compress(compressed.write().ptr(), ba->read().ptr(), ba->size(), mode);
 
 		result = result >= 0 ? result : 0;

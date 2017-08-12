@@ -492,7 +492,8 @@ void VisualScriptEditor::_update_graph(int p_only_id) {
 		}
 
 		if (EditorSettings::get_singleton()->has("editors/visual_script/color_" + node->get_category())) {
-			gnode->set_modulate(EditorSettings::get_singleton()->get("editors/visual_script/color_" + node->get_category()));
+			Color c = EditorSettings::get_singleton()->get("editors/visual_script/color_" + node->get_category());
+			gnode->set_self_modulate(c);
 		}
 
 		gnode->set_meta("__vnode", node);
@@ -614,7 +615,7 @@ void VisualScriptEditor::_update_graph(int p_only_id) {
 
 						Ref<Resource> res = value;
 						Array arr;
-						arr.push_back(button->get_instance_ID());
+						arr.push_back(button->get_instance_id());
 						arr.push_back(String(value));
 						EditorResourcePreview::get_singleton()->queue_edited_resource_preview(res, this, "_button_resource_previewed", arr);
 
@@ -868,14 +869,26 @@ void VisualScriptEditor::_member_edited() {
 		}
 		selected = new_name;
 
-		_update_graph();
-
+		int node_id = script->get_function_node_id(name);
+		Ref<VisualScriptFunction> func;
+		if (script->has_node(name, node_id)) {
+			func = script->get_node(name, node_id);
+		}
 		undo_redo->create_action(TTR("Rename Function"));
 		undo_redo->add_do_method(script.ptr(), "rename_function", name, new_name);
 		undo_redo->add_undo_method(script.ptr(), "rename_function", new_name, name);
+		if (func.is_valid()) {
+
+			undo_redo->add_do_method(func.ptr(), "set_name", new_name);
+			undo_redo->add_undo_method(func.ptr(), "set_name", name);
+		}
 		undo_redo->add_do_method(this, "_update_members");
 		undo_redo->add_undo_method(this, "_update_members");
+		undo_redo->add_do_method(this, "_update_graph");
+		undo_redo->add_undo_method(this, "_update_graph");
 		undo_redo->commit_action();
+
+		//		_update_graph();
 
 		return; //or crash because it will become invalid
 	}
@@ -1968,7 +1981,7 @@ String VisualScriptEditor::get_name() {
 	} else if (script->get_name() != "")
 		name = script->get_name();
 	else
-		name = script->get_class() + "(" + itos(script->get_instance_ID()) + ")";
+		name = script->get_class() + "(" + itos(script->get_instance_id()) + ")";
 
 	return name;
 }
@@ -2327,6 +2340,16 @@ void VisualScriptEditor::_graph_connected(const String &p_from, int p_from_slot,
 		undo_redo->add_do_method(script.ptr(), "sequence_connect", edited_func, p_from.to_int(), from_port, p_to.to_int());
 		undo_redo->add_undo_method(script.ptr(), "sequence_disconnect", edited_func, p_from.to_int(), from_port, p_to.to_int());
 	} else {
+
+		// disconect current, and connect the new one
+		if (script->is_input_value_port_connected(edited_func, p_to.to_int(), to_port)) {
+			int conn_from;
+			int conn_port;
+			script->get_input_value_port_connection_source(edited_func, p_to.to_int(), to_port, &conn_from, &conn_port);
+			undo_redo->add_do_method(script.ptr(), "data_disconnect", edited_func, conn_from, conn_port, p_to.to_int(), to_port);
+			undo_redo->add_undo_method(script.ptr(), "data_connect", edited_func, conn_from, conn_port, p_to.to_int(), to_port);
+		}
+
 		undo_redo->add_do_method(script.ptr(), "data_connect", edited_func, p_from.to_int(), from_port, p_to.to_int(), to_port);
 		undo_redo->add_undo_method(script.ptr(), "data_disconnect", edited_func, p_from.to_int(), from_port, p_to.to_int(), to_port);
 		//update nodes in sgraph
@@ -2745,7 +2768,7 @@ void VisualScriptEditor::_node_filter_changed(const String &p_text) {
 void VisualScriptEditor::_notification(int p_what) {
 
 	if (p_what == NOTIFICATION_READY) {
-		node_filter_icon->set_texture(Control::get_icon("Zoom", "EditorIcons"));
+		node_filter->add_icon_override("right_icon", Control::get_icon("Search", "EditorIcons"));
 		variable_editor->connect("changed", this, "_update_members");
 		signal_editor->connect("changed", this, "_update_members");
 	}
@@ -3214,9 +3237,6 @@ VisualScriptEditor::VisualScriptEditor() {
 	node_filter->connect("text_changed", this, "_node_filter_changed");
 	hbc_nodes->add_child(node_filter);
 	node_filter->set_h_size_flags(SIZE_EXPAND_FILL);
-	node_filter_icon = memnew(TextureRect);
-	node_filter_icon->set_stretch_mode(TextureRect::STRETCH_KEEP_CENTERED);
-	hbc_nodes->add_child(node_filter_icon);
 	vbc_nodes->add_child(hbc_nodes);
 
 	nodes = memnew(Tree);
@@ -3375,7 +3395,7 @@ static void register_editor_callback() {
 	EditorSettings::get_singleton()->set("editors/visual_script/color_functions", Color(1, 0.9, 0.9));
 	EditorSettings::get_singleton()->set("editors/visual_script/color_data", Color(0.9, 1.0, 0.9));
 	EditorSettings::get_singleton()->set("editors/visual_script/color_operators", Color(0.9, 0.9, 1.0));
-	EditorSettings::get_singleton()->set("editors/visual_script/color_flow_control", Color(1.0, 1.0, 0.8));
+	EditorSettings::get_singleton()->set("editors/visual_script/color_flow_control", Color(1.0, 1.0, 1.0));
 	EditorSettings::get_singleton()->set("editors/visual_script/color_custom", Color(0.8, 1.0, 1.0));
 	EditorSettings::get_singleton()->set("editors/visual_script/color_constants", Color(1.0, 0.8, 1.0));
 

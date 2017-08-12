@@ -31,8 +31,8 @@
 #include "broad_phase_2d_basic.h"
 #include "broad_phase_2d_hash_grid.h"
 #include "collision_solver_2d_sw.h"
-#include "global_config.h"
 #include "os/os.h"
+#include "project_settings.h"
 #include "script_language.h"
 
 RID Physics2DServerSW::shape_create(ShapeType p_shape) {
@@ -286,11 +286,23 @@ void Physics2DServerSW::area_set_space(RID p_area, RID p_space) {
 
 	Area2DSW *area = area_owner.get(p_area);
 	ERR_FAIL_COND(!area);
+
 	Space2DSW *space = NULL;
 	if (p_space.is_valid()) {
 		space = space_owner.get(p_space);
 		ERR_FAIL_COND(!space);
 	}
+
+	if (area->get_space() == space)
+		return; //pointless
+
+	for (Set<Constraint2DSW *>::Element *E = area->get_constraints().front(); E; E = E->next()) {
+		RID self = E->get()->get_self();
+		if (!self.is_valid())
+			continue;
+		free(self);
+	}
+	area->clear_constraints();
 
 	area->set_space(space);
 };
@@ -403,7 +415,7 @@ void Physics2DServerSW::area_clear_shapes(RID p_area) {
 		area->remove_shape(0);
 }
 
-void Physics2DServerSW::area_attach_object_instance_ID(RID p_area, ObjectID p_ID) {
+void Physics2DServerSW::area_attach_object_instance_id(RID p_area, ObjectID p_ID) {
 
 	if (space_owner.owns(p_area)) {
 		Space2DSW *space = space_owner.get(p_area);
@@ -413,7 +425,7 @@ void Physics2DServerSW::area_attach_object_instance_ID(RID p_area, ObjectID p_ID
 	ERR_FAIL_COND(!area);
 	area->set_instance_id(p_ID);
 }
-ObjectID Physics2DServerSW::area_get_object_instance_ID(RID p_area) const {
+ObjectID Physics2DServerSW::area_get_object_instance_id(RID p_area) const {
 
 	if (space_owner.owns(p_area)) {
 		Space2DSW *space = space_owner.get(p_area);
@@ -498,7 +510,7 @@ void Physics2DServerSW::area_set_monitor_callback(RID p_area, Object *p_receiver
 	Area2DSW *area = area_owner.get(p_area);
 	ERR_FAIL_COND(!area);
 
-	area->set_monitor_callback(p_receiver ? p_receiver->get_instance_ID() : 0, p_method);
+	area->set_monitor_callback(p_receiver ? p_receiver->get_instance_id() : 0, p_method);
 }
 
 void Physics2DServerSW::area_set_area_monitor_callback(RID p_area, Object *p_receiver, const StringName &p_method) {
@@ -506,7 +518,7 @@ void Physics2DServerSW::area_set_area_monitor_callback(RID p_area, Object *p_rec
 	Area2DSW *area = area_owner.get(p_area);
 	ERR_FAIL_COND(!area);
 
-	area->set_area_monitor_callback(p_receiver ? p_receiver->get_instance_ID() : 0, p_method);
+	area->set_area_monitor_callback(p_receiver ? p_receiver->get_instance_id() : 0, p_method);
 }
 
 /* BODY API */
@@ -532,6 +544,17 @@ void Physics2DServerSW::body_set_space(RID p_body, RID p_space) {
 		space = space_owner.get(p_space);
 		ERR_FAIL_COND(!space);
 	}
+
+	if (body->get_space() == space)
+		return; //pointless
+
+	for (Map<Constraint2DSW *, int>::Element *E = body->get_constraint_map().front(); E; E = E->next()) {
+		RID self = E->key()->get_self();
+		if (!self.is_valid())
+			continue;
+		free(self);
+	}
+	body->clear_constraint_map();
 
 	body->set_space(space);
 };
@@ -683,7 +706,7 @@ Physics2DServerSW::CCDMode Physics2DServerSW::body_get_continuous_collision_dete
 	return body->get_continuous_collision_detection_mode();
 }
 
-void Physics2DServerSW::body_attach_object_instance_ID(RID p_body, uint32_t p_ID) {
+void Physics2DServerSW::body_attach_object_instance_id(RID p_body, uint32_t p_ID) {
 
 	Body2DSW *body = body_owner.get(p_body);
 	ERR_FAIL_COND(!body);
@@ -691,7 +714,7 @@ void Physics2DServerSW::body_attach_object_instance_ID(RID p_body, uint32_t p_ID
 	body->set_instance_id(p_ID);
 };
 
-uint32_t Physics2DServerSW::body_get_object_instance_ID(RID p_body) const {
+uint32_t Physics2DServerSW::body_get_object_instance_id(RID p_body) const {
 
 	Body2DSW *body = body_owner.get(p_body);
 	ERR_FAIL_COND_V(!body, 0);
@@ -899,7 +922,7 @@ void Physics2DServerSW::body_set_force_integration_callback(RID p_body, Object *
 
 	Body2DSW *body = body_owner.get(p_body);
 	ERR_FAIL_COND(!body);
-	body->set_force_integration_callback(p_receiver ? p_receiver->get_instance_ID() : ObjectID(0), p_method, p_udata);
+	body->set_force_integration_callback(p_receiver ? p_receiver->get_instance_id() : ObjectID(0), p_method, p_udata);
 }
 
 bool Physics2DServerSW::body_collide_shape(RID p_body, int p_body_shape, RID p_shape, const Transform2D &p_shape_xform, const Vector2 &p_motion, Vector2 *r_results, int p_result_max, int &r_result_count) {
@@ -1073,17 +1096,11 @@ void Physics2DServerSW::free(RID p_rid) {
 			_clear_query(body->get_direct_state_query());
 		*/
 
-		body->set_space(NULL);
+		body_set_space(p_rid, RID());
 
 		while (body->get_shape_count()) {
 
 			body->remove_shape(0);
-		}
-
-		while (body->get_constraint_map().size()) {
-			RID self = body->get_constraint_map().front()->key()->get_self();
-			ERR_FAIL_COND(!self.is_valid());
-			free(self);
 		}
 
 		body_owner.free(p_rid);
@@ -1264,7 +1281,7 @@ Physics2DServerSW::Physics2DServerSW() {
 	island_count = 0;
 	active_objects = 0;
 	collision_pairs = 0;
-	using_threads = int(GlobalConfig::get_singleton()->get("physics/2d/thread_model")) == 2;
+	using_threads = int(ProjectSettings::get_singleton()->get("physics/2d/thread_model")) == 2;
 };
 
 Physics2DServerSW::~Physics2DServerSW(){

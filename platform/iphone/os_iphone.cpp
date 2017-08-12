@@ -38,10 +38,10 @@
 #include "audio_driver_iphone.h"
 #include "main/main.h"
 
-#include "core/global_config.h"
 #include "core/io/file_access_pack.h"
 #include "core/os/dir_access.h"
 #include "core/os/file_access.h"
+#include "core/project_settings.h"
 
 #include "sem_iphone.h"
 
@@ -83,12 +83,12 @@ void OSIPhone::set_data_dir(String p_dir) {
 	memdelete(da);
 };
 
-void OSIPhone::set_unique_ID(String p_ID) {
+void OSIPhone::set_unique_id(String p_ID) {
 
 	unique_ID = p_ID;
 };
 
-String OSIPhone::get_unique_ID() const {
+String OSIPhone::get_unique_id() const {
 
 	return unique_ID;
 };
@@ -109,7 +109,6 @@ void OSIPhone::initialize(const VideoMode &p_desired, int p_video_driver, int p_
 
 	RasterizerGLES3::register_config();
 	RasterizerGLES3::make_current();
-	RasterizerStorageGLES3::system_fbo = gl_view_base_fb;
 
 	visual_server = memnew(VisualServerRaster());
 	/*
@@ -120,7 +119,10 @@ void OSIPhone::initialize(const VideoMode &p_desired, int p_video_driver, int p_
 	*/
 
 	visual_server->init();
-	visual_server->cursor_set_visible(false, 0);
+	//	visual_server->cursor_set_visible(false, 0);
+
+	// reset this to what it should be, it will have been set to 0 after visual_server->init() is called
+	RasterizerStorageGLES3::system_fbo = gl_view_base_fb;
 
 	audio_driver = memnew(AudioDriverIphone);
 	audio_driver->set_singleton();
@@ -138,28 +140,28 @@ void OSIPhone::initialize(const VideoMode &p_desired, int p_video_driver, int p_
 /*
 #ifdef IOS_SCORELOOP_ENABLED
 	scoreloop = memnew(ScoreloopIOS);
-	GlobalConfig::get_singleton()->add_singleton(GlobalConfig::Singleton("Scoreloop", scoreloop));
+	ProjectSettings::get_singleton()->add_singleton(ProjectSettings::Singleton("Scoreloop", scoreloop));
 	scoreloop->connect();
 #endif
 	*/
 
 #ifdef GAME_CENTER_ENABLED
 	game_center = memnew(GameCenter);
-	GlobalConfig::get_singleton()->add_singleton(GlobalConfig::Singleton("GameCenter", game_center));
+	ProjectSettings::get_singleton()->add_singleton(ProjectSettings::Singleton("GameCenter", game_center));
 	game_center->connect();
 #endif
 
 #ifdef STOREKIT_ENABLED
 	store_kit = memnew(InAppStore);
-	GlobalConfig::get_singleton()->add_singleton(GlobalConfig::Singleton("InAppStore", store_kit));
+	ProjectSettings::get_singleton()->add_singleton(ProjectSettings::Singleton("InAppStore", store_kit));
 #endif
 
 #ifdef ICLOUD_ENABLED
 	icloud = memnew(ICloud);
-	GlobalConfig::get_singleton()->add_singleton(GlobalConfig::Singleton("ICloud", icloud));
+	ProjectSettings::get_singleton()->add_singleton(ProjectSettings::Singleton("ICloud", icloud));
 //icloud->connect();
 #endif
-	GlobalConfig::get_singleton()->add_singleton(GlobalConfig::Singleton("iOS", memnew(iOS)));
+	ProjectSettings::get_singleton()->add_singleton(ProjectSettings::Singleton("iOS", memnew(iOS)));
 };
 
 MainLoop *OSIPhone::get_main_loop() const {
@@ -222,11 +224,9 @@ void OSIPhone::mouse_button(int p_idx, int p_x, int p_y, bool p_pressed, bool p_
 
 		Ref<InputEventMouseButton> ev;
 		ev.instance();
-		// swaped it for tilted screen
-		//ev->get_pos().x = ev.mouse_button.global_x = video_mode.height - p_y;
-		//ev->get_pos().y = ev.mouse_button.global_y = p_x;
-		ev->set_position(Vector2(video_mode.height - p_y, p_x));
-		ev->set_global_position(Vector2(video_mode.height - p_y, p_x));
+
+		ev->set_position(Vector2(p_x, p_y));
+		ev->set_global_position(Vector2(p_x, p_y));
 
 		//mouse_list.pressed[p_idx] = p_pressed;
 
@@ -434,7 +434,8 @@ bool OSIPhone::can_draw() const {
 
 int OSIPhone::set_base_framebuffer(int p_fb) {
 
-	RasterizerStorageGLES3::system_fbo = gl_view_base_fb;
+	// gl_view_base_fb has not been updated yet
+	RasterizerStorageGLES3::system_fbo = p_fb;
 
 	return 0;
 };
@@ -517,7 +518,7 @@ Error OSIPhone::native_video_play(String p_path, float p_volume, String p_audio_
 			print("Unable to play %S using the native player as it resides in a .pck file\n", p_path.c_str());
 			return ERR_INVALID_PARAMETER;
 		} else {
-			p_path = p_path.replace("res:/", GlobalConfig::get_singleton()->get_resource_path());
+			p_path = p_path.replace("res:/", ProjectSettings::get_singleton()->get_resource_path());
 		}
 	} else if (p_path.begins_with("user://"))
 		p_path = p_path.replace("user:/", get_data_dir());
@@ -550,6 +551,11 @@ void OSIPhone::native_video_focus_out() {
 void OSIPhone::native_video_stop() {
 	if (native_video_is_playing())
 		_stop_video();
+}
+
+bool OSIPhone::_check_internal_feature_support(const String &p_feature) {
+
+	return p_feature == "mobile" || p_feature == "etc" || p_feature == "pvrtc" || p_feature == "etc2";
 }
 
 OSIPhone::OSIPhone(int width, int height) {

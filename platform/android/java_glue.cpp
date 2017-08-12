@@ -36,11 +36,11 @@
 #include "dir_access_jandroid.h"
 #include "file_access_android.h"
 #include "file_access_jandroid.h"
-#include "global_config.h"
 #include "java_class_wrapper.h"
 #include "main/input_default.h"
 #include "main/main.h"
 #include "os_android.h"
+#include "project_settings.h"
 #include "thread_jandroid.h"
 #include <unistd.h>
 
@@ -883,7 +883,7 @@ JNIEXPORT void JNICALL Java_org_godotengine_godot_GodotLib_initialize(JNIEnv *en
 	__android_log_print(ANDROID_LOG_INFO, "godot", "*****SETUP OK");
 
 	//video driver is determined here, because once initialized, it can't be changed
-	String vd = GlobalConfig::get_singleton()->get("display/driver");
+	String vd = ProjectSettings::get_singleton()->get("display/driver");
 
 	env->CallVoidMethod(_godot_instance, _on_video_init, (jboolean) true);
 
@@ -895,7 +895,7 @@ JNIEXPORT void JNICALL Java_org_godotengine_godot_GodotLib_initialize(JNIEnv *en
 
 JNIEXPORT void JNICALL Java_org_godotengine_godot_GodotLib_resize(JNIEnv *env, jobject obj, jint width, jint height, jboolean reload) {
 
-	__android_log_print(ANDROID_LOG_INFO, "godot", "^_^_^_^_^ resize %lld, %i, %i\n", Thread::get_caller_ID(), width, height);
+	__android_log_print(ANDROID_LOG_INFO, "godot", "^_^_^_^_^ resize %lld, %i, %i\n", Thread::get_caller_id(), width, height);
 	if (os_android)
 		os_android->set_display_size(Size2(width, height));
 
@@ -909,7 +909,7 @@ JNIEXPORT void JNICALL Java_org_godotengine_godot_GodotLib_resize(JNIEnv *env, j
 
 JNIEXPORT void JNICALL Java_org_godotengine_godot_GodotLib_newcontext(JNIEnv *env, jobject obj, bool p_32_bits) {
 
-	__android_log_print(ANDROID_LOG_INFO, "godot", "^_^_^_^_^ newcontext %lld\n", Thread::get_caller_ID());
+	__android_log_print(ANDROID_LOG_INFO, "godot", "^_^_^_^_^ newcontext %lld\n", Thread::get_caller_id());
 
 	if (os_android) {
 		os_android->set_context_is_16_bits(!p_32_bits);
@@ -930,12 +930,12 @@ JNIEXPORT void JNICALL Java_org_godotengine_godot_GodotLib_back(JNIEnv *env, job
 
 static void _initialize_java_modules() {
 
-	if (!GlobalConfig::get_singleton()->has("android/modules")) {
+	if (!ProjectSettings::get_singleton()->has("android/modules")) {
 		print_line("ANDROID MODULES: Nothing to load, aborting");
 		return;
 	}
 
-	String modules = GlobalConfig::get_singleton()->get("android/modules");
+	String modules = ProjectSettings::get_singleton()->get("android/modules");
 	modules = modules.strip_edges();
 	if (modules == String()) {
 		return;
@@ -995,7 +995,7 @@ JNIEXPORT void JNICALL Java_org_godotengine_godot_GodotLib_step(JNIEnv *env, job
 
 	ThreadAndroid::setup_thread();
 
-	//__android_log_print(ANDROID_LOG_INFO,"godot","**STEP EVENT! - %p-%i\n",env,Thread::get_caller_ID());
+	//__android_log_print(ANDROID_LOG_INFO,"godot","**STEP EVENT! - %p-%i\n",env,Thread::get_caller_id());
 
 	suspend_mutex->lock();
 	input_mutex->lock();
@@ -1005,7 +1005,7 @@ JNIEXPORT void JNICALL Java_org_godotengine_godot_GodotLib_step(JNIEnv *env, job
 		// because of the way android forces you to do everything with threads
 
 		java_class_wrapper = memnew(JavaClassWrapper(_godot_instance));
-		GlobalConfig::get_singleton()->add_singleton(GlobalConfig::Singleton("JavaClassWrapper", java_class_wrapper));
+		ProjectSettings::get_singleton()->add_singleton(ProjectSettings::Singleton("JavaClassWrapper", java_class_wrapper));
 		_initialize_java_modules();
 
 		Main::setup2();
@@ -1069,7 +1069,7 @@ JNIEXPORT void JNICALL Java_org_godotengine_godot_GodotLib_step(JNIEnv *env, job
 		jclass cls = env->FindClass("org/godotengine/godot/Godot");
 		jmethodID _finish = env->GetMethodID(cls, "forceQuit", "()V");
 		env->CallVoidMethod(_godot_instance, _finish);
-		__android_log_print(ANDROID_LOG_INFO, "godot", "**FINISH REQUEST!!! - %p-%i\n", env, Thread::get_caller_ID());
+		__android_log_print(ANDROID_LOG_INFO, "godot", "**FINISH REQUEST!!! - %p-%i\n", env, Thread::get_caller_id());
 	}
 
 	suspend_mutex->unlock();
@@ -1077,7 +1077,7 @@ JNIEXPORT void JNICALL Java_org_godotengine_godot_GodotLib_step(JNIEnv *env, job
 
 JNIEXPORT void JNICALL Java_org_godotengine_godot_GodotLib_touch(JNIEnv *env, jobject obj, jint ev, jint pointer, jint count, jintArray positions) {
 
-	//__android_log_print(ANDROID_LOG_INFO,"godot","**TOUCH EVENT! - %p-%i\n",env,Thread::get_caller_ID());
+	//__android_log_print(ANDROID_LOG_INFO,"godot","**TOUCH EVENT! - %p-%i\n",env,Thread::get_caller_id());
 
 	Vector<OS_Android::TouchPos> points;
 	for (int i = 0; i < count; i++) {
@@ -1504,8 +1504,8 @@ JNIEXPORT void JNICALL Java_org_godotengine_godot_GodotLib_singleton(JNIEnv *env
 	s->set_instance(env->NewGlobalRef(p_object));
 	jni_singletons[singname] = s;
 
-	GlobalConfig::get_singleton()->add_singleton(GlobalConfig::Singleton(singname, s));
-	GlobalConfig::get_singleton()->set(singname, s);
+	ProjectSettings::get_singleton()->add_singleton(ProjectSettings::Singleton(singname, s));
+	ProjectSettings::get_singleton()->set(singname, s);
 }
 
 static Variant::Type get_jni_type(const String &p_type) {
@@ -1578,7 +1578,7 @@ JNIEXPORT jstring JNICALL Java_org_godotengine_godot_GodotLib_getGlobal(JNIEnv *
 
 	String js = env->GetStringUTFChars(path, NULL);
 
-	return env->NewStringUTF(GlobalConfig::get_singleton()->get(js).operator String().utf8().get_data());
+	return env->NewStringUTF(ProjectSettings::get_singleton()->get(js).operator String().utf8().get_data());
 }
 
 JNIEXPORT void JNICALL Java_org_godotengine_godot_GodotLib_method(JNIEnv *env, jobject obj, jstring sname, jstring name, jstring ret, jobjectArray args) {

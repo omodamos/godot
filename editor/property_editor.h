@@ -1,4 +1,4 @@
-/*************************************************************************/
+﻿/*************************************************************************/
 /*  property_editor.h                                                    */
 /*************************************************************************/
 /*                       This file is part of:                           */
@@ -191,6 +191,7 @@ class PropertyEditor : public Control {
 	bool subsection_selectable;
 	bool hide_script;
 	bool use_folding;
+	bool property_selectable;
 
 	bool updating_folding;
 
@@ -208,6 +209,7 @@ class PropertyEditor : public Control {
 	void _custom_editor_request(bool p_arrow);
 
 	void _item_selected();
+	void _item_rmb_edited();
 	void _item_edited();
 	TreeItem *get_parent_node(String p_path, HashMap<String, TreeItem *> &item_paths, TreeItem *root, TreeItem *category);
 
@@ -288,6 +290,7 @@ public:
 	void register_text_enter(Node *p_line_edit);
 
 	void set_subsection_selectable(bool p_selectable);
+	void set_property_selectable(bool p_selectable);
 
 	void set_use_folding(bool p_enable);
 	PropertyEditor();
@@ -307,11 +310,15 @@ class SectionedPropertyEditor : public HBoxContainer {
 
 	Map<String, TreeItem *> section_map;
 	PropertyEditor *editor;
+	LineEdit *search_box;
 
 	static void _bind_methods();
 	void _section_selected();
 
+	void _search_changed(const String &p_what);
+
 public:
+	void register_search_box(LineEdit *p_box);
 	PropertyEditor *get_property_editor();
 	void edit(Object *p_object);
 	String get_full_item_path(const String &p_item);

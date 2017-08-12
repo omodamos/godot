@@ -28,7 +28,7 @@
 /* SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                */
 /*************************************************************************/
 #include "environment.h"
-#include "global_config.h"
+#include "project_settings.h"
 #include "servers/visual_server.h"
 #include "texture.h"
 
@@ -167,6 +167,7 @@ void Environment::set_tonemap_auto_exposure(bool p_enabled) {
 
 	tonemap_auto_exposure = p_enabled;
 	VS::get_singleton()->environment_set_tonemap(environment, VS::EnvironmentToneMapper(tone_mapper), tonemap_exposure, tonemap_white, tonemap_auto_exposure, tonemap_auto_exposure_min, tonemap_auto_exposure_max, tonemap_auto_exposure_speed, tonemap_auto_exposure_grey);
+	_change_notify();
 }
 bool Environment::get_tonemap_auto_exposure() const {
 
@@ -818,7 +819,7 @@ float Environment::get_fog_height_curve() const {
 void Environment::_bind_methods() {
 
 	ClassDB::bind_method(D_METHOD("set_background", "mode"), &Environment::set_background);
-	ClassDB::bind_method(D_METHOD("set_sky", "sky:Sky"), &Environment::set_sky);
+	ClassDB::bind_method(D_METHOD("set_sky", "sky"), &Environment::set_sky);
 	ClassDB::bind_method(D_METHOD("set_sky_scale", "scale"), &Environment::set_sky_scale);
 	ClassDB::bind_method(D_METHOD("set_bg_color", "color"), &Environment::set_bg_color);
 	ClassDB::bind_method(D_METHOD("set_bg_energy", "energy"), &Environment::set_bg_energy);
@@ -828,7 +829,7 @@ void Environment::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("set_ambient_light_sky_contribution", "energy"), &Environment::set_ambient_light_sky_contribution);
 
 	ClassDB::bind_method(D_METHOD("get_background"), &Environment::get_background);
-	ClassDB::bind_method(D_METHOD("get_sky:CubeMap"), &Environment::get_sky);
+	ClassDB::bind_method(D_METHOD("get_sky"), &Environment::get_sky);
 	ClassDB::bind_method(D_METHOD("get_sky_scale"), &Environment::get_sky_scale);
 	ClassDB::bind_method(D_METHOD("get_bg_color"), &Environment::get_bg_color);
 	ClassDB::bind_method(D_METHOD("get_bg_energy"), &Environment::get_bg_energy);
@@ -1113,8 +1114,6 @@ void Environment::_bind_methods() {
 	ADD_PROPERTY(PropertyInfo(Variant::REAL, "adjustment_saturation", PROPERTY_HINT_RANGE, "0.01,8,0.01"), "set_adjustment_saturation", "get_adjustment_saturation");
 	ADD_PROPERTY(PropertyInfo(Variant::OBJECT, "adjustment_color_correction", PROPERTY_HINT_RESOURCE_TYPE, "Texture"), "set_adjustment_color_correction", "get_adjustment_color_correction");
 
-	GLOBAL_DEF("rendering/sky/irradiance_cube_resolution", 256);
-
 	BIND_CONSTANT(BG_KEEP);
 	BIND_CONSTANT(BG_CLEAR_COLOR);
 	BIND_CONSTANT(BG_COLOR);
@@ -1141,7 +1140,7 @@ Environment::Environment() {
 	bg_energy = 1.0;
 	bg_canvas_max_layer = 0;
 	ambient_energy = 1.0;
-	ambient_sky_contribution = 0;
+	ambient_sky_contribution = 1.0;
 
 	tone_mapper = TONE_MAPPER_LINEAR;
 	tonemap_exposure = 1.0;

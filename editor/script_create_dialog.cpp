@@ -29,11 +29,12 @@
 /*************************************************************************/
 #include "script_create_dialog.h"
 
+#include "editor/editor_node.h"
 #include "editor/editor_scale.h"
 #include "editor_file_system.h"
-#include "global_config.h"
 #include "io/resource_saver.h"
 #include "os/file_access.h"
+#include "project_settings.h"
 #include "script_language.h"
 
 void ScriptCreateDialog::_notification(int p_what) {
@@ -167,7 +168,7 @@ void ScriptCreateDialog::_create_new() {
 		scr->set_name(cname);
 
 	if (!is_built_in) {
-		String lpath = GlobalConfig::get_singleton()->localize_path(file_path->get_text());
+		String lpath = ProjectSettings::get_singleton()->localize_path(file_path->get_text());
 		scr->set_path(lpath);
 		Error err = ResourceSaver::save(lpath, scr, ResourceSaver::FLAG_CHANGE_PATH);
 		if (err != OK) {
@@ -229,7 +230,7 @@ void ScriptCreateDialog::_lang_changed(int l) {
 			List<String> extensions;
 			// get all possible extensions for script
 			for (int l = 0; l < language_menu->get_item_count(); l++) {
-				language->get_recognized_extensions(&extensions);
+				ScriptServer::get_language(l)->get_recognized_extensions(&extensions);
 			}
 
 			for (List<String>::Element *E = extensions.front(); E; E = E->next()) {
@@ -240,8 +241,11 @@ void ScriptCreateDialog::_lang_changed(int l) {
 				}
 			}
 		}
-		file_path->set_text(path);
+	} else {
+		path = "class" + selected_ext;
+		_path_changed(path);
 	}
+	file_path->set_text(path);
 
 	bool use_templates = language->is_using_templates();
 	template_menu->set_disabled(!use_templates);
@@ -305,7 +309,7 @@ void ScriptCreateDialog::_browse_path(bool browse_parent) {
 
 void ScriptCreateDialog::_file_selected(const String &p_file) {
 
-	String p = GlobalConfig::get_singleton()->localize_path(p_file);
+	String p = ProjectSettings::get_singleton()->localize_path(p_file);
 	if (is_browsing_parent) {
 		parent_name->set_text("\"" + p + "\"");
 		_class_name_changed("\"" + p + "\"");
@@ -327,7 +331,7 @@ void ScriptCreateDialog::_path_changed(const String &p_path) {
 		return;
 	}
 
-	p = GlobalConfig::get_singleton()->localize_path(p);
+	p = ProjectSettings::get_singleton()->localize_path(p);
 	if (!p.begins_with("res://")) {
 		_msg_path_valid(false, TTR("Path is not local"));
 		_update_dialog();
@@ -403,9 +407,9 @@ void ScriptCreateDialog::_msg_script_valid(bool valid, const String &p_msg) {
 
 	error_label->set_text(TTR(p_msg));
 	if (valid) {
-		error_label->add_color_override("font_color", Color(0, 1.0, 0.8, 0.8));
+		error_label->add_color_override("font_color", get_color("success_color", "Editor"));
 	} else {
-		error_label->add_color_override("font_color", Color(1, 0.2, 0.2, 0.8));
+		error_label->add_color_override("font_color", get_color("error_color", "Editor"));
 	}
 }
 
@@ -413,9 +417,9 @@ void ScriptCreateDialog::_msg_path_valid(bool valid, const String &p_msg) {
 
 	path_error_label->set_text(TTR(p_msg));
 	if (valid) {
-		path_error_label->add_color_override("font_color", Color(0, 1.0, 0.8, 0.8));
+		path_error_label->add_color_override("font_color", get_color("success_color", "Editor"));
 	} else {
-		path_error_label->add_color_override("font_color", Color(1, 0.4, 0.0, 0.8));
+		path_error_label->add_color_override("font_color", get_color("error_color", "Editor"));
 	}
 }
 
@@ -543,19 +547,6 @@ ScriptCreateDialog::ScriptCreateDialog() {
 	gc = memnew(GridContainer);
 	gc->set_columns(2);
 
-	/* Error Stylebox Background */
-
-	StyleBoxFlat *sb = memnew(StyleBoxFlat);
-	sb->set_bg_color(Color(0, 0, 0, 0.05));
-	sb->set_light_color(Color(1, 1, 1, 0.05));
-	sb->set_dark_color(Color(1, 1, 1, 0.05));
-	sb->set_border_blend(false);
-	sb->set_border_size(1);
-	sb->set_default_margin(MARGIN_TOP, 10.0 * EDSCALE);
-	sb->set_default_margin(MARGIN_BOTTOM, 10.0 * EDSCALE);
-	sb->set_default_margin(MARGIN_LEFT, 10.0 * EDSCALE);
-	sb->set_default_margin(MARGIN_RIGHT, 10.0 * EDSCALE);
-
 	/* Error Messages Field */
 
 	vb = memnew(VBoxContainer);
@@ -582,7 +573,7 @@ ScriptCreateDialog::ScriptCreateDialog() {
 
 	pc = memnew(PanelContainer);
 	pc->set_h_size_flags(Control::SIZE_FILL);
-	pc->add_style_override("panel", sb);
+	pc->add_style_override("panel", EditorNode::get_singleton()->get_gui_base()->get_stylebox("bg", "Tree"));
 	pc->add_child(vb);
 
 	/* Margins */

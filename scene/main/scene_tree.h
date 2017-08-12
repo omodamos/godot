@@ -90,6 +90,7 @@ public:
 		STRETCH_ASPECT_KEEP,
 		STRETCH_ASPECT_KEEP_WIDTH,
 		STRETCH_ASPECT_KEEP_HEIGHT,
+		STRETCH_ASPECT_EXPAND,
 	};
 
 private:
@@ -149,6 +150,7 @@ private:
 	StretchMode stretch_mode;
 	StretchAspect stretch_aspect;
 	Size2i stretch_min;
+	int stretch_shrink;
 
 	void _update_root_rect();
 
@@ -420,7 +422,7 @@ public:
 	void get_nodes_in_group(const StringName &p_group, List<Node *> *p_list);
 	bool has_group(const StringName &p_identifier) const;
 
-	void set_screen_stretch(StretchMode p_mode, StretchAspect p_aspect, const Size2 p_minsize);
+	void set_screen_stretch(StretchMode p_mode, StretchAspect p_aspect, const Size2 p_minsize, int p_shrink = 1);
 
 //void change_scene(const String& p_path);
 //Node *get_loaded_scene();

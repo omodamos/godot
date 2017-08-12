@@ -29,9 +29,9 @@
 /*************************************************************************/
 #include "visual_script_func_nodes.h"
 
-#include "global_config.h"
 #include "io/resource_loader.h"
 #include "os/os.h"
+#include "project_settings.h"
 #include "scene/main/node.h"
 #include "scene/main/scene_tree.h"
 #include "visual_script_nodes.h"
@@ -347,7 +347,7 @@ void VisualScriptFunctionCall::set_singleton(const StringName &p_path) {
 		return;
 
 	singleton = p_path;
-	Object *obj = GlobalConfig::get_singleton()->get_singleton_object(singleton);
+	Object *obj = ProjectSettings::get_singleton()->get_singleton_object(singleton);
 	if (obj) {
 		base_type = obj->get_class();
 	}
@@ -383,7 +383,7 @@ void VisualScriptFunctionCall::_update_method_cache() {
 
 	} else if (call_mode == CALL_MODE_SINGLETON) {
 
-		Object *obj = GlobalConfig::get_singleton()->get_singleton_object(singleton);
+		Object *obj = ProjectSettings::get_singleton()->get_singleton_object(singleton);
 		if (obj) {
 			type = obj->get_class();
 			script = obj->get_script();
@@ -568,11 +568,11 @@ void VisualScriptFunctionCall::_validate_property(PropertyInfo &property) const 
 		if (call_mode != CALL_MODE_SINGLETON) {
 			property.usage = 0;
 		} else {
-			List<GlobalConfig::Singleton> names;
-			GlobalConfig::get_singleton()->get_singletons(&names);
+			List<ProjectSettings::Singleton> names;
+			ProjectSettings::get_singleton()->get_singletons(&names);
 			property.hint = PROPERTY_HINT_ENUM;
 			String sl;
-			for (List<GlobalConfig::Singleton>::Element *E = names.front(); E; E = E->next()) {
+			for (List<ProjectSettings::Singleton>::Element *E = names.front(); E; E = E->next()) {
 				if (sl != String())
 					sl += ",";
 				sl += E->get().name;
@@ -603,13 +603,13 @@ void VisualScriptFunctionCall::_validate_property(PropertyInfo &property) const 
 
 		} else if (call_mode == CALL_MODE_SELF && get_visual_script().is_valid()) {
 			property.hint = PROPERTY_HINT_METHOD_OF_SCRIPT;
-			property.hint_string = itos(get_visual_script()->get_instance_ID());
+			property.hint_string = itos(get_visual_script()->get_instance_id());
 		} else if (call_mode == CALL_MODE_SINGLETON) {
 
-			Object *obj = GlobalConfig::get_singleton()->get_singleton_object(singleton);
+			Object *obj = ProjectSettings::get_singleton()->get_singleton_object(singleton);
 			if (obj) {
 				property.hint = PROPERTY_HINT_METHOD_OF_INSTANCE;
-				property.hint_string = itos(obj->get_instance_ID());
+				property.hint_string = itos(obj->get_instance_id());
 			} else {
 
 				property.hint = PROPERTY_HINT_METHOD_OF_BASE_TYPE;
@@ -631,7 +631,7 @@ void VisualScriptFunctionCall::_validate_property(PropertyInfo &property) const 
 					if (script.is_valid()) {
 
 						property.hint = PROPERTY_HINT_METHOD_OF_SCRIPT;
-						property.hint_string = itos(script->get_instance_ID());
+						property.hint_string = itos(script->get_instance_id());
 					}
 				}
 			}
@@ -640,7 +640,7 @@ void VisualScriptFunctionCall::_validate_property(PropertyInfo &property) const 
 			Node *node = _get_base_node();
 			if (node) {
 				property.hint = PROPERTY_HINT_METHOD_OF_INSTANCE;
-				property.hint_string = itos(node->get_instance_ID());
+				property.hint_string = itos(node->get_instance_id());
 			} else {
 				property.hint = PROPERTY_HINT_METHOD_OF_BASE_TYPE;
 				property.hint_string = get_base_type();
@@ -867,7 +867,7 @@ public:
 			} break;
 			case VisualScriptFunctionCall::CALL_MODE_SINGLETON: {
 
-				Object *object = GlobalConfig::get_singleton()->get_singleton_object(singleton);
+				Object *object = ProjectSettings::get_singleton()->get_singleton_object(singleton);
 				if (!object) {
 					r_error.error = Variant::CallError::CALL_ERROR_INVALID_METHOD;
 					r_error_str = "Invalid singleton name: '" + String(singleton) + "'";
@@ -1379,7 +1379,7 @@ void VisualScriptPropertySet::_validate_property(PropertyInfo &property) const {
 
 		} else if (call_mode == CALL_MODE_SELF && get_visual_script().is_valid()) {
 			property.hint = PROPERTY_HINT_PROPERTY_OF_SCRIPT;
-			property.hint_string = itos(get_visual_script()->get_instance_ID());
+			property.hint_string = itos(get_visual_script()->get_instance_id());
 		} else if (call_mode == CALL_MODE_INSTANCE) {
 			property.hint = PROPERTY_HINT_PROPERTY_OF_BASE_TYPE;
 			property.hint_string = base_type;
@@ -1396,7 +1396,7 @@ void VisualScriptPropertySet::_validate_property(PropertyInfo &property) const {
 					if (script.is_valid()) {
 
 						property.hint = PROPERTY_HINT_PROPERTY_OF_SCRIPT;
-						property.hint_string = itos(script->get_instance_ID());
+						property.hint_string = itos(script->get_instance_id());
 					}
 				}
 			}
@@ -1405,7 +1405,7 @@ void VisualScriptPropertySet::_validate_property(PropertyInfo &property) const {
 			Node *node = _get_base_node();
 			if (node) {
 				property.hint = PROPERTY_HINT_PROPERTY_OF_INSTANCE;
-				property.hint_string = itos(node->get_instance_ID());
+				property.hint_string = itos(node->get_instance_id());
 			} else {
 				property.hint = PROPERTY_HINT_PROPERTY_OF_BASE_TYPE;
 				property.hint_string = get_base_type();
@@ -2095,7 +2095,7 @@ void VisualScriptPropertyGet::_validate_property(PropertyInfo &property) const {
 
 		} else if (call_mode == CALL_MODE_SELF && get_visual_script().is_valid()) {
 			property.hint = PROPERTY_HINT_PROPERTY_OF_SCRIPT;
-			property.hint_string = itos(get_visual_script()->get_instance_ID());
+			property.hint_string = itos(get_visual_script()->get_instance_id());
 		} else if (call_mode == CALL_MODE_INSTANCE) {
 			property.hint = PROPERTY_HINT_PROPERTY_OF_BASE_TYPE;
 			property.hint_string = base_type;
@@ -2112,7 +2112,7 @@ void VisualScriptPropertyGet::_validate_property(PropertyInfo &property) const {
 					if (script.is_valid()) {
 
 						property.hint = PROPERTY_HINT_PROPERTY_OF_SCRIPT;
-						property.hint_string = itos(script->get_instance_ID());
+						property.hint_string = itos(script->get_instance_id());
 					}
 				}
 			}
@@ -2120,7 +2120,7 @@ void VisualScriptPropertyGet::_validate_property(PropertyInfo &property) const {
 			Node *node = _get_base_node();
 			if (node) {
 				property.hint = PROPERTY_HINT_PROPERTY_OF_INSTANCE;
-				property.hint_string = itos(node->get_instance_ID());
+				property.hint_string = itos(node->get_instance_id());
 			} else {
 				property.hint = PROPERTY_HINT_PROPERTY_OF_BASE_TYPE;
 				property.hint_string = get_base_type();

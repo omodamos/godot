@@ -28,8 +28,8 @@
 /* SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                */
 /*************************************************************************/
 #include "visual_server.h"
-#include "global_config.h"
 #include "method_bind_ext.gen.inc"
+#include "project_settings.h"
 
 VisualServer *VisualServer::singleton = NULL;
 VisualServer *(*VisualServer::create_func)() = NULL;
@@ -136,11 +136,6 @@ void VisualServer::_free_internal_rids() {
 		free(white_texture);
 	if (test_material.is_valid())
 		free(test_material);
-
-	for (int i = 0; i < 32; i++) {
-		if (material_2d[i].is_valid())
-			free(material_2d[i]);
-	}
 }
 
 RID VisualServer::_make_test_cube() {
@@ -282,37 +277,6 @@ RID VisualServer::make_sphere_mesh(int p_lats, int p_lons, float p_radius) {
 	mesh_add_surface_from_arrays(mesh, PRIMITIVE_TRIANGLES, d);
 
 	return mesh;
-}
-
-RID VisualServer::material_2d_get(bool p_shaded, bool p_transparent, bool p_double_sided, bool p_cut_alpha, bool p_opaque_prepass) {
-
-	int version = 0;
-	if (p_shaded)
-		version = 1;
-	if (p_transparent)
-		version |= 2;
-	if (p_cut_alpha)
-		version |= 4;
-	if (p_opaque_prepass)
-		version |= 8;
-	if (p_double_sided)
-		version |= 16;
-	if (material_2d[version].is_valid())
-		return material_2d[version];
-
-	//not valid, make
-
-	/*	material_2d[version]=fixed_material_create();
-	fixed_material_set_flag(material_2d[version],FIXED_MATERIAL_FLAG_USE_ALPHA,p_transparent);
-	fixed_material_set_flag(material_2d[version],FIXED_MATERIAL_FLAG_USE_COLOR_ARRAY,true);
-	fixed_material_set_flag(material_2d[version],FIXED_MATERIAL_FLAG_DISCARD_ALPHA,p_cut_alpha);
-	material_set_flag(material_2d[version],MATERIAL_FLAG_UNSHADED,!p_shaded);
-	material_set_flag(material_2d[version], MATERIAL_FLAG_DOUBLE_SIDED, p_double_sided);
-	material_set_depth_draw_mode(material_2d[version],p_opaque_prepass?MATERIAL_DEPTH_DRAW_OPAQUE_PRE_PASS_ALPHA:MATERIAL_DEPTH_DRAW_OPAQUE_ONLY);
-	fixed_material_set_texture(material_2d[version],FIXED_MATERIAL_PARAM_DIFFUSE,get_white_texture());
-	//material cut alpha?*/
-
-	return material_2d[version];
 }
 
 RID VisualServer::get_white_texture() {
@@ -1475,14 +1439,14 @@ Array VisualServer::mesh_surface_get_arrays(RID p_mesh, int p_surface) const {
 void VisualServer::_bind_methods() {
 
 	ClassDB::bind_method(D_METHOD("texture_create"), &VisualServer::texture_create);
-	ClassDB::bind_method(D_METHOD("texture_create_from_image"), &VisualServer::texture_create_from_image, DEFVAL(TEXTURE_FLAGS_DEFAULT));
+	ClassDB::bind_method(D_METHOD("texture_create_from_image", "image", "flags"), &VisualServer::texture_create_from_image, DEFVAL(TEXTURE_FLAGS_DEFAULT));
 	//ClassDB::bind_method(D_METHOD("texture_allocate"),&VisualServer::texture_allocate,DEFVAL( TEXTURE_FLAGS_DEFAULT ) );
 	//ClassDB::bind_method(D_METHOD("texture_set_data"),&VisualServer::texture_blit_rect,DEFVAL( CUBEMAP_LEFT ) );
 	//ClassDB::bind_method(D_METHOD("texture_get_rect"),&VisualServer::texture_get_rect );
-	ClassDB::bind_method(D_METHOD("texture_set_flags"), &VisualServer::texture_set_flags);
-	ClassDB::bind_method(D_METHOD("texture_get_flags"), &VisualServer::texture_get_flags);
-	ClassDB::bind_method(D_METHOD("texture_get_width"), &VisualServer::texture_get_width);
-	ClassDB::bind_method(D_METHOD("texture_get_height"), &VisualServer::texture_get_height);
+	ClassDB::bind_method(D_METHOD("texture_set_flags", "texture", "flags"), &VisualServer::texture_set_flags);
+	ClassDB::bind_method(D_METHOD("texture_get_flags", "texture"), &VisualServer::texture_get_flags);
+	ClassDB::bind_method(D_METHOD("texture_get_width", "texture"), &VisualServer::texture_get_width);
+	ClassDB::bind_method(D_METHOD("texture_get_height", "texture"), &VisualServer::texture_get_height);
 
 	ClassDB::bind_method(D_METHOD("texture_set_shrink_all_x2_on_set_data", "shrink"), &VisualServer::texture_set_shrink_all_x2_on_set_data);
 }
@@ -1567,10 +1531,39 @@ VisualServer::VisualServer() {
 
 	//ERR_FAIL_COND(singleton);
 	singleton = this;
-	GLOBAL_DEF("rendering/vram_formats/use_s3tc", true);
-	GLOBAL_DEF("rendering/vram_formats/use_etc", false);
-	GLOBAL_DEF("rendering/vram_formats/use_etc2", true);
-	GLOBAL_DEF("rendering/vram_formats/use_pvrtc", false);
+	GLOBAL_DEF("rendering/vram_compression/import_s3tc", true);
+	GLOBAL_DEF("rendering/vram_compression/import_etc", false);
+	GLOBAL_DEF("rendering/vram_compression/import_etc2", true);
+	GLOBAL_DEF("rendering/vram_compression/import_pvrtc", false);
+
+	GLOBAL_DEF("rendering/quality/directional_shadow/size", 4096);
+	GLOBAL_DEF("rendering/quality/directional_shadow/size.mobile", 2048);
+	GLOBAL_DEF("rendering/quality/shadow_atlas/size", 4096);
+	GLOBAL_DEF("rendering/quality/shadow_atlas/size.mobile", 2048);
+	ProjectSettings::get_singleton()->set_custom_property_info("rendering/quality/shadow_atlas/size", PropertyInfo(Variant::INT, "rendering/quality/shadow_atlas/size", PROPERTY_HINT_RANGE, "256,16384"));
+	GLOBAL_DEF("rendering/quality/shadow_atlas/quadrant_0_subdiv", 1);
+	GLOBAL_DEF("rendering/quality/shadow_atlas/quadrant_1_subdiv", 2);
+	GLOBAL_DEF("rendering/quality/shadow_atlas/quadrant_2_subdiv", 3);
+	GLOBAL_DEF("rendering/quality/shadow_atlas/quadrant_3_subdiv", 4);
+	ProjectSettings::get_singleton()->set_custom_property_info("rendering/quality/shadow_atlas/quadrant_0_subdiv", PropertyInfo(Variant::INT, "rendering/quality/shadow_atlas/quadrant_0_subdiv", PROPERTY_HINT_ENUM, "Disabled,1 Shadow,4 Shadows,16 Shadows,64 Shadows,256 Shadows,1024 Shadows"));
+	ProjectSettings::get_singleton()->set_custom_property_info("rendering/quality/shadow_atlas/quadrant_1_subdiv", PropertyInfo(Variant::INT, "rendering/quality/shadow_atlas/quadrant_1_subdiv", PROPERTY_HINT_ENUM, "Disabled,1 Shadow,4 Shadows,16 Shadows,64 Shadows,256 Shadows,1024 Shadows"));
+	ProjectSettings::get_singleton()->set_custom_property_info("rendering/quality/shadow_atlas/quadrant_2_subdiv", PropertyInfo(Variant::INT, "rendering/quality/shadow_atlas/quadrant_2_subdiv", PROPERTY_HINT_ENUM, "Disabled,1 Shadow,4 Shadows,16 Shadows,64 Shadows,256 Shadows,1024 Shadows"));
+	ProjectSettings::get_singleton()->set_custom_property_info("rendering/quality/shadow_atlas/quadrant_3_subdiv", PropertyInfo(Variant::INT, "rendering/quality/shadow_atlas/quadrant_3_subdiv", PROPERTY_HINT_ENUM, "Disabled,1 Shadow,4 Shadows,16 Shadows,64 Shadows,256 Shadows,1024 Shadows"));
+
+	GLOBAL_DEF("rendering/quality/shadows/filter_mode", 1);
+	GLOBAL_DEF("rendering/quality/shadows/filter_mode.mobile", 0);
+	ProjectSettings::get_singleton()->set_custom_property_info("rendering/quality/shadows/filter_mode", PropertyInfo(Variant::INT, "rendering/quality/shadows/filter_mode", PROPERTY_HINT_ENUM, "Disabled,PCF5,PCF13"));
+
+	GLOBAL_DEF("rendering/quality/reflections/texture_array_reflections", true);
+	GLOBAL_DEF("rendering/quality/reflections/texture_array_reflections.mobile", false);
+	GLOBAL_DEF("rendering/quality/reflections/high_quality_ggx", true);
+	GLOBAL_DEF("rendering/quality/reflections/high_quality_ggx.mobile", false);
+
+	GLOBAL_DEF("rendering/quality/shading/force_vertex_shading", false);
+	GLOBAL_DEF("rendering/quality/shading/force_vertex_shading.mobile", true);
+
+	GLOBAL_DEF("rendering/quality/depth_prepass/enable", true);
+	GLOBAL_DEF("rendering/quality/depth_prepass/disable_for_vendors", "PowerVR,Mali,Adreno");
 }
 
 VisualServer::~VisualServer() {

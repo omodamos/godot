@@ -589,7 +589,7 @@ Map<TileMap::PosKey, TileMap::Quadrant>::Element *TileMap::_create_quadrant(cons
 	xform.set_origin(q.pos);
 	//q.canvas_item = VisualServer::get_singleton()->canvas_item_create();
 	q.body = Physics2DServer::get_singleton()->body_create(use_kinematic ? Physics2DServer::BODY_MODE_KINEMATIC : Physics2DServer::BODY_MODE_STATIC);
-	Physics2DServer::get_singleton()->body_attach_object_instance_ID(q.body, get_instance_ID());
+	Physics2DServer::get_singleton()->body_attach_object_instance_id(q.body, get_instance_id());
 	Physics2DServer::get_singleton()->body_set_collision_layer(q.body, collision_layer);
 	Physics2DServer::get_singleton()->body_set_collision_mask(q.body, collision_mask);
 	Physics2DServer::get_singleton()->body_set_param(q.body, Physics2DServer::BODY_PARAM_FRICTION, friction);
@@ -1144,6 +1144,20 @@ Array TileMap::get_used_cells() const {
 	return a;
 }
 
+Array TileMap::get_used_cells_by_id(int p_id) const {
+
+	Array a;
+	for (Map<PosKey, Cell>::Element *E = tile_map.front(); E; E = E->next()) {
+
+		if (E->value().id == p_id) {
+			Vector2 p(E->key().x, E->key().y);
+			a.push_back(p);
+		}
+	}
+
+	return a;
+}
+
 Rect2 TileMap::get_used_rect() { // Not const because of cache
 
 	if (used_size_cache_dirty) {
@@ -1194,8 +1208,8 @@ void TileMap::set_light_mask(int p_light_mask) {
 
 void TileMap::_bind_methods() {
 
-	ClassDB::bind_method(D_METHOD("set_tileset", "tileset:TileSet"), &TileMap::set_tileset);
-	ClassDB::bind_method(D_METHOD("get_tileset:TileSet"), &TileMap::get_tileset);
+	ClassDB::bind_method(D_METHOD("set_tileset", "tileset"), &TileMap::set_tileset);
+	ClassDB::bind_method(D_METHOD("get_tileset"), &TileMap::get_tileset);
 
 	ClassDB::bind_method(D_METHOD("set_mode", "mode"), &TileMap::set_mode);
 	ClassDB::bind_method(D_METHOD("get_mode"), &TileMap::get_mode);
@@ -1262,6 +1276,7 @@ void TileMap::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("clear"), &TileMap::clear);
 
 	ClassDB::bind_method(D_METHOD("get_used_cells"), &TileMap::get_used_cells);
+	ClassDB::bind_method(D_METHOD("get_used_cells_by_id", "id"), &TileMap::get_used_cells_by_id);
 	ClassDB::bind_method(D_METHOD("get_used_rect"), &TileMap::get_used_rect);
 
 	ClassDB::bind_method(D_METHOD("map_to_world", "mappos", "ignore_half_ofs"), &TileMap::map_to_world, DEFVAL(false));

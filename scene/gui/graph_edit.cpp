@@ -207,9 +207,10 @@ void GraphEdit::_graph_node_raised(Node *p_gn) {
 
 	GraphNode *gn = p_gn->cast_to<GraphNode>();
 	ERR_FAIL_COND(!gn);
-	gn->raise();
 	if (gn->is_comment()) {
 		move_child(gn, 0);
+	} else {
+		gn->raise();
 	}
 	int first_not_comment = 0;
 	for (int i = 0; i < get_child_count(); i++) {
@@ -601,7 +602,7 @@ void GraphEdit::_draw_cos_line(CanvasItem *p_where, const Vector2 &p_from, const
 	int cp_neg_len = get_constant("bezier_len_neg");
 
 	if (diff > 0) {
-		cp_offset = MAX(cp_len, diff * 0.5);
+		cp_offset = MIN(cp_len, diff * 0.5);
 	} else {
 		cp_offset = MAX(MIN(cp_len - diff, cp_neg_len), -diff * 0.5);
 	}
@@ -870,21 +871,19 @@ void GraphEdit::_gui_input(const Ref<InputEvent> &p_ev) {
 		if (b->get_button_index() == BUTTON_LEFT && b->is_pressed()) {
 
 			GraphNode *gn = NULL;
-			GraphNode *gn_selected = NULL;
+
 			for (int i = get_child_count() - 1; i >= 0; i--) {
 
-				gn_selected = get_child(i)->cast_to<GraphNode>();
+				GraphNode *gn_selected = get_child(i)->cast_to<GraphNode>();
 
 				if (gn_selected) {
-
 					if (gn_selected->is_resizing())
 						continue;
 
-					Rect2 r = gn_selected->get_rect();
-					r.size *= zoom;
-					if (r.has_point(get_local_mouse_pos()))
+					if (gn_selected->has_point(gn_selected->get_local_mouse_pos())) {
 						gn = gn_selected;
-					break;
+						break;
+					}
 				}
 			}
 
@@ -1158,7 +1157,7 @@ void GraphEdit::_snap_value_changed(double) {
 
 void GraphEdit::_bind_methods() {
 
-	ClassDB::bind_method(D_METHOD("connect_node:Error", "from", "from_port", "to", "to_port"), &GraphEdit::connect_node);
+	ClassDB::bind_method(D_METHOD("connect_node", "from", "from_port", "to", "to_port"), &GraphEdit::connect_node);
 	ClassDB::bind_method(D_METHOD("is_node_connected", "from", "from_port", "to", "to_port"), &GraphEdit::is_node_connected);
 	ClassDB::bind_method(D_METHOD("disconnect_node", "from", "from_port", "to", "to_port"), &GraphEdit::disconnect_node);
 	ClassDB::bind_method(D_METHOD("get_connection_list"), &GraphEdit::_get_connection_list);
@@ -1225,6 +1224,7 @@ GraphEdit::GraphEdit() {
 	connections_layer->connect("draw", this, "_connections_layer_draw");
 	connections_layer->set_name("CLAYER");
 	connections_layer->set_disable_visibility_clip(true); // so it can draw freely and be offseted
+	connections_layer->set_mouse_filter(MOUSE_FILTER_IGNORE);
 
 	h_scroll = memnew(HScrollBar);
 	h_scroll->set_name("_h_scroll");

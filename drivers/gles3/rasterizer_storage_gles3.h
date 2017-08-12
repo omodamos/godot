@@ -48,6 +48,8 @@ class RasterizerSceneGLES3;
 #define _DECODE_EXT 0x8A49
 #define _SKIP_DECODE_EXT 0x8A4A
 
+void glTexStorage2DCustom(GLenum target, GLsizei levels, GLenum internalformat, GLsizei width, GLsizei height, GLenum format, GLenum type);
+
 class RasterizerStorageGLES3 : public RasterizerStorage {
 public:
 	RasterizerCanvasGLES3 *canvas;
@@ -91,6 +93,9 @@ public:
 		Set<String> extensions;
 
 		bool keep_original_textures;
+
+		bool no_depth_prepass;
+		bool force_vertex_shading;
 	} config;
 
 	mutable struct Shaders {
@@ -437,6 +442,7 @@ public:
 			int cull_mode;
 
 			bool uses_alpha;
+			bool uses_alpha_scissor;
 			bool unshaded;
 			bool ontop;
 			bool uses_vertex;
@@ -444,6 +450,7 @@ public:
 			bool uses_sss;
 			bool uses_screen_texture;
 			bool writes_modelview_or_projection;
+			bool uses_vertex_lighting;
 
 		} spatial;
 
@@ -1193,6 +1200,9 @@ public:
 		GLuint depth;
 
 		struct Buffers {
+
+			bool active;
+			bool effects_active;
 			GLuint fbo;
 			GLuint depth;
 			GLuint specular;
@@ -1276,12 +1286,13 @@ public:
 			buffers.fbo = 0;
 			used_in_frame = false;
 
-			flags[RENDER_TARGET_VFLIP] = false;
-			flags[RENDER_TARGET_TRANSPARENT] = false;
-			flags[RENDER_TARGET_NO_3D_EFFECTS] = false;
-			flags[RENDER_TARGET_NO_3D] = false;
-			flags[RENDER_TARGET_NO_SAMPLING] = false;
+			for (int i = 0; i < RENDER_TARGET_FLAG_MAX; i++) {
+				flags[i] = false;
+			}
 			flags[RENDER_TARGET_HDR] = true;
+
+			buffers.active = false;
+			buffers.effects_active = false;
 
 			last_exposure_tick = 0;
 		}

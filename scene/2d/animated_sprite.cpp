@@ -346,6 +346,7 @@ void AnimatedSprite::_notification(int p_what) {
 
 					update();
 					_change_notify("frame");
+					emit_signal(SceneStringNames::get_singleton()->frame_changed);
 				}
 
 				float to_process = MIN(timeout, remaining);
@@ -616,8 +617,8 @@ String AnimatedSprite::get_configuration_warning() const {
 
 void AnimatedSprite::_bind_methods() {
 
-	ClassDB::bind_method(D_METHOD("set_sprite_frames", "sprite_frames:SpriteFrames"), &AnimatedSprite::set_sprite_frames);
-	ClassDB::bind_method(D_METHOD("get_sprite_frames:SpriteFrames"), &AnimatedSprite::get_sprite_frames);
+	ClassDB::bind_method(D_METHOD("set_sprite_frames", "sprite_frames"), &AnimatedSprite::set_sprite_frames);
+	ClassDB::bind_method(D_METHOD("get_sprite_frames"), &AnimatedSprite::get_sprite_frames);
 
 	ClassDB::bind_method(D_METHOD("set_animation", "animation"), &AnimatedSprite::set_animation);
 	ClassDB::bind_method(D_METHOD("get_animation"), &AnimatedSprite::get_animation);

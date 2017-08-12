@@ -59,7 +59,10 @@ class OS_JavaScript : public OS_Unix {
 	const char *gl_extensions;
 
 	InputDefault *input;
+	Vector2 windowed_size;
 	bool window_maximized;
+	bool soft_fs_enabled;
+	bool canvas_size_adjustment_requested;
 	VideoMode video_mode;
 	CursorShape cursor_shape;
 	MainLoop *main_loop;
@@ -130,6 +133,8 @@ public:
 	virtual void set_window_fullscreen(bool p_enable);
 	virtual bool is_window_fullscreen() const;
 
+	void request_canvas_size_adjustment();
+
 	virtual String get_name();
 	virtual MainLoop *get_main_loop() const;
 
@@ -163,6 +168,8 @@ public:
 	virtual PowerState get_power_state();
 	virtual int get_power_seconds_left();
 	virtual int get_power_percent_left();
+
+	virtual bool _check_internal_feature_support(const String &p_feature);
 
 	OS_JavaScript(const char *p_execpath, GetDataDirFunc p_get_data_dir_func);
 	~OS_JavaScript();

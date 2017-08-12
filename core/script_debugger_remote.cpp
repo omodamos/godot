@@ -29,10 +29,10 @@
 /*************************************************************************/
 #include "script_debugger_remote.h"
 
-#include "global_config.h"
 #include "io/ip.h"
 #include "os/input.h"
 #include "os/os.h"
+#include "project_settings.h"
 
 void ScriptDebuggerRemote::_send_video_memory() {
 
@@ -74,7 +74,7 @@ Error ScriptDebuggerRemote::connect_to_host(const String &p_host, uint16_t p_por
 		} else {
 
 			OS::get_singleton()->delay_usec(1000000);
-			print_line("Remote Debugger: Connection failed with status: " + String::num(tcp_client->get_status()) + "'', retrying in 1 sec.");
+			print_line("Remote Debugger: Connection failed with status: '" + String::num(tcp_client->get_status()) + "', retrying in 1 sec.");
 		};
 	};
 
@@ -95,7 +95,7 @@ static Object *_ScriptDebuggerRemote_find = NULL;
 static void _ScriptDebuggerRemote_debug_func(Object *p_obj) {
 
 	if (_ScriptDebuggerRemote_find == p_obj) {
-		_ScriptDebuggerRemote_found_id = p_obj->get_instance_ID();
+		_ScriptDebuggerRemote_found_id = p_obj->get_instance_id();
 	}
 }
 
@@ -109,7 +109,7 @@ static ObjectID safe_get_instance_id(const Variant &p_v) {
 		REF r = p_v;
 		if (r.is_valid()) {
 
-			return r->get_instance_ID();
+			return r->get_instance_id();
 		} else {
 
 			_ScriptDebuggerRemote_found_id = 0;
@@ -130,7 +130,7 @@ void ScriptDebuggerRemote::debug(ScriptLanguage *p_script, bool p_can_continue) 
 		ERR_FAIL();
 	}
 
-	OS::get_singleton()->enable_for_stealing_focus(GlobalConfig::get_singleton()->get("editor_pid"));
+	OS::get_singleton()->enable_for_stealing_focus(ProjectSettings::get_singleton()->get("editor_pid"));
 
 	packet_peer_stream->put_var("debug_enter");
 	packet_peer_stream->put_var(2);
@@ -572,7 +572,7 @@ void ScriptDebuggerRemote::_send_object_id(ObjectID p_id) {
 				ObjectID id2;
 				Object *obj = var;
 				if (obj) {
-					id2 = obj->get_instance_ID();
+					id2 = obj->get_instance_id();
 				} else {
 					id2 = 0;
 				}
@@ -940,38 +940,39 @@ void ScriptDebuggerRemote::profiling_set_frame_times(float p_frame_time, float p
 
 ScriptDebuggerRemote::ResourceUsageFunc ScriptDebuggerRemote::resource_usage_func = NULL;
 
-ScriptDebuggerRemote::ScriptDebuggerRemote() {
+ScriptDebuggerRemote::ScriptDebuggerRemote()
+	: profiling(false),
+	  max_frame_functions(16),
+	  skip_profile_frame(false),
+	  reload_all_scripts(false),
+	  tcp_client(StreamPeerTCP::create_ref()),
+	  packet_peer_stream(Ref<PacketPeerStream>(memnew(PacketPeerStream))),
+	  last_perf_time(0),
+	  performance(ProjectSettings::get_singleton()->get_singleton_object("Performance")),
+	  requested_quit(false),
+	  mutex(Mutex::create()),
+	  max_cps(GLOBAL_GET("network/limits/debugger_stdout/max_chars_per_second")),
+	  char_count(0),
+	  last_msec(0),
+	  msec_count(0),
+	  locking(false),
+	  poll_every(0),
+	  request_scene_tree(NULL),
+	  live_edit_funcs(NULL) {
 
-	tcp_client = StreamPeerTCP::create_ref();
-	packet_peer_stream = Ref<PacketPeerStream>(memnew(PacketPeerStream));
 	packet_peer_stream->set_stream_peer(tcp_client);
-	mutex = Mutex::create();
-	locking = false;
+	packet_peer_stream->set_output_buffer_max_size(1024 * 1024 * 8); //8mb should be way more than enough
 
 	phl.printfunc = _print_handler;
 	phl.userdata = this;
 	add_print_handler(&phl);
-	requested_quit = false;
-	performance = GlobalConfig::get_singleton()->get_singleton_object("Performance");
-	last_perf_time = 0;
-	poll_every = 0;
-	request_scene_tree = NULL;
-	live_edit_funcs = NULL;
-	max_cps = GLOBAL_DEF("network/debug/max_remote_stdout_chars_per_second", 2048);
-	char_count = 0;
-	msec_count = 0;
-	last_msec = 0;
-	skip_profile_frame = false;
 
 	eh.errfunc = _err_handler;
 	eh.userdata = this;
 	add_error_handler(&eh);
 
-	profile_info.resize(CLAMP(int(GlobalConfig::get_singleton()->get("debug/profiler/max_functions")), 128, 65535));
+	profile_info.resize(CLAMP(int(ProjectSettings::get_singleton()->get("debug/settings/profiler/max_functions")), 128, 65535));
 	profile_info_ptrs.resize(profile_info.size());
-	profiling = false;
-	max_frame_functions = 16;
-	reload_all_scripts = false;
 }
 
 ScriptDebuggerRemote::~ScriptDebuggerRemote() {

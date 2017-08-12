@@ -30,8 +30,8 @@
 #include "editor/editor_settings.h"
 #include "gd_compiler.h"
 #include "gd_script.h"
-#include "global_config.h"
 #include "os/file_access.h"
+#include "project_settings.h"
 #ifdef TOOLS_ENABLED
 #include "editor/editor_file_system.h"
 #include "editor/editor_settings.h"
@@ -157,7 +157,7 @@ Script *GDScriptLanguage::create_script() const {
 bool GDScriptLanguage::debug_break_parse(const String &p_file, int p_line, const String &p_error) {
 	//break because of parse error
 
-	if (ScriptDebugger::get_singleton() && Thread::get_caller_ID() == Thread::get_main_ID()) {
+	if (ScriptDebugger::get_singleton() && Thread::get_caller_id() == Thread::get_main_id()) {
 
 		_debug_parse_err_line = p_line;
 		_debug_parse_err_file = p_file;
@@ -171,7 +171,7 @@ bool GDScriptLanguage::debug_break_parse(const String &p_file, int p_line, const
 
 bool GDScriptLanguage::debug_break(const String &p_error, bool p_allow_continue) {
 
-	if (ScriptDebugger::get_singleton() && Thread::get_caller_ID() == Thread::get_main_ID()) {
+	if (ScriptDebugger::get_singleton() && Thread::get_caller_id() == Thread::get_main_id()) {
 
 		_debug_parse_err_line = -1;
 		_debug_parse_err_file = "";
@@ -638,7 +638,7 @@ static bool _guess_expression_type(GDCompletionContext &context, const GDParser:
 									String which = arg1.get_slice("/", 2);
 									if (which != "") {
 										List<PropertyInfo> props;
-										GlobalConfig::get_singleton()->get_property_list(&props);
+										ProjectSettings::get_singleton()->get_property_list(&props);
 										//print_line("find singleton");
 
 										for (List<PropertyInfo>::Element *E = props.front(); E; E = E->next()) {
@@ -650,7 +650,7 @@ static bool _guess_expression_type(GDCompletionContext &context, const GDParser:
 											String name = s.get_slice("/", 1);
 											//print_line("name: "+name+", which: "+which);
 											if (name == which) {
-												String script = GlobalConfig::get_singleton()->get(s);
+												String script = ProjectSettings::get_singleton()->get(s);
 
 												if (!script.begins_with("res://")) {
 													script = "res://" + script;
@@ -1105,7 +1105,7 @@ static bool _guess_identifier_type(GDCompletionContext &context, int p_line, con
 
 	//autoloads as singletons
 	List<PropertyInfo> props;
-	GlobalConfig::get_singleton()->get_property_list(&props);
+	ProjectSettings::get_singleton()->get_property_list(&props);
 
 	for (List<PropertyInfo>::Element *E = props.front(); E; E = E->next()) {
 
@@ -1115,7 +1115,7 @@ static bool _guess_identifier_type(GDCompletionContext &context, int p_line, con
 		String name = s.get_slice("/", 1);
 		if (name == String(p_identifier)) {
 
-			String path = GlobalConfig::get_singleton()->get(s);
+			String path = ProjectSettings::get_singleton()->get(s);
 			if (path.begins_with("*")) {
 				String script = path.substr(1, path.length());
 
@@ -1334,8 +1334,8 @@ static void _find_identifiers(GDCompletionContext &context, int p_line, bool p_o
 
 	static const char *_type_names[Variant::VARIANT_MAX] = {
 		"null", "bool", "int", "float", "String", "Vector2", "Rect2", "Vector3", "Transform2D", "Plane", "Quat", "AABB", "Basis", "Transform",
-		"Color", "NodePath", "RID", "Object", "Dictionary", "Array", "RawArray", "IntArray", "FloatArray", "StringArray",
-		"Vector2Array", "Vector3Array", "ColorArray"
+		"Color", "NodePath", "RID", "Object", "Dictionary", "Array", "PoolByteArray", "PoolIntArray", "PoolRealArray", "PoolStringArray",
+		"PoolVector2Array", "PoolVector3Array", "PoolColorArray"
 	};
 
 	for (int i = 0; i < Variant::VARIANT_MAX; i++) {
@@ -1344,7 +1344,7 @@ static void _find_identifiers(GDCompletionContext &context, int p_line, bool p_o
 
 	//autoload singletons
 	List<PropertyInfo> props;
-	GlobalConfig::get_singleton()->get_property_list(&props);
+	ProjectSettings::get_singleton()->get_property_list(&props);
 
 	for (List<PropertyInfo>::Element *E = props.front(); E; E = E->next()) {
 
@@ -1352,7 +1352,7 @@ static void _find_identifiers(GDCompletionContext &context, int p_line, bool p_o
 		if (!s.begins_with("autoload/"))
 			continue;
 		String name = s.get_slice("/", 1);
-		String path = GlobalConfig::get_singleton()->get(s);
+		String path = ProjectSettings::get_singleton()->get(s);
 		if (path.begins_with("*")) {
 			result.insert(name);
 		}
@@ -1685,7 +1685,7 @@ static void _find_type_arguments(GDCompletionContext &context, const GDParser::N
 				if (p_argidx == 0 && (String(p_method) == "get_node" || String(p_method) == "has_node") && ClassDB::is_parent_class(id.obj_type, "Node")) {
 
 					List<PropertyInfo> props;
-					GlobalConfig::get_singleton()->get_property_list(&props);
+					ProjectSettings::get_singleton()->get_property_list(&props);
 
 					for (List<PropertyInfo>::Element *E = props.front(); E; E = E->next()) {
 
@@ -2660,7 +2660,7 @@ Error GDScriptLanguage::lookup_code(const String &p_code, const String &p_symbol
 
 				//guess in autoloads as singletons
 				List<PropertyInfo> props;
-				GlobalConfig::get_singleton()->get_property_list(&props);
+				ProjectSettings::get_singleton()->get_property_list(&props);
 
 				for (List<PropertyInfo>::Element *E = props.front(); E; E = E->next()) {
 
@@ -2670,7 +2670,7 @@ Error GDScriptLanguage::lookup_code(const String &p_code, const String &p_symbol
 					String name = s.get_slice("/", 1);
 					if (name == String(p_symbol)) {
 
-						String path = GlobalConfig::get_singleton()->get(s);
+						String path = ProjectSettings::get_singleton()->get(s);
 						if (path.begins_with("*")) {
 							String script = path.substr(1, path.length());
 

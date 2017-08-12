@@ -85,7 +85,7 @@ public:
 
 	virtual Error open_dynamic_library(const String p_path, void *&p_library_handle);
 	virtual Error close_dynamic_library(void *p_library_handle);
-	virtual Error get_dynamic_library_symbol_handle(void *p_library_handle, const String p_name, void *&p_symbol_handle);
+	virtual Error get_dynamic_library_symbol_handle(void *p_library_handle, const String p_name, void *&p_symbol_handle, bool p_optional = false);
 
 	virtual Error set_cwd(const String &p_cwd);
 
@@ -103,7 +103,7 @@ public:
 
 	virtual Error execute(const String &p_path, const List<String> &p_arguments, bool p_blocking, ProcessID *r_child_id = NULL, String *r_pipe = NULL, int *r_exitcode = NULL);
 	virtual Error kill(const ProcessID &p_pid);
-	virtual int get_process_ID() const;
+	virtual int get_process_id() const;
 
 	virtual bool has_environment(const String &p_var) const;
 	virtual String get_environment(const String &p_var) const;
@@ -116,8 +116,6 @@ public:
 	virtual String get_installed_templates_path() const;
 	virtual String get_executable_path() const;
 	virtual String get_data_dir() const;
-
-	virtual bool check_feature_support(const String &p_feature);
 
 	//virtual void run( MainLoop * p_main_loop );
 };

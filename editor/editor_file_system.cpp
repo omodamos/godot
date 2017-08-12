@@ -32,12 +32,12 @@
 #include "editor_node.h"
 #include "editor_resource_preview.h"
 #include "editor_settings.h"
-#include "global_config.h"
 #include "io/resource_import.h"
 #include "io/resource_loader.h"
 #include "io/resource_saver.h"
 #include "os/file_access.h"
 #include "os/os.h"
+#include "project_settings.h"
 #include "variant_parser.h"
 
 EditorFileSystem *EditorFileSystem::singleton = NULL;
@@ -144,7 +144,7 @@ void EditorFileSystemDirectory::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("get_file_type", "idx"), &EditorFileSystemDirectory::get_file_type);
 	ClassDB::bind_method(D_METHOD("get_name"), &EditorFileSystemDirectory::get_name);
 	ClassDB::bind_method(D_METHOD("get_path"), &EditorFileSystemDirectory::get_path);
-	ClassDB::bind_method(D_METHOD("get_parent:EditorFileSystemDirectory"), &EditorFileSystemDirectory::get_parent);
+	ClassDB::bind_method(D_METHOD("get_parent"), &EditorFileSystemDirectory::get_parent);
 	ClassDB::bind_method(D_METHOD("find_file_index", "name"), &EditorFileSystemDirectory::find_file_index);
 	ClassDB::bind_method(D_METHOD("find_dir_index", "name"), &EditorFileSystemDirectory::find_dir_index);
 }
@@ -179,7 +179,7 @@ void EditorFileSystem::_scan_filesystem() {
 	sources_changed.clear();
 	file_cache.clear();
 
-	String project = GlobalConfig::get_singleton()->get_resource_path();
+	String project = ProjectSettings::get_singleton()->get_resource_path();
 
 	String fscache = EditorSettings::get_singleton()->get_project_settings_path().plus_file("filesystem_cache2");
 	FileAccess *f = FileAccess::open(fscache, FileAccess::READ);
@@ -512,6 +512,8 @@ void EditorFileSystem::_scan_new_dir(EditorFileSystemDirectory *p_dir, DirAccess
 
 			if (FileAccess::exists(cd.plus_file(f).plus_file("project.godot"))) // skip if another project inside this
 				continue;
+			if (FileAccess::exists(cd.plus_file(f).plus_file(".gdignore"))) // skip if another project inside this
+				continue;
 
 			dirs.push_back(f);
 
@@ -690,6 +692,8 @@ void EditorFileSystem::_scan_fs_changes(EditorFileSystemDirectory *p_dir, const 
 				if (idx == -1) {
 
 					if (FileAccess::exists(cd.plus_file(f).plus_file("project.godot"))) // skip if another project inside this
+						continue;
+					if (FileAccess::exists(cd.plus_file(f).plus_file(".gdignore"))) // skip if another project inside this
 						continue;
 
 					EditorFileSystemDirectory *efd = memnew(EditorFileSystemDirectory);
@@ -1008,7 +1012,7 @@ bool EditorFileSystem::_find_file(const String &p_file, EditorFileSystemDirector
 	if (!filesystem || scanning)
 		return false;
 
-	String f = GlobalConfig::get_singleton()->localize_path(p_file);
+	String f = ProjectSettings::get_singleton()->localize_path(p_file);
 
 	if (!f.begins_with("res://"))
 		return false;
@@ -1121,7 +1125,7 @@ EditorFileSystemDirectory *EditorFileSystem::get_filesystem_path(const String &p
 	if (!filesystem || scanning)
 		return NULL;
 
-	String f = GlobalConfig::get_singleton()->localize_path(p_path);
+	String f = ProjectSettings::get_singleton()->localize_path(p_path);
 
 	if (!f.begins_with("res://"))
 		return NULL;
@@ -1239,7 +1243,7 @@ void EditorFileSystem::_reimport_file(const String &p_file) {
 	String importer_name;
 
 	if (FileAccess::exists(p_file + ".import")) {
-
+		//use existing
 		Ref<ConfigFile> cf;
 		cf.instance();
 		Error err = cf->load(p_file + ".import");
@@ -1254,6 +1258,7 @@ void EditorFileSystem::_reimport_file(const String &p_file) {
 	}
 
 	Ref<ResourceImporter> importer;
+	bool load_default = false;
 	//find the importer
 	if (importer_name != "") {
 		importer = ResourceFormatImporter::get_singleton()->get_importer_by_name(importer_name);
@@ -1262,6 +1267,7 @@ void EditorFileSystem::_reimport_file(const String &p_file) {
 	if (importer.is_null()) {
 		//not found by name, find by extension
 		importer = ResourceFormatImporter::get_singleton()->get_importer_by_extension(p_file.get_extension());
+		load_default = true;
 		if (importer.is_null()) {
 			ERR_PRINT("BUG: File queued for import, but can't be imported!");
 			ERR_FAIL();
@@ -1275,6 +1281,17 @@ void EditorFileSystem::_reimport_file(const String &p_file) {
 	for (List<ResourceImporter::ImportOption>::Element *E = opts.front(); E; E = E->next()) {
 		if (!params.has(E->get().option.name)) { //this one is not present
 			params[E->get().option.name] = E->get().default_value;
+		}
+	}
+
+	if (load_default && ProjectSettings::get_singleton()->get("importer_defaults/" + importer->get_importer_name())) {
+		//use defaults if exist
+		Dictionary d = ProjectSettings::get_singleton()->get("importer_defaults/" + importer->get_importer_name());
+		List<Variant> v;
+		d.get_key_list(&v);
+
+		for (List<Variant>::Element *E = v.front(); E; E = E->next()) {
+			params[E->get()] = d[E->get()];
 		}
 	}
 
@@ -1335,7 +1352,7 @@ void EditorFileSystem::_reimport_file(const String &p_file) {
 	f->store_line("[params]");
 	f->store_line("");
 
-	//store options in provided order, to avoid file changing
+	//store options in provided order, to avoid file changing. Order is also important because first match is accepted first.
 
 	for (List<ResourceImporter::ImportOption>::Element *E = opts.front(); E; E = E->next()) {
 
@@ -1386,13 +1403,13 @@ void EditorFileSystem::reimport_files(const Vector<String> &p_files) {
 
 void EditorFileSystem::_bind_methods() {
 
-	ClassDB::bind_method(D_METHOD("get_filesystem:EditorFileSystemDirectory"), &EditorFileSystem::get_filesystem);
+	ClassDB::bind_method(D_METHOD("get_filesystem"), &EditorFileSystem::get_filesystem);
 	ClassDB::bind_method(D_METHOD("is_scanning"), &EditorFileSystem::is_scanning);
 	ClassDB::bind_method(D_METHOD("get_scanning_progress"), &EditorFileSystem::get_scanning_progress);
 	ClassDB::bind_method(D_METHOD("scan"), &EditorFileSystem::scan);
 	ClassDB::bind_method(D_METHOD("scan_sources"), &EditorFileSystem::scan_changes);
 	ClassDB::bind_method(D_METHOD("update_file", "path"), &EditorFileSystem::update_file);
-	ClassDB::bind_method(D_METHOD("get_filesystem_path:EditorFileSystemDirectory", "path"), &EditorFileSystem::get_filesystem_path);
+	ClassDB::bind_method(D_METHOD("get_filesystem_path", "path"), &EditorFileSystem::get_filesystem_path);
 	ClassDB::bind_method(D_METHOD("get_file_type", "path"), &EditorFileSystem::get_file_type);
 
 	ADD_SIGNAL(MethodInfo("filesystem_changed"));
