@@ -1690,6 +1690,7 @@ int RichTextLabel::get_line_count() const {
 }
 
 int RichTextLabel::get_text_height() {
+	_validate_line_caches(main);
 	if (main->lines.size()) {
 		return main->lines[main->lines.size() - 1].height_accum_cache;
 	} else {
