@@ -1689,6 +1689,14 @@ int RichTextLabel::get_line_count() const {
 	return current_frame->lines.size();
 }
 
+int RichTextLabel::get_text_height() {
+	if (main->lines.size()) {
+		return main->lines[main->lines.size() - 1].height_accum_cache;
+	} else {
+		return 0;
+	}
+}
+
 void RichTextLabel::set_selection_enabled(bool p_enabled) {
 
 	selection.enabled = p_enabled;
@@ -1893,6 +1901,7 @@ void RichTextLabel::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("push_cell"), &RichTextLabel::push_cell);
 	ClassDB::bind_method(D_METHOD("pop"), &RichTextLabel::pop);
 	ClassDB::bind_method(D_METHOD("get_line_count"), &RichTextLabel::get_line_count);
+	ClassDB::bind_method(D_METHOD("get_text_height"), &RichTextLabel::get_text_height);
 
 	ClassDB::bind_method(D_METHOD("clear"), &RichTextLabel::clear);
 
