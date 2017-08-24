@@ -249,8 +249,8 @@ bool EditorPlugin::forward_spatial_gui_input(Camera *p_camera, const Ref<InputEv
 }
 String EditorPlugin::get_name() const {
 
-	if (get_script_instance() && get_script_instance()->has_method("get_name")) {
-		return get_script_instance()->call("get_name");
+	if (get_script_instance() && get_script_instance()->has_method("get_plugin_name")) {
+		return get_script_instance()->call("get_plugin_name");
 	}
 
 	return String();
@@ -450,7 +450,7 @@ void EditorPlugin::_bind_methods() {
 	gizmo.return_val.hint = PROPERTY_HINT_RESOURCE_TYPE;
 	gizmo.return_val.hint_string = "EditorSpatialGizmo";
 	ClassDB::add_virtual_method(get_class_static(), gizmo);
-	ClassDB::add_virtual_method(get_class_static(), MethodInfo(Variant::STRING, "get_name"));
+	ClassDB::add_virtual_method(get_class_static(), MethodInfo(Variant::STRING, "get_plugin_name"));
 	ClassDB::add_virtual_method(get_class_static(), MethodInfo(Variant::BOOL, "has_main_screen"));
 	ClassDB::add_virtual_method(get_class_static(), MethodInfo("make_visible", PropertyInfo(Variant::BOOL, "visible")));
 	ClassDB::add_virtual_method(get_class_static(), MethodInfo("edit", PropertyInfo(Variant::OBJECT, "object")));
@@ -468,23 +468,23 @@ void EditorPlugin::_bind_methods() {
 	ADD_SIGNAL(MethodInfo("scene_closed", PropertyInfo(Variant::STRING, "filepath:String")));
 	ADD_SIGNAL(MethodInfo("main_screen_changed", PropertyInfo(Variant::STRING, "screen_name:String")));
 
-	BIND_CONSTANT(CONTAINER_TOOLBAR);
-	BIND_CONSTANT(CONTAINER_SPATIAL_EDITOR_MENU);
-	BIND_CONSTANT(CONTAINER_SPATIAL_EDITOR_SIDE);
-	BIND_CONSTANT(CONTAINER_SPATIAL_EDITOR_BOTTOM);
-	BIND_CONSTANT(CONTAINER_CANVAS_EDITOR_MENU);
-	BIND_CONSTANT(CONTAINER_CANVAS_EDITOR_SIDE);
-	BIND_CONSTANT(CONTAINER_PROPERTY_EDITOR_BOTTOM);
+	BIND_ENUM_CONSTANT(CONTAINER_TOOLBAR);
+	BIND_ENUM_CONSTANT(CONTAINER_SPATIAL_EDITOR_MENU);
+	BIND_ENUM_CONSTANT(CONTAINER_SPATIAL_EDITOR_SIDE);
+	BIND_ENUM_CONSTANT(CONTAINER_SPATIAL_EDITOR_BOTTOM);
+	BIND_ENUM_CONSTANT(CONTAINER_CANVAS_EDITOR_MENU);
+	BIND_ENUM_CONSTANT(CONTAINER_CANVAS_EDITOR_SIDE);
+	BIND_ENUM_CONSTANT(CONTAINER_PROPERTY_EDITOR_BOTTOM);
 
-	BIND_CONSTANT(DOCK_SLOT_LEFT_UL);
-	BIND_CONSTANT(DOCK_SLOT_LEFT_BL);
-	BIND_CONSTANT(DOCK_SLOT_LEFT_UR);
-	BIND_CONSTANT(DOCK_SLOT_LEFT_BR);
-	BIND_CONSTANT(DOCK_SLOT_RIGHT_UL);
-	BIND_CONSTANT(DOCK_SLOT_RIGHT_BL);
-	BIND_CONSTANT(DOCK_SLOT_RIGHT_UR);
-	BIND_CONSTANT(DOCK_SLOT_RIGHT_BR);
-	BIND_CONSTANT(DOCK_SLOT_MAX);
+	BIND_ENUM_CONSTANT(DOCK_SLOT_LEFT_UL);
+	BIND_ENUM_CONSTANT(DOCK_SLOT_LEFT_BL);
+	BIND_ENUM_CONSTANT(DOCK_SLOT_LEFT_UR);
+	BIND_ENUM_CONSTANT(DOCK_SLOT_LEFT_BR);
+	BIND_ENUM_CONSTANT(DOCK_SLOT_RIGHT_UL);
+	BIND_ENUM_CONSTANT(DOCK_SLOT_RIGHT_BL);
+	BIND_ENUM_CONSTANT(DOCK_SLOT_RIGHT_UR);
+	BIND_ENUM_CONSTANT(DOCK_SLOT_RIGHT_BR);
+	BIND_ENUM_CONSTANT(DOCK_SLOT_MAX);
 }
 
 EditorPlugin::EditorPlugin() {

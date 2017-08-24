@@ -559,8 +559,9 @@ bool GDScript::_update_exports() {
 
 	return changed;
 
-#endif
+#else
 	return false;
+#endif
 }
 
 void GDScript::update_exports() {
@@ -615,7 +616,7 @@ Error GDScript::reload(bool p_keep_state) {
 	if (basedir != "")
 		basedir = basedir.get_base_dir();
 
-	if (basedir.find("res://") == -1 && basedir.find("user://") == -1) {
+	if (basedir != "" && basedir.find("res://") == -1 && basedir.find("user://") == -1) {
 		//loading a template, don't parse
 		return OK;
 	}

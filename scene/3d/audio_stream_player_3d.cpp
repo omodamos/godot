@@ -215,7 +215,7 @@ void AudioStreamPlayer3D::_notification(int p_what) {
 
 		velocity_tracker->reset(get_global_transform().origin);
 		AudioServer::get_singleton()->add_callback(_mix_audios, this);
-		if (autoplay && !get_tree()->is_editor_hint()) {
+		if (autoplay && !Engine::get_singleton()->is_editor_hint()) {
 			play();
 		}
 	}
@@ -888,16 +888,16 @@ void AudioStreamPlayer3D::_bind_methods() {
 	ADD_GROUP("Doppler", "doppler_");
 	ADD_PROPERTY(PropertyInfo(Variant::INT, "doppler_tracking", PROPERTY_HINT_ENUM, "Disabled,Idle,Fixed"), "set_doppler_tracking", "get_doppler_tracking");
 
-	BIND_CONSTANT(ATTENUATION_INVERSE_DISTANCE);
-	BIND_CONSTANT(ATTENUATION_INVERSE_SQUARE_DISTANCE);
-	BIND_CONSTANT(ATTENUATION_LOGARITHMIC);
+	BIND_ENUM_CONSTANT(ATTENUATION_INVERSE_DISTANCE);
+	BIND_ENUM_CONSTANT(ATTENUATION_INVERSE_SQUARE_DISTANCE);
+	BIND_ENUM_CONSTANT(ATTENUATION_LOGARITHMIC);
 
-	BIND_CONSTANT(OUT_OF_RANGE_MIX);
-	BIND_CONSTANT(OUT_OF_RANGE_PAUSE);
+	BIND_ENUM_CONSTANT(OUT_OF_RANGE_MIX);
+	BIND_ENUM_CONSTANT(OUT_OF_RANGE_PAUSE);
 
-	BIND_CONSTANT(DOPPLER_TRACKING_DISABLED);
-	BIND_CONSTANT(DOPPLER_TRACKING_IDLE_STEP);
-	BIND_CONSTANT(DOPPLER_TRACKING_FIXED_STEP);
+	BIND_ENUM_CONSTANT(DOPPLER_TRACKING_DISABLED);
+	BIND_ENUM_CONSTANT(DOPPLER_TRACKING_IDLE_STEP);
+	BIND_ENUM_CONSTANT(DOPPLER_TRACKING_FIXED_STEP);
 }
 
 AudioStreamPlayer3D::AudioStreamPlayer3D() {

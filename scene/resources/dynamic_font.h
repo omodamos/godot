@@ -72,7 +72,7 @@ private:
 
 	friend class DynamicFont;
 
-	Ref<DynamicFontAtSize> _get_dynamic_font_at_size(CacheID p_cache);
+	Ref<DynamicFontAtSize> _get_dynamic_font_at_size(CacheID p_cache_id);
 
 protected:
 	static void _bind_methods();
@@ -235,6 +235,8 @@ public:
 	DynamicFont();
 	~DynamicFont();
 };
+
+VARIANT_ENUM_CAST(DynamicFont::SpacingType);
 
 /////////////
 

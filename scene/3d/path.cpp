@@ -28,11 +28,13 @@
 /* SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                */
 /*************************************************************************/
 #include "path.h"
+
+#include "engine.h"
 #include "scene/scene_string_names.h"
 
 void Path::_notification(int p_what) {
 #if 0
-	if (p_what==NOTIFICATION_DRAW && curve.is_valid() && is_inside_scene() && get_scene()->is_editor_hint()) {
+	if (p_what==NOTIFICATION_DRAW && curve.is_valid() && is_inside_scene() && Engine::get_singleton()->is_editor_hint()) {
 		//draw the curve!!
 
 		for(int i=0;i<curve->get_point_count();i++) {
@@ -53,7 +55,7 @@ void Path::_notification(int p_what) {
 
 void Path::_curve_changed() {
 
-	if (is_inside_tree() && get_tree()->is_editor_hint())
+	if (is_inside_tree() && Engine::get_singleton()->is_editor_hint())
 		update_gizmo();
 }
 
@@ -281,10 +283,10 @@ void PathFollow::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("set_loop", "loop"), &PathFollow::set_loop);
 	ClassDB::bind_method(D_METHOD("has_loop"), &PathFollow::has_loop);
 
-	BIND_CONSTANT(ROTATION_NONE);
-	BIND_CONSTANT(ROTATION_Y);
-	BIND_CONSTANT(ROTATION_XY);
-	BIND_CONSTANT(ROTATION_XYZ);
+	BIND_ENUM_CONSTANT(ROTATION_NONE);
+	BIND_ENUM_CONSTANT(ROTATION_Y);
+	BIND_ENUM_CONSTANT(ROTATION_XY);
+	BIND_ENUM_CONSTANT(ROTATION_XYZ);
 }
 
 void PathFollow::set_offset(float p_offset) {

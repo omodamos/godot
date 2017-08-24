@@ -229,7 +229,7 @@ bool GDNative::initialize() {
 
 	godot_gdnative_init_options options;
 
-	options.in_editor = SceneTree::get_singleton()->is_editor_hint();
+	options.in_editor = Engine::get_singleton()->is_editor_hint();
 	options.core_api_hash = ClassDB::get_api_hash(ClassDB::API_CORE);
 	options.editor_api_hash = ClassDB::get_api_hash(ClassDB::API_EDITOR);
 	options.no_api_hash = ClassDB::get_api_hash(ClassDB::API_NONE);
@@ -247,9 +247,8 @@ bool GDNative::terminate() {
 		return false;
 	}
 
-	Error error = OK;
 	void *library_terminate;
-	error = OS::get_singleton()->get_dynamic_library_symbol_handle(
+	Error error = OS::get_singleton()->get_dynamic_library_symbol_handle(
 			native_handle,
 			terminate_symbol,
 			library_terminate);
@@ -265,7 +264,7 @@ bool GDNative::terminate() {
 	// TODO(karroffel): remove this? Should be part of NativeScript, not
 	// GDNative IMO
 	godot_gdnative_terminate_options options;
-	options.in_editor = SceneTree::get_singleton()->is_editor_hint();
+	options.in_editor = Engine::get_singleton()->is_editor_hint();
 
 	library_terminate_pointer(&options);
 

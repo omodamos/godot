@@ -32,8 +32,8 @@
 
 #include "class_db.h"
 #include "map.h"
-#include "object.h"
 #include "node_path.h"
+#include "object.h"
 #include "project_settings.h"
 #include "scene/main/scene_tree.h"
 #include "script_language.h"
@@ -298,19 +298,21 @@ public:
 
 	void propagate_notification(int p_notification);
 
+	void propagate_call(const StringName &p_method, const Array &p_args = Array(), const bool p_parent_first = false);
+
 	/* PROCESSING */
 	void set_fixed_process(bool p_process);
 	float get_fixed_process_delta_time() const;
 	bool is_fixed_processing() const;
 
-	void set_process(bool p_process);
+	void set_process(bool p_idle_process);
 	float get_process_delta_time() const;
 	bool is_processing() const;
 
-	void set_fixed_process_internal(bool p_process);
+	void set_fixed_process_internal(bool p_process_internal);
 	bool is_fixed_processing_internal() const;
 
-	void set_process_internal(bool p_process);
+	void set_process_internal(bool p_idle_process_internal);
 	bool is_processing_internal() const;
 
 	void set_process_input(bool p_enable);
@@ -411,6 +413,8 @@ public:
 	Node();
 	~Node();
 };
+
+VARIANT_ENUM_CAST(Node::DuplicateFlags);
 
 typedef Set<Node *, Node::Comparator> NodeSet;
 

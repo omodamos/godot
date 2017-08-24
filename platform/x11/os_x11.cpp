@@ -191,8 +191,7 @@ void OS_X11::initialize(const VideoMode &p_desired, int p_video_driver, int p_au
 
 		::XIMStyles *xim_styles = NULL;
 		xim_style = 0L;
-		char *imvalret = NULL;
-		imvalret = XGetIMValues(xim, XNQueryInputStyle, &xim_styles, NULL);
+		char *imvalret = XGetIMValues(xim, XNQueryInputStyle, &xim_styles, NULL);
 		if (imvalret != NULL || xim_styles == NULL) {
 			fprintf(stderr, "Input method doesn't support any styles\n");
 		}
@@ -351,19 +350,8 @@ void OS_X11::initialize(const VideoMode &p_desired, int p_video_driver, int p_au
 
 	XChangeWindowAttributes(x11_display, x11_window, CWEventMask, &new_attr);
 
-	XClassHint *classHint;
-
 	/* set the titlebar name */
 	XStoreName(x11_display, x11_window, "Godot");
-
-	/* set the name and class hints for the window manager to use */
-	classHint = XAllocClassHint();
-	if (classHint) {
-		classHint->res_name = (char *)"Godot_Engine";
-		classHint->res_class = (char *)"Godot";
-	}
-	XSetClassHint(x11_display, x11_window, classHint);
-	XFree(classHint);
 
 	wm_delete = XInternAtom(x11_display, "WM_DELETE_WINDOW", true);
 	XSetWMProtocols(x11_display, x11_window, &wm_delete, 1);
@@ -773,6 +761,10 @@ void OS_X11::set_current_screen(int p_screen) {
 }
 
 Point2 OS_X11::get_screen_position(int p_screen) const {
+	if (p_screen == -1) {
+		p_screen = get_current_screen();
+	}
+
 	// Using Xinerama Extension
 	int event_base, error_base;
 	const Bool ext_okay = XineramaQueryExtension(x11_display, &event_base, &error_base);
@@ -794,6 +786,10 @@ Point2 OS_X11::get_screen_position(int p_screen) const {
 }
 
 Size2 OS_X11::get_screen_size(int p_screen) const {
+	if (p_screen == -1) {
+		p_screen = get_current_screen();
+	}
+
 	// Using Xinerama Extension
 	int event_base, error_base;
 	const Bool ext_okay = XineramaQueryExtension(x11_display, &event_base, &error_base);
@@ -809,6 +805,9 @@ Size2 OS_X11::get_screen_size(int p_screen) const {
 }
 
 int OS_X11::get_screen_dpi(int p_screen) const {
+	if (p_screen == -1) {
+		p_screen = get_current_screen();
+	}
 
 	//invalid screen?
 	ERR_FAIL_INDEX_V(p_screen, get_screen_count(), 0);
@@ -2151,8 +2150,7 @@ bool OS_X11::is_vsync_enabled() const {
 
 void OS_X11::set_context(int p_context) {
 
-	XClassHint *classHint = NULL;
-	classHint = XAllocClassHint();
+	XClassHint *classHint = XAllocClassHint();
 	if (classHint) {
 
 		if (p_context == CONTEXT_EDITOR)

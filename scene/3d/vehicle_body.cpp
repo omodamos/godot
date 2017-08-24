@@ -559,6 +559,9 @@ void VehicleBody::_resolve_single_bilateral(PhysicsDirectBodyState *s, const Vec
 			b2invinertia,
 			b2invmass);
 
+	// FIXME: rel_vel assignment here is overwritten by the following assignment.
+	// What seemes to be intented in the next next assignment is: rel_vel = normal.dot(rel_vel);
+	// Investigate why.
 	real_t rel_vel = jac.getRelativeVelocity(
 			s->get_linear_velocity(),
 			s->get_transform().basis.transposed().xform(s->get_angular_velocity()),
@@ -893,9 +896,9 @@ real_t VehicleBody::get_friction() const {
 	return friction;
 }
 
-void VehicleBody::set_engine_force(float p_force) {
+void VehicleBody::set_engine_force(float p_engine_force) {
 
-	engine_force = p_force;
+	engine_force = p_engine_force;
 }
 
 float VehicleBody::get_engine_force() const {

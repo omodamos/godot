@@ -14960,13 +14960,6 @@
 	<description>
 	</description>
 	<methods>
-		<method name="get_custom_level" qualifiers="const">
-			<return type="String">
-			</return>
-			<description>
-				Returns the value of the commandline argument "-level".
-			</description>
-		</method>
 		<method name="get_frames_drawn">
 			<return type="int">
 			</return>
@@ -26549,6 +26542,17 @@
 				Notify the current node and all its children recursively by calling notification() in all of them.
 			</description>
 		</method>
+		<method name="propagate_call">
+			<argument index="0" name="method" type="String">
+			</argument>
+			<argument index="1" name="args" type="Array" default="[]">
+			</argument>
+			<argument index="2" name="parent_first" type="bool" default="false">
+			</argument>
+			<description>
+				Calls the method (if present) with the arguments given in "args" on this Node and recursively on all children. If the parent_first argument is true then the method will be called on the current [Node] first, then on all children. If it is false then the children will get called first.
+			</description>
+		</method>
 		<method name="queue_free">
 			<description>
 			</description>
@@ -28002,15 +28006,6 @@
 		Objects also receive notifications ([method _notification]). Notifications are a simple way to notify the object about simple events, so they can all be handled together.
 	</description>
 	<methods>
-		<method name="XL_MESSAGE" qualifiers="const">
-			<return type="String">
-			</return>
-			<argument index="0" name="message" type="String">
-			</argument>
-			<description>
-				Deprecated, will go away.
-			</description>
-		</method>
 		<method name="_get" qualifiers="virtual">
 			<argument index="0" name="property" type="String">
 			</argument>
@@ -28301,7 +28296,7 @@
 			<argument index="0" name="enable" type="bool">
 			</argument>
 			<description>
-				Set true if this object can translate strings (in calls to tr() ). Default is true.
+				Define whether this object can translate strings (with calls to [method tr]). Default is true.
 			</description>
 		</method>
 		<method name="set_meta">
@@ -28326,7 +28321,7 @@
 			<argument index="0" name="message" type="String">
 			</argument>
 			<description>
-				Translate a message. Only works in message translation is enabled (which is by default). See [method set_message_translation].
+				Translate a message. Only works if message translation is enabled (which it is by default). See [method set_message_translation].
 			</description>
 		</method>
 	</methods>
@@ -46119,6 +46114,13 @@
 			<description>
 			</description>
 		</method>
+		<method name="get_nine_patch_stretch">
+			<return type="bool">
+			</return>
+			<description>
+				Returns true if textures are stretched as nine-patches or false otherwise.
+			</description>
+		</method>
 		<method name="get_over_texture" qualifiers="const">
 			<return type="Object">
 			</return>
@@ -46143,6 +46145,15 @@
 			<description>
 			</description>
 		</method>
+		<method name="get_stretch_margin" qualifiers="const">
+			<return type="int">
+			</return>
+			<argument index="0" name="margin" type="int">
+			</argument>
+			<description>
+				Return nine-patch texture offset for a given margin (MARGIN_LEFT, MARGIN_TOP, MARGIN_RIGHT, MARGIN_BOTTOM).
+			</description>
+		</method>
 		<method name="get_under_texture" qualifiers="const">
 			<return type="Object">
 			</return>
@@ -46159,6 +46170,13 @@
 			<argument index="0" name="mode" type="int">
 			</argument>
 			<description>
+			</description>
+		</method>
+		<method name="set_nine_patch_stretch">
+			<argument index="0" name="stretch" type="bool">
+			</argument>
+			<description>
+				Set if textures should be stretched as nine-patches.
 			</description>
 		</method>
 		<method name="set_over_texture">
@@ -46185,6 +46203,15 @@
 			<description>
 			</description>
 		</method>
+		<method name="set_stretch_margin">
+			<argument index="0" name="margin" type="int">
+			</argument>
+			<argument index="1" name="size" type="int">
+			</argument>
+			<description>
+				Set nine-patch texture offset for a given margin (MARGIN_LEFT, MARGIN_TOP, MARGIN_RIGHT, MARGIN_BOTTOM).
+			</description>
+		</method>
 		<method name="set_under_texture">
 			<argument index="0" name="tex" type="Object">
 			</argument>
@@ -46206,6 +46233,16 @@
 		<member name="texture_progress" type="Texture" setter="set_progress_texture" getter="get_progress_texture" brief="">
 		</member>
 		<member name="texture_under" type="Texture" setter="set_under_texture" getter="get_under_texture" brief="">
+		</member>
+		<member name="nine_patch_stretch" type="bool" setter="set_nine_patch_stretch" getter="get_nine_patch_stretch" brief="">
+		</member>
+		<member name="stretch_margin_left" type="int" setter="set_stretch_margin" getter="get_stretch_margin" brief="">
+		</member>
+		<member name="stretch_margin_top" type="int" setter="set_stretch_margin" getter="get_stretch_margin" brief="">
+		</member>
+		<member name="stretch_margin_right" type="int" setter="set_stretch_margin" getter="get_stretch_margin" brief="">
+		</member>
+		<member name="stretch_margin_bottom" type="int" setter="set_stretch_margin" getter="get_stretch_margin" brief="">
 		</member>
 	</members>
 	<constants>

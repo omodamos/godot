@@ -85,6 +85,8 @@ public:
 	_ResourceSaver();
 };
 
+VARIANT_ENUM_CAST(_ResourceSaver::SaverFlags);
+
 class MainLoop;
 
 class _OS : public Object {
@@ -138,9 +140,9 @@ public:
 	virtual int get_screen_count() const;
 	virtual int get_current_screen() const;
 	virtual void set_current_screen(int p_screen);
-	virtual Point2 get_screen_position(int p_screen = 0) const;
-	virtual Size2 get_screen_size(int p_screen = 0) const;
-	virtual int get_screen_dpi(int p_screen = 0) const;
+	virtual Point2 get_screen_position(int p_screen = -1) const;
+	virtual Size2 get_screen_size(int p_screen = -1) const;
+	virtual int get_screen_dpi(int p_screen = -1) const;
 	virtual Point2 get_window_position() const;
 	virtual void set_window_position(const Point2 &p_position);
 	virtual Size2 get_window_size() const;
@@ -310,6 +312,8 @@ public:
 	_OS();
 };
 
+VARIANT_ENUM_CAST(_OS::Weekday);
+VARIANT_ENUM_CAST(_OS::Month);
 VARIANT_ENUM_CAST(_OS::SystemDir);
 VARIANT_ENUM_CAST(_OS::ScreenOrientation);
 
@@ -447,6 +451,9 @@ public:
 	virtual ~_File();
 };
 
+VARIANT_ENUM_CAST(_File::ModeFlags);
+VARIANT_ENUM_CAST(_File::CompressionMode);
+
 class _Directory : public Reference {
 
 	GDCLASS(_Directory, Reference);
@@ -458,7 +465,7 @@ protected:
 public:
 	Error open(const String &p_path);
 
-	Error list_dir_begin(bool p_skip_internal = false, bool p_skip_hidden = false); ///< This starts dir listing
+	Error list_dir_begin(bool p_skip_navigational = false, bool p_skip_hidden = false); ///< This starts dir listing
 	String get_next();
 	bool current_is_dir() const;
 
@@ -578,6 +585,8 @@ public:
 	~_Thread();
 };
 
+VARIANT_ENUM_CAST(_Thread::Priority);
+
 class _ClassDB : public Object {
 
 	GDCLASS(_ClassDB, Object)
@@ -639,13 +648,14 @@ public:
 	void set_time_scale(float p_scale);
 	float get_time_scale();
 
-	String get_custom_level() const;
-
 	MainLoop *get_main_loop() const;
 
 	Dictionary get_version_info() const;
 
 	bool is_in_fixed_frame() const;
+
+	void set_editor_hint(bool p_enabled);
+	bool is_editor_hint() const;
 
 	_Engine();
 };

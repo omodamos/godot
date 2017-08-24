@@ -465,7 +465,7 @@ void ProjectManager::_notification(int p_what) {
 
 	if (p_what == NOTIFICATION_ENTER_TREE) {
 
-		get_tree()->set_editor_hint(true);
+		Engine::get_singleton()->set_editor_hint(true);
 
 	} else if (p_what == NOTIFICATION_VISIBILITY_CHANGED) {
 
@@ -848,6 +848,7 @@ void ProjectManager::_load_recent_projects() {
 
 		VBoxContainer *vb = memnew(VBoxContainer);
 		vb->set_name("project");
+		vb->set_h_size_flags(SIZE_EXPAND_FILL);
 		hb->add_child(vb);
 		Control *ec = memnew(Control);
 		ec->set_custom_minimum_size(Size2(0, 1));
@@ -855,12 +856,14 @@ void ProjectManager::_load_recent_projects() {
 		Label *title = memnew(Label(project_name));
 		title->add_font_override("font", gui_base->get_font("large", "Fonts"));
 		title->add_color_override("font_color", font_color);
+		title->set_clip_text(true);
 		vb->add_child(title);
 		Label *fpath = memnew(Label(path));
 		fpath->set_name("path");
 		vb->add_child(fpath);
 		fpath->set_modulate(Color(1, 1, 1, 0.5));
 		fpath->add_color_override("font_color", font_color);
+		fpath->set_clip_text(true);
 
 		scroll_childs->add_child(hb);
 	}
@@ -926,10 +929,10 @@ void ProjectManager::_open_project_confirm() {
 
 		List<String> args;
 
-		args.push_back("-path");
+		args.push_back("--path");
 		args.push_back(path);
 
-		args.push_back("-editor");
+		args.push_back("--editor");
 
 		String exec = OS::get_singleton()->get_executable_path();
 
@@ -966,7 +969,6 @@ void ProjectManager::_run_project_confirm() {
 			return;
 		}
 
-
 		const String &selected = E->key();
 		String path = EditorSettings::get_singleton()->get("projects/" + selected);
 
@@ -980,7 +982,7 @@ void ProjectManager::_run_project_confirm() {
 
 		List<String> args;
 
-		args.push_back("-path");
+		args.push_back("--path");
 		args.push_back(path);
 
 		String exec = OS::get_singleton()->get_executable_path();
@@ -1217,7 +1219,7 @@ ProjectManager::ProjectManager() {
 	panel->add_child(vb);
 	vb->set_area_as_parent_rect(20 * EDSCALE);
 	vb->set_margin(MARGIN_TOP, 4 * EDSCALE);
-	vb->set_margin(MARGIN_BOTTOM, 4 * EDSCALE);
+	vb->set_margin(MARGIN_BOTTOM, -4 * EDSCALE);
 	vb->add_constant_override("separation", 15 * EDSCALE);
 
 	String cp;
@@ -1447,7 +1449,7 @@ void ProjectListFilter::_filter_option_selected(int p_idx) {
 void ProjectListFilter::_notification(int p_what) {
 	switch (p_what) {
 		case NOTIFICATION_ENTER_TREE: {
-			clear_search_button->set_icon(get_icon("CloseHover", "EditorIcons"));
+			clear_search_button->set_icon(get_icon("Close", "EditorIcons"));
 		} break;
 	}
 }

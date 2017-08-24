@@ -1068,20 +1068,20 @@ Transform2D TileMap::get_custom_transform() const {
 	return custom_transform;
 }
 
-Vector2 TileMap::_map_to_world(int x, int y, bool p_ignore_ofs) const {
+Vector2 TileMap::_map_to_world(int p_x, int p_y, bool p_ignore_ofs) const {
 
-	Vector2 ret = get_cell_transform().xform(Vector2(x, y));
+	Vector2 ret = get_cell_transform().xform(Vector2(p_x, p_y));
 	if (!p_ignore_ofs) {
 		switch (half_offset) {
 
 			case HALF_OFFSET_X: {
-				if (ABS(y) & 1) {
+				if (ABS(p_y) & 1) {
 
 					ret += get_cell_transform()[0] * 0.5;
 				}
 			} break;
 			case HALF_OFFSET_Y: {
-				if (ABS(x) & 1) {
+				if (ABS(p_x) & 1) {
 					ret += get_cell_transform()[1] * 0.5;
 				}
 			} break;
@@ -1315,15 +1315,18 @@ void TileMap::_bind_methods() {
 	ADD_SIGNAL(MethodInfo("settings_changed"));
 
 	BIND_CONSTANT(INVALID_CELL);
-	BIND_CONSTANT(MODE_SQUARE);
-	BIND_CONSTANT(MODE_ISOMETRIC);
-	BIND_CONSTANT(MODE_CUSTOM);
-	BIND_CONSTANT(HALF_OFFSET_X);
-	BIND_CONSTANT(HALF_OFFSET_Y);
-	BIND_CONSTANT(HALF_OFFSET_DISABLED);
-	BIND_CONSTANT(TILE_ORIGIN_TOP_LEFT);
-	BIND_CONSTANT(TILE_ORIGIN_CENTER);
-	BIND_CONSTANT(TILE_ORIGIN_BOTTOM_LEFT);
+
+	BIND_ENUM_CONSTANT(MODE_SQUARE);
+	BIND_ENUM_CONSTANT(MODE_ISOMETRIC);
+	BIND_ENUM_CONSTANT(MODE_CUSTOM);
+
+	BIND_ENUM_CONSTANT(HALF_OFFSET_X);
+	BIND_ENUM_CONSTANT(HALF_OFFSET_Y);
+	BIND_ENUM_CONSTANT(HALF_OFFSET_DISABLED);
+
+	BIND_ENUM_CONSTANT(TILE_ORIGIN_TOP_LEFT);
+	BIND_ENUM_CONSTANT(TILE_ORIGIN_CENTER);
+	BIND_ENUM_CONSTANT(TILE_ORIGIN_BOTTOM_LEFT);
 }
 
 TileMap::TileMap() {

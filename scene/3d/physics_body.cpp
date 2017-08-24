@@ -28,6 +28,8 @@
 /* SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                */
 /*************************************************************************/
 #include "physics_body.h"
+
+#include "engine.h"
 #include "method_bind_ext.gen.inc"
 #include "scene/scene_string_names.h"
 
@@ -476,13 +478,13 @@ void RigidBody::_notification(int p_what) {
 
 #ifdef TOOLS_ENABLED
 	if (p_what == NOTIFICATION_ENTER_TREE) {
-		if (get_tree()->is_editor_hint()) {
+		if (Engine::get_singleton()->is_editor_hint()) {
 			set_notify_local_transform(true); //used for warnings and only in editor
 		}
 	}
 
 	if (p_what == NOTIFICATION_LOCAL_TRANSFORM_CHANGED) {
-		if (get_tree()->is_editor_hint()) {
+		if (Engine::get_singleton()->is_editor_hint()) {
 			update_configuration_warning();
 		}
 	}
@@ -868,10 +870,10 @@ void RigidBody::_bind_methods() {
 	ADD_SIGNAL(MethodInfo("body_exited", PropertyInfo(Variant::OBJECT, "body")));
 	ADD_SIGNAL(MethodInfo("sleeping_state_changed"));
 
-	BIND_CONSTANT(MODE_STATIC);
-	BIND_CONSTANT(MODE_KINEMATIC);
-	BIND_CONSTANT(MODE_RIGID);
-	BIND_CONSTANT(MODE_CHARACTER);
+	BIND_ENUM_CONSTANT(MODE_STATIC);
+	BIND_ENUM_CONSTANT(MODE_KINEMATIC);
+	BIND_ENUM_CONSTANT(MODE_RIGID);
+	BIND_ENUM_CONSTANT(MODE_CHARACTER);
 }
 
 RigidBody::RigidBody()

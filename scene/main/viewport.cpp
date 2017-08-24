@@ -1354,7 +1354,7 @@ void Viewport::_vp_input(const Ref<InputEvent> &p_ev) {
 		return;
 
 #ifdef TOOLS_ENABLED
-	if (get_tree()->is_editor_hint() && get_tree()->get_edited_scene_root() && get_tree()->get_edited_scene_root()->is_a_parent_of(this)) {
+	if (Engine::get_singleton()->is_editor_hint() && get_tree()->get_edited_scene_root() && get_tree()->get_edited_scene_root()->is_a_parent_of(this)) {
 		return;
 	}
 #endif
@@ -1374,7 +1374,7 @@ void Viewport::_vp_unhandled_input(const Ref<InputEvent> &p_ev) {
 	if (disable_input)
 		return;
 #ifdef TOOLS_ENABLED
-	if (get_tree()->is_editor_hint() && get_tree()->get_edited_scene_root() && get_tree()->get_edited_scene_root()->is_a_parent_of(this)) {
+	if (Engine::get_singleton()->is_editor_hint() && get_tree()->get_edited_scene_root() && get_tree()->get_edited_scene_root()->is_a_parent_of(this)) {
 		return;
 	}
 #endif
@@ -1456,6 +1456,10 @@ void Viewport::_gui_show_tooltip() {
 		gui.tooltip_popup = NULL;
 	}
 
+	if (!gui.tooltip) {
+		return;
+	}
+
 	Control *rp = gui.tooltip->get_root_parent_control();
 	if (!rp)
 		return;
@@ -1473,8 +1477,8 @@ void Viewport::_gui_show_tooltip() {
 
 	gui.tooltip_label->set_anchor_and_margin(MARGIN_LEFT, Control::ANCHOR_BEGIN, ttp->get_margin(MARGIN_LEFT));
 	gui.tooltip_label->set_anchor_and_margin(MARGIN_TOP, Control::ANCHOR_BEGIN, ttp->get_margin(MARGIN_TOP));
-	gui.tooltip_label->set_anchor_and_margin(MARGIN_RIGHT, Control::ANCHOR_END, ttp->get_margin(MARGIN_RIGHT));
-	gui.tooltip_label->set_anchor_and_margin(MARGIN_BOTTOM, Control::ANCHOR_END, ttp->get_margin(MARGIN_BOTTOM));
+	gui.tooltip_label->set_anchor_and_margin(MARGIN_RIGHT, Control::ANCHOR_END, -ttp->get_margin(MARGIN_RIGHT));
+	gui.tooltip_label->set_anchor_and_margin(MARGIN_BOTTOM, Control::ANCHOR_END, -ttp->get_margin(MARGIN_BOTTOM));
 	gui.tooltip_label->set_text(tooltip);
 	Rect2 r(gui.tooltip_pos + Point2(10, 10), gui.tooltip_label->get_combined_minimum_size() + ttp->get_minimum_size());
 	Rect2 vr = gui.tooltip_label->get_viewport_rect();
@@ -1932,8 +1936,7 @@ void Viewport::_gui_input_event(Ref<InputEvent> p_event) {
 
 			Control *top = gui.modal_stack.back()->get();
 			if (over != top && !top->is_a_parent_of(over)) {
-
-				return; // don't send motion event to anything below modal stack top
+				over = NULL; //nothing can be found outside the modal stack
 			}
 		}
 
@@ -2773,38 +2776,38 @@ void Viewport::_bind_methods() {
 
 	ADD_SIGNAL(MethodInfo("size_changed"));
 
-	BIND_CONSTANT(UPDATE_DISABLED);
-	BIND_CONSTANT(UPDATE_ONCE);
-	BIND_CONSTANT(UPDATE_WHEN_VISIBLE);
-	BIND_CONSTANT(UPDATE_ALWAYS);
+	BIND_ENUM_CONSTANT(UPDATE_DISABLED);
+	BIND_ENUM_CONSTANT(UPDATE_ONCE);
+	BIND_ENUM_CONSTANT(UPDATE_WHEN_VISIBLE);
+	BIND_ENUM_CONSTANT(UPDATE_ALWAYS);
 
-	BIND_CONSTANT(SHADOW_ATLAS_QUADRANT_SUBDIV_DISABLED);
-	BIND_CONSTANT(SHADOW_ATLAS_QUADRANT_SUBDIV_1);
-	BIND_CONSTANT(SHADOW_ATLAS_QUADRANT_SUBDIV_4);
-	BIND_CONSTANT(SHADOW_ATLAS_QUADRANT_SUBDIV_16);
-	BIND_CONSTANT(SHADOW_ATLAS_QUADRANT_SUBDIV_64);
-	BIND_CONSTANT(SHADOW_ATLAS_QUADRANT_SUBDIV_256);
-	BIND_CONSTANT(SHADOW_ATLAS_QUADRANT_SUBDIV_1024);
-	BIND_CONSTANT(SHADOW_ATLAS_QUADRANT_SUBDIV_MAX);
+	BIND_ENUM_CONSTANT(SHADOW_ATLAS_QUADRANT_SUBDIV_DISABLED);
+	BIND_ENUM_CONSTANT(SHADOW_ATLAS_QUADRANT_SUBDIV_1);
+	BIND_ENUM_CONSTANT(SHADOW_ATLAS_QUADRANT_SUBDIV_4);
+	BIND_ENUM_CONSTANT(SHADOW_ATLAS_QUADRANT_SUBDIV_16);
+	BIND_ENUM_CONSTANT(SHADOW_ATLAS_QUADRANT_SUBDIV_64);
+	BIND_ENUM_CONSTANT(SHADOW_ATLAS_QUADRANT_SUBDIV_256);
+	BIND_ENUM_CONSTANT(SHADOW_ATLAS_QUADRANT_SUBDIV_1024);
+	BIND_ENUM_CONSTANT(SHADOW_ATLAS_QUADRANT_SUBDIV_MAX);
 
-	BIND_CONSTANT(RENDER_INFO_OBJECTS_IN_FRAME);
-	BIND_CONSTANT(RENDER_INFO_VERTICES_IN_FRAME);
-	BIND_CONSTANT(RENDER_INFO_MATERIAL_CHANGES_IN_FRAME);
-	BIND_CONSTANT(RENDER_INFO_SHADER_CHANGES_IN_FRAME);
-	BIND_CONSTANT(RENDER_INFO_SURFACE_CHANGES_IN_FRAME);
-	BIND_CONSTANT(RENDER_INFO_DRAW_CALLS_IN_FRAME);
-	BIND_CONSTANT(RENDER_INFO_MAX);
+	BIND_ENUM_CONSTANT(RENDER_INFO_OBJECTS_IN_FRAME);
+	BIND_ENUM_CONSTANT(RENDER_INFO_VERTICES_IN_FRAME);
+	BIND_ENUM_CONSTANT(RENDER_INFO_MATERIAL_CHANGES_IN_FRAME);
+	BIND_ENUM_CONSTANT(RENDER_INFO_SHADER_CHANGES_IN_FRAME);
+	BIND_ENUM_CONSTANT(RENDER_INFO_SURFACE_CHANGES_IN_FRAME);
+	BIND_ENUM_CONSTANT(RENDER_INFO_DRAW_CALLS_IN_FRAME);
+	BIND_ENUM_CONSTANT(RENDER_INFO_MAX);
 
-	BIND_CONSTANT(DEBUG_DRAW_DISABLED);
-	BIND_CONSTANT(DEBUG_DRAW_UNSHADED);
-	BIND_CONSTANT(DEBUG_DRAW_OVERDRAW);
-	BIND_CONSTANT(DEBUG_DRAW_WIREFRAME);
+	BIND_ENUM_CONSTANT(DEBUG_DRAW_DISABLED);
+	BIND_ENUM_CONSTANT(DEBUG_DRAW_UNSHADED);
+	BIND_ENUM_CONSTANT(DEBUG_DRAW_OVERDRAW);
+	BIND_ENUM_CONSTANT(DEBUG_DRAW_WIREFRAME);
 
-	BIND_CONSTANT(MSAA_DISABLED);
-	BIND_CONSTANT(MSAA_2X);
-	BIND_CONSTANT(MSAA_4X);
-	BIND_CONSTANT(MSAA_8X);
-	BIND_CONSTANT(MSAA_16X);
+	BIND_ENUM_CONSTANT(MSAA_DISABLED);
+	BIND_ENUM_CONSTANT(MSAA_2X);
+	BIND_ENUM_CONSTANT(MSAA_4X);
+	BIND_ENUM_CONSTANT(MSAA_8X);
+	BIND_ENUM_CONSTANT(MSAA_16X);
 }
 
 Viewport::Viewport() {

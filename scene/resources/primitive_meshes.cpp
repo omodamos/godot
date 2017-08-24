@@ -618,8 +618,8 @@ Vector3 CubeMesh::get_size() const {
 	return size;
 }
 
-void CubeMesh::set_subdivide_width(const int p_subdivide) {
-	subdivide_w = p_subdivide > 0 ? p_subdivide : 0;
+void CubeMesh::set_subdivide_width(const int p_divisions) {
+	subdivide_w = p_divisions > 0 ? p_divisions : 0;
 	_request_update();
 }
 
@@ -627,8 +627,8 @@ int CubeMesh::get_subdivide_width() const {
 	return subdivide_w;
 }
 
-void CubeMesh::set_subdivide_height(const int p_subdivide) {
-	subdivide_h = p_subdivide > 0 ? p_subdivide : 0;
+void CubeMesh::set_subdivide_height(const int p_divisions) {
+	subdivide_h = p_divisions > 0 ? p_divisions : 0;
 	_request_update();
 }
 
@@ -636,8 +636,8 @@ int CubeMesh::get_subdivide_height() const {
 	return subdivide_h;
 }
 
-void CubeMesh::set_subdivide_depth(const int p_subdivide) {
-	subdivide_d = p_subdivide > 0 ? p_subdivide : 0;
+void CubeMesh::set_subdivide_depth(const int p_divisions) {
+	subdivide_d = p_divisions > 0 ? p_divisions : 0;
 	_request_update();
 }
 
@@ -957,8 +957,8 @@ Size2 PlaneMesh::get_size() const {
 	return size;
 }
 
-void PlaneMesh::set_subdivide_width(const int p_subdivide) {
-	subdivide_w = p_subdivide > 0 ? p_subdivide : 0;
+void PlaneMesh::set_subdivide_width(const int p_divisions) {
+	subdivide_w = p_divisions > 0 ? p_divisions : 0;
 	_request_update();
 }
 
@@ -966,8 +966,8 @@ int PlaneMesh::get_subdivide_width() const {
 	return subdivide_w;
 }
 
-void PlaneMesh::set_subdivide_depth(const int p_subdivide) {
-	subdivide_d = p_subdivide > 0 ? p_subdivide : 0;
+void PlaneMesh::set_subdivide_depth(const int p_divisions) {
+	subdivide_d = p_divisions > 0 ? p_divisions : 0;
 	_request_update();
 }
 
@@ -1016,13 +1016,9 @@ void PrismMesh::_create_mesh_array(Array &p_arr) const {
 	for (j = 0; j <= (subdivide_h + 1); j++) {
 		float scale = (y - start_pos.y) / size.y;
 		float scaled_size_x = size.x * scale;
-		float start_x = start_pos.x;
-		float offset_front = 0.0;
-		float offset_back = 0.0;
-
-		start_x += (1.0 - scale) * size.x * left_to_right;
-		offset_front += (1.0 - scale) * onethird * left_to_right;
-		offset_back = (1.0 - scale) * onethird * (1.0 - left_to_right);
+		float start_x = start_pos.x + (1.0 - scale) * size.x * left_to_right;
+		float offset_front = (1.0 - scale) * onethird * left_to_right;
+		float offset_back = (1.0 - scale) * onethird * (1.0 - left_to_right);
 
 		x = 0.0;
 		for (i = 0; i <= (subdivide_w + 1); i++) {

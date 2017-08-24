@@ -37,7 +37,6 @@
 #include "io/resource_loader.h"
 #include "io/resource_saver.h"
 #include "io/zip_io.h"
-#include "os/dir_access.h"
 #include "os/file_access.h"
 #include "project_settings.h"
 #include "script_language.h"
@@ -230,17 +229,17 @@ void EditorExportPlatform::gen_debug_flags(Vector<String> &r_flags, int p_flags)
 	if (p_flags & DEBUG_FLAG_DUMB_CLIENT) {
 		int port = EditorSettings::get_singleton()->get("filesystem/file_server/port");
 		String passwd = EditorSettings::get_singleton()->get("filesystem/file_server/password");
-		r_flags.push_back("-rfs");
+		r_flags.push_back("--remote-fs");
 		r_flags.push_back(host + ":" + itos(port));
 		if (passwd != "") {
-			r_flags.push_back("-rfs_pass");
+			r_flags.push_back("--remote-fs-password");
 			r_flags.push_back(passwd);
 		}
 	}
 
 	if (p_flags & DEBUG_FLAG_REMOTE_DEBUG) {
 
-		r_flags.push_back("-rdebug");
+		r_flags.push_back("--remote-debug");
 
 		r_flags.push_back(host + ":" + String::num(remote_port));
 
@@ -249,7 +248,7 @@ void EditorExportPlatform::gen_debug_flags(Vector<String> &r_flags, int p_flags)
 
 		if (breakpoints.size()) {
 
-			r_flags.push_back("-bp");
+			r_flags.push_back("--breakpoints");
 			String bpoints;
 			for (const List<String>::Element *E = breakpoints.front(); E; E = E->next()) {
 
@@ -264,12 +263,12 @@ void EditorExportPlatform::gen_debug_flags(Vector<String> &r_flags, int p_flags)
 
 	if (p_flags & DEBUG_FLAG_VIEW_COLLISONS) {
 
-		r_flags.push_back("-debugcol");
+		r_flags.push_back("--debug-collisions");
 	}
 
 	if (p_flags & DEBUG_FLAG_VIEW_NAVIGATION) {
 
-		r_flags.push_back("-debugnav");
+		r_flags.push_back("--debug-navigation");
 	}
 }
 
@@ -420,6 +419,63 @@ void EditorExportPlatform::_export_find_dependencies(const String &p_path, Set<S
 	}
 }
 
+void EditorExportPlatform::_edit_files_with_filter(DirAccess *da, const Vector<String> &p_filters, Set<String> &r_list, bool exclude) {
+
+	da->list_dir_begin();
+	String cur_dir = da->get_current_dir().replace("\\", "/");
+	if (!cur_dir.ends_with("/"))
+		cur_dir += "/";
+
+	Vector<String> dirs;
+	String f;
+	while ((f = da->get_next()) != "") {
+		if (da->current_is_dir())
+			dirs.push_back(f);
+		else {
+			String fullpath = cur_dir + f;
+			for (int i = 0; i < p_filters.size(); ++i) {
+				if (fullpath.matchn(p_filters[i])) {
+					if (!exclude) {
+						r_list.insert(fullpath);
+					} else {
+						r_list.erase(fullpath);
+					}
+				}
+			}
+		}
+	}
+
+	da->list_dir_end();
+
+	for (int i = 0; i < dirs.size(); ++i) {
+		String dir = dirs[i];
+		if (dir.begins_with("."))
+			continue;
+		da->change_dir(dir);
+		_edit_files_with_filter(da, p_filters, r_list, exclude);
+		da->change_dir("..");
+	}
+}
+
+void EditorExportPlatform::_edit_filter_list(Set<String> &r_list, const String &p_filter, bool exclude) {
+
+	if (p_filter == "")
+		return;
+	Vector<String> split = p_filter.split(",");
+	Vector<String> filters;
+	for (int i = 0; i < split.size(); i++) {
+		String f = split[i].strip_edges();
+		if (f.empty())
+			continue;
+		filters.push_back(f);
+	}
+
+	DirAccess *da = DirAccess::open("res://");
+	ERR_FAIL_NULL(da);
+	_edit_files_with_filter(da, filters, r_list, exclude);
+	memdelete(da);
+}
+
 Error EditorExportPlatform::export_project_files(const Ref<EditorExportPreset> &p_preset, EditorExportSaveFunction p_func, void *p_udata) {
 
 	Ref<EditorExportPlatform> platform = p_preset->get_platform();
@@ -448,6 +504,9 @@ Error EditorExportPlatform::export_project_files(const Ref<EditorExportPreset> &
 			_export_find_dependencies(files[i], paths);
 		}
 	}
+
+	_edit_filter_list(paths, p_preset->get_include_filter(), false);
+	_edit_filter_list(paths, p_preset->get_exclude_filter(), true);
 
 	//store everything in the export medium
 	int idx = 0;
@@ -655,17 +714,17 @@ void EditorExportPlatform::gen_export_flags(Vector<String> &r_flags, int p_flags
 	if (p_flags & DEBUG_FLAG_DUMB_CLIENT) {
 		int port = EditorSettings::get_singleton()->get("filesystem/file_server/port");
 		String passwd = EditorSettings::get_singleton()->get("filesystem/file_server/password");
-		r_flags.push_back("-rfs");
+		r_flags.push_back("--remote-fs");
 		r_flags.push_back(host + ":" + itos(port));
 		if (passwd != "") {
-			r_flags.push_back("-rfs_pass");
+			r_flags.push_back("--remote-fs-password");
 			r_flags.push_back(passwd);
 		}
 	}
 
 	if (p_flags & DEBUG_FLAG_REMOTE_DEBUG) {
 
-		r_flags.push_back("-rdebug");
+		r_flags.push_back("--remote-debug");
 
 		r_flags.push_back(host + ":" + String::num(remote_port));
 
@@ -674,7 +733,7 @@ void EditorExportPlatform::gen_export_flags(Vector<String> &r_flags, int p_flags
 
 		if (breakpoints.size()) {
 
-			r_flags.push_back("-bp");
+			r_flags.push_back("--breakpoints");
 			String bpoints;
 			for (const List<String>::Element *E = breakpoints.front(); E; E = E->next()) {
 
@@ -689,12 +748,12 @@ void EditorExportPlatform::gen_export_flags(Vector<String> &r_flags, int p_flags
 
 	if (p_flags & DEBUG_FLAG_VIEW_COLLISONS) {
 
-		r_flags.push_back("-debugcol");
+		r_flags.push_back("--debug-collisions");
 	}
 
 	if (p_flags & DEBUG_FLAG_VIEW_NAVIGATION) {
 
-		r_flags.push_back("-debugnav");
+		r_flags.push_back("--debug-navigation");
 	}
 }
 EditorExportPlatform::EditorExportPlatform() {
@@ -2172,17 +2231,17 @@ void EditorExportPlatform::gen_export_flags(Vector<String> &r_flags, int p_flags
 	if (p_flags&EXPORT_DUMB_CLIENT) {
 		int port = EditorSettings::get_singleton()->get("filesystem/file_server/port");
 		String passwd = EditorSettings::get_singleton()->get("filesystem/file_server/password");
-		r_flags.push_back("-rfs");
+		r_flags.push_back("--remote-fs");
 		r_flags.push_back(host+":"+itos(port));
 		if (passwd!="") {
-			r_flags.push_back("-rfs_pass");
+			r_flags.push_back("--remote-fs-password");
 			r_flags.push_back(passwd);
 		}
 	}
 
 	if (p_flags&EXPORT_REMOTE_DEBUG) {
 
-		r_flags.push_back("-rdebug");
+		r_flags.push_back("--remote-debug");
 
 		r_flags.push_back(host+":"+String::num(remote_port));
 
@@ -2192,7 +2251,7 @@ void EditorExportPlatform::gen_export_flags(Vector<String> &r_flags, int p_flags
 
 		if (breakpoints.size()) {
 
-			r_flags.push_back("-bp");
+			r_flags.push_back("--breakpoints");
 			String bpoints;
 			for(const List<String>::Element *E=breakpoints.front();E;E=E->next()) {
 
@@ -2208,12 +2267,12 @@ void EditorExportPlatform::gen_export_flags(Vector<String> &r_flags, int p_flags
 
 	if (p_flags&EXPORT_VIEW_COLLISONS) {
 
-		r_flags.push_back("-debugcol");
+		r_flags.push_back("--debug-collisions");
 	}
 
 	if (p_flags&EXPORT_VIEW_NAVIGATION) {
 
-		r_flags.push_back("-debugnav");
+		r_flags.push_back("--debug-navigation");
 	}
 
 
@@ -3264,22 +3323,22 @@ void EditorImportExport::_bind_methods() {
 
 
 
-	BIND_CONSTANT( ACTION_NONE );
-	BIND_CONSTANT( ACTION_COPY );
-	BIND_CONSTANT( ACTION_BUNDLE );
+	BIND_ENUM_CONSTANT( ACTION_NONE );
+	BIND_ENUM_CONSTANT( ACTION_COPY );
+	BIND_ENUM_CONSTANT( ACTION_BUNDLE );
 
-	BIND_CONSTANT( EXPORT_SELECTED );
-	BIND_CONSTANT( EXPORT_RESOURCES );
-	BIND_CONSTANT( EXPORT_ALL );
+	BIND_ENUM_CONSTANT( EXPORT_SELECTED );
+	BIND_ENUM_CONSTANT( EXPORT_RESOURCES );
+	BIND_ENUM_CONSTANT( EXPORT_ALL );
 
-	BIND_CONSTANT( IMAGE_ACTION_NONE );
-	BIND_CONSTANT( IMAGE_ACTION_COMPRESS_DISK );
-	BIND_CONSTANT( IMAGE_ACTION_COMPRESS_RAM );
-	BIND_CONSTANT( IMAGE_ACTION_KEEP  );
+	BIND_ENUM_CONSTANT( IMAGE_ACTION_NONE );
+	BIND_ENUM_CONSTANT( IMAGE_ACTION_COMPRESS_DISK );
+	BIND_ENUM_CONSTANT( IMAGE_ACTION_COMPRESS_RAM );
+	BIND_ENUM_CONSTANT( IMAGE_ACTION_KEEP  );
 
-	BIND_CONSTANT( SCRIPT_ACTION_NONE );
-	BIND_CONSTANT( SCRIPT_ACTION_COMPILE );
-	BIND_CONSTANT( SCRIPT_ACTION_ENCRYPT );
+	BIND_ENUM_CONSTANT( SCRIPT_ACTION_NONE );
+	BIND_ENUM_CONSTANT( SCRIPT_ACTION_COMPILE );
+	BIND_ENUM_CONSTANT( SCRIPT_ACTION_ENCRYPT );
 };
 
 

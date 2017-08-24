@@ -123,6 +123,7 @@ class EditorHelp : public VBoxContainer {
 	Map<String, int> property_line;
 	Map<String, int> theme_property_line;
 	Map<String, int> constant_line;
+	Map<String, int> enum_line;
 	int description_line;
 
 	RichTextLabel *class_desc;
@@ -137,13 +138,12 @@ class EditorHelp : public VBoxContainer {
 
 	void _help_callback(const String &p_topic);
 
-	void _add_text(const String &p_text);
+	void _add_text(const String &p_bbcode);
 	bool scroll_locked;
 
 	//void _button_pressed(int p_idx);
-	void _add_type(const String &p_type);
+	void _add_type(const String &p_type, const String &p_enum = String());
 
-	void _scroll_changed(double p_scroll);
 	void _class_list_select(const String &p_select);
 	void _class_desc_select(const String &p_select);
 	void _class_desc_input(const Ref<InputEvent> &p_input);
@@ -189,7 +189,7 @@ class EditorHelpBit : public Panel {
 
 	RichTextLabel *rich_text;
 	void _go_to_help(String p_what);
-	void _meta_clicked(String p_what);
+	void _meta_clicked(String p_select);
 
 protected:
 	static void _bind_methods();

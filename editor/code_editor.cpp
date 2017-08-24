@@ -70,7 +70,7 @@ GotoLineDialog::GotoLineDialog() {
 	line = memnew(LineEdit);
 	line->set_anchor(MARGIN_RIGHT, ANCHOR_END);
 	line->set_begin(Point2(15, 22));
-	line->set_end(Point2(15, 35));
+	line->set_end(Point2(-15, 35));
 	add_child(line);
 	register_text_enter(line);
 	text_editor = NULL;
@@ -258,7 +258,6 @@ void FindReplaceBar::_get_search_from(int &r_line, int &r_col) {
 			int selection_from_col = text_edit->get_selection_from_column();
 
 			if (r_col >= selection_from_col && r_col <= text_edit->get_selection_to_column()) {
-				r_col = selection_line;
 				r_col = selection_from_col;
 			}
 		}
@@ -887,7 +886,7 @@ FindReplaceDialog::FindReplaceDialog() {
 	replace_text = memnew(LineEdit);
 	replace_text->set_anchor(MARGIN_RIGHT, ANCHOR_END);
 	replace_text->set_begin(Point2(15, 132));
-	replace_text->set_end(Point2(15, 135));
+	replace_text->set_end(Point2(-15, 135));
 	//replace_text->set_self_opacity(0.7);
 	replace_mc->add_child(replace_text);
 
@@ -937,8 +936,8 @@ FindReplaceDialog::FindReplaceDialog() {
 	skip->set_anchor(MARGIN_TOP, ANCHOR_END);
 	skip->set_anchor(MARGIN_RIGHT, ANCHOR_END);
 	skip->set_anchor(MARGIN_BOTTOM, ANCHOR_END);
-	skip->set_begin(Point2(70, button_margin));
-	skip->set_end(Point2(10, margin));
+	skip->set_begin(Point2(-70, -button_margin));
+	skip->set_end(Point2(-10, -margin));
 	skip->set_text(TTR("Skip"));
 	add_child(skip);
 	skip->connect("pressed", this, "_skip_pressed");
@@ -1037,8 +1036,9 @@ void CodeTextEditor::_complete_request() {
 	List<String> entries;
 	String ctext = text_editor->get_text_for_completion();
 	_code_complete_script(ctext, &entries);
+	bool forced = false;
 	if (code_complete_func) {
-		code_complete_func(code_complete_ud, ctext, &entries);
+		code_complete_func(code_complete_ud, ctext, &entries, forced);
 	}
 	// print_line("COMPLETE: "+p_request);
 	if (entries.size() == 0)
@@ -1051,7 +1051,7 @@ void CodeTextEditor::_complete_request() {
 		strs[i++] = E->get();
 	}
 
-	text_editor->code_complete(strs);
+	text_editor->code_complete(strs, forced);
 }
 
 void CodeTextEditor::_font_resize_timeout() {
@@ -1087,6 +1087,8 @@ void CodeTextEditor::update_editor_settings() {
 	text_editor->cursor_set_blink_speed(EditorSettings::get_singleton()->get("text_editor/cursor/caret_blink_speed"));
 	text_editor->set_draw_breakpoint_gutter(EditorSettings::get_singleton()->get("text_editor/line_numbers/show_breakpoint_gutter"));
 	text_editor->cursor_set_block_mode(EditorSettings::get_singleton()->get("text_editor/cursor/block_caret"));
+	text_editor->set_smooth_scroll_enabled(EditorSettings::get_singleton()->get("text_editor/open_scripts/smooth_scrolling"));
+	text_editor->set_v_scroll_speed(EditorSettings::get_singleton()->get("text_editor/open_scripts/v_scroll_speed"));
 }
 
 void CodeTextEditor::set_error(const String &p_error) {
@@ -1222,10 +1224,11 @@ CodeTextEditor::CodeTextEditor() {
 	error = memnew(Label);
 	status_bar->add_child(error);
 	error->hide();
+	error->set_clip_text(true); //do not change, or else very long errors can push the whole container to the right
 	error->set_valign(Label::VALIGN_CENTER);
 	error->add_color_override("font_color", Color(1, 0.7, 0.6, 0.9));
-
-	status_bar->add_spacer();
+	error->set_h_size_flags(SIZE_EXPAND_FILL); //required for it to display, given now it's clipping contents, do not touch
+	//status_bar->add_spacer();
 
 	Label *line_txt = memnew(Label);
 	status_bar->add_child(line_txt);
@@ -1238,7 +1241,8 @@ CodeTextEditor::CodeTextEditor() {
 	status_bar->add_child(line_nb);
 	line_nb->set_valign(Label::VALIGN_CENTER);
 	line_nb->set_v_size_flags(SIZE_FILL);
-	line_nb->set_autowrap(true); // workaround to prevent resizing the label on each change
+	line_nb->set_autowrap(true); // workaround to prevent resizing the label on each change, do not touch
+	line_nb->set_clip_text(true); // workaround to prevent resizing the label on each change, do not touch
 	line_nb->set_custom_minimum_size(Size2(40, 1) * EDSCALE);
 
 	Label *col_txt = memnew(Label);
@@ -1252,7 +1256,8 @@ CodeTextEditor::CodeTextEditor() {
 	status_bar->add_child(col_nb);
 	col_nb->set_valign(Label::VALIGN_CENTER);
 	col_nb->set_v_size_flags(SIZE_FILL);
-	col_nb->set_autowrap(true); // workaround to prevent resizing the label on each change
+	col_nb->set_autowrap(true); // workaround to prevent resizing the label on each change, do not touch
+	col_nb->set_clip_text(true); // workaround to prevent resizing the label on each change, do not touch
 	col_nb->set_custom_minimum_size(Size2(40, 1) * EDSCALE);
 
 	text_editor->connect("gui_input", this, "_text_editor_gui_input");
@@ -1263,6 +1268,7 @@ CodeTextEditor::CodeTextEditor() {
 	cs.push_back(".");
 	cs.push_back(",");
 	cs.push_back("(");
+	cs.push_back("=");
 	cs.push_back("$");
 	text_editor->set_completion(true, cs);
 	idle->connect("timeout", this, "_text_changed_idle_timeout");

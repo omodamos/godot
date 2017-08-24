@@ -65,6 +65,7 @@ PropertyInfo::operator Dictionary() const {
 
 	Dictionary d;
 	d["name"] = name;
+	d["class_name"] = class_name;
 	d["type"] = type;
 	d["hint"] = hint;
 	d["hint_string"] = hint_string;
@@ -81,6 +82,9 @@ PropertyInfo PropertyInfo::from_dict(const Dictionary &p_dict) {
 
 	if (p_dict.has("name"))
 		pi.name = p_dict["name"];
+
+	if (p_dict.has("class_name"))
+		pi.class_name = p_dict["class_name"];
 
 	if (p_dict.has("hint"))
 		pi.hint = PropertyHint(int(p_dict["hint"]));
@@ -1560,17 +1564,12 @@ void Object::initialize_class() {
 	initialized = true;
 }
 
-StringName Object::XL_MESSAGE(const StringName &p_message) const {
+StringName Object::tr(const StringName &p_message) const {
 
 	if (!_can_translate || !TranslationServer::get_singleton())
 		return p_message;
 
 	return TranslationServer::get_singleton()->translate(p_message);
-}
-
-StringName Object::tr(const StringName &p_message) const {
-
-	return XL_MESSAGE(p_message);
 }
 
 void Object::_clear_internal_resource_paths(const Variant &p_var) {
@@ -1712,11 +1711,10 @@ void Object::_bind_methods() {
 
 	ClassDB::bind_method(D_METHOD("set_block_signals", "enable"), &Object::set_block_signals);
 	ClassDB::bind_method(D_METHOD("is_blocking_signals"), &Object::is_blocking_signals);
-	ClassDB::bind_method(D_METHOD("set_message_translation", "enable"), &Object::set_message_translation);
-	ClassDB::bind_method(D_METHOD("can_translate_messages"), &Object::can_translate_messages);
 	ClassDB::bind_method(D_METHOD("property_list_changed_notify"), &Object::property_list_changed_notify);
 
-	ClassDB::bind_method(D_METHOD("XL_MESSAGE", "message"), &Object::XL_MESSAGE);
+	ClassDB::bind_method(D_METHOD("set_message_translation", "enable"), &Object::set_message_translation);
+	ClassDB::bind_method(D_METHOD("can_translate_messages"), &Object::can_translate_messages);
 	ClassDB::bind_method(D_METHOD("tr", "message"), &Object::tr);
 
 	ClassDB::bind_method(D_METHOD("is_queued_for_deletion"), &Object::is_queued_for_deletion);
@@ -1743,9 +1741,9 @@ void Object::_bind_methods() {
 	BIND_CONSTANT(NOTIFICATION_POSTINITIALIZE);
 	BIND_CONSTANT(NOTIFICATION_PREDELETE);
 
-	BIND_CONSTANT(CONNECT_DEFERRED);
-	BIND_CONSTANT(CONNECT_PERSIST);
-	BIND_CONSTANT(CONNECT_ONESHOT);
+	BIND_ENUM_CONSTANT(CONNECT_DEFERRED);
+	BIND_ENUM_CONSTANT(CONNECT_PERSIST);
+	BIND_ENUM_CONSTANT(CONNECT_ONESHOT);
 }
 
 void Object::call_deferred(const StringName &p_method, VARIANT_ARG_DECLARE) {

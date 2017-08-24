@@ -39,7 +39,6 @@ class Engine {
 
 	friend class Main;
 
-	String _custom_level;
 	uint64_t frames_drawn;
 	uint32_t _frame_delay;
 	uint64_t _frame_ticks;
@@ -51,8 +50,11 @@ class Engine {
 	float _time_scale;
 	bool _pixel_snap;
 	uint64_t _fixed_frames;
+
 	uint64_t _idle_frames;
 	bool _in_fixed;
+
+	bool editor_hint;
 
 	static Engine *singleton;
 
@@ -66,8 +68,6 @@ public:
 	virtual float get_target_fps() const;
 
 	virtual float get_frames_per_second() const { return _fps; }
-
-	String get_custom_level() const { return _custom_level; }
 
 	uint64_t get_frames_drawn();
 
@@ -84,6 +84,14 @@ public:
 	uint32_t get_frame_delay() const;
 
 	_FORCE_INLINE_ bool get_use_pixel_snap() const { return _pixel_snap; }
+
+#ifdef TOOLS_ENABLED
+	_FORCE_INLINE_ void set_editor_hint(bool p_enabled) { editor_hint = p_enabled; }
+	_FORCE_INLINE_ bool is_editor_hint() const { return editor_hint; }
+#else
+	_FORCE_INLINE_ void set_editor_hint(bool p_enabled) {}
+	_FORCE_INLINE_ bool is_editor_hint() const { return false; }
+#endif
 
 	Dictionary get_version_info() const;
 

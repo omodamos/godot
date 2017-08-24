@@ -1208,6 +1208,7 @@ void VisualScriptPreload::set_preload(const Ref<Resource> &p_preload) {
 	preload = p_preload;
 	ports_changed_notify();
 }
+
 Ref<Resource> VisualScriptPreload::get_preload() const {
 
 	return preload;
@@ -2711,9 +2712,9 @@ void VisualScriptCustomNode::_bind_methods() {
 
 	ClassDB::bind_method(D_METHOD("_script_changed"), &VisualScriptCustomNode::_script_changed);
 
-	BIND_CONSTANT(START_MODE_BEGIN_SEQUENCE);
-	BIND_CONSTANT(START_MODE_CONTINUE_SEQUENCE);
-	BIND_CONSTANT(START_MODE_RESUME_YIELD);
+	BIND_ENUM_CONSTANT(START_MODE_BEGIN_SEQUENCE);
+	BIND_ENUM_CONSTANT(START_MODE_CONTINUE_SEQUENCE);
+	BIND_ENUM_CONSTANT(START_MODE_RESUME_YIELD);
 
 	BIND_CONSTANT(STEP_PUSH_STACK_BIT);
 	BIND_CONSTANT(STEP_GO_BACK_BIT);

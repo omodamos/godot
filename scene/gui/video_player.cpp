@@ -116,7 +116,7 @@ void VideoPlayer::_notification(int p_notification) {
 
 		case NOTIFICATION_ENTER_TREE: {
 
-			if (stream.is_valid() && autoplay && !get_tree()->is_editor_hint()) {
+			if (stream.is_valid() && autoplay && !Engine::get_singleton()->is_editor_hint()) {
 				play();
 			}
 		} break;
@@ -399,7 +399,6 @@ VideoPlayer::VideoPlayer() {
 	paused = false;
 	autoplay = false;
 	expand = true;
-	loops = false;
 
 	audio_track = 0;
 

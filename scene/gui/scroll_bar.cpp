@@ -40,6 +40,11 @@ void ScrollBar::set_can_focus_by_default(bool p_can_focus) {
 
 void ScrollBar::_gui_input(Ref<InputEvent> p_event) {
 
+	Ref<InputEventMouseMotion> m = p_event;
+	if (!m.is_valid() || drag.active) {
+		emit_signal("scrolling");
+	}
+
 	Ref<InputEventMouseButton> b = p_event;
 
 	if (b.is_valid()) {
@@ -98,7 +103,18 @@ void ScrollBar::_gui_input(Ref<InputEvent> p_event) {
 
 			if (ofs < grabber_ofs) {
 
-				set_value(get_value() - get_page());
+				if (scrolling) {
+					target_scroll = target_scroll - get_page();
+				} else {
+					target_scroll = get_value() - get_page();
+				}
+
+				if (smooth_scroll_enabled) {
+					scrolling = true;
+					set_fixed_process(true);
+				} else {
+					set_value(target_scroll);
+				}
 				return;
 			}
 
@@ -111,8 +127,18 @@ void ScrollBar::_gui_input(Ref<InputEvent> p_event) {
 				drag.value_at_click = get_as_ratio();
 				update();
 			} else {
+				if (scrolling) {
+					target_scroll = target_scroll + get_page();
+				} else {
+					target_scroll = get_value() + get_page();
+				}
 
-				set_value(get_value() + get_page());
+				if (smooth_scroll_enabled) {
+					scrolling = true;
+					set_fixed_process(true);
+				} else {
+					set_value(target_scroll);
+				}
 			}
 
 		} else {
@@ -121,8 +147,6 @@ void ScrollBar::_gui_input(Ref<InputEvent> p_event) {
 			update();
 		}
 	}
-
-	Ref<InputEventMouseMotion> m = p_event;
 
 	if (m.is_valid()) {
 
@@ -233,7 +257,14 @@ void ScrollBar::_notification(int p_what) {
 		Ref<Texture> decr = highlight == HIGHLIGHT_DECR ? get_icon("decrement_highlight") : get_icon("decrement");
 		Ref<Texture> incr = highlight == HIGHLIGHT_INCR ? get_icon("increment_highlight") : get_icon("increment");
 		Ref<StyleBox> bg = has_focus() ? get_stylebox("scroll_focus") : get_stylebox("scroll");
-		Ref<StyleBox> grabber = (drag.active || highlight == HIGHLIGHT_RANGE) ? get_stylebox("grabber_highlight") : get_stylebox("grabber");
+
+		Ref<StyleBox> grabber;
+		if (drag.active)
+			grabber = get_stylebox("grabber_pressed");
+		else if (highlight == HIGHLIGHT_RANGE)
+			grabber = get_stylebox("grabber_highlight");
+		else
+			grabber = get_stylebox("grabber");
 
 		Point2 ofs;
 
@@ -304,7 +335,22 @@ void ScrollBar::_notification(int p_what) {
 
 	if (p_what == NOTIFICATION_FIXED_PROCESS) {
 
-		if (drag_slave_touching) {
+		if (scrolling) {
+			if (get_value() != target_scroll) {
+				double target = target_scroll - get_value();
+				double dist = sqrt(target * target);
+				double vel = ((target / dist) * 500) * get_fixed_process_delta_time();
+
+				if (vel >= dist) {
+					set_value(target_scroll);
+				} else {
+					set_value(get_value() + vel);
+				}
+			} else {
+				scrolling = false;
+				set_fixed_process(false);
+			}
+		} else if (drag_slave_touching) {
 
 			if (drag_slave_touching_deaccel) {
 
@@ -632,6 +678,14 @@ NodePath ScrollBar::get_drag_slave() const {
 	return drag_slave_path;
 }
 
+void ScrollBar::set_smooth_scroll_enabled(bool p_enable) {
+	smooth_scroll_enabled = p_enable;
+}
+
+bool ScrollBar::is_smooth_scroll_enabled() const {
+	return smooth_scroll_enabled;
+}
+
 #if 0
 
 void ScrollBar::mouse_button(const Point2& p_pos, int b->get_button_index(),bool b->is_pressed(),int p_modifier_mask) {
@@ -772,6 +826,8 @@ void ScrollBar::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("_drag_slave_input"), &ScrollBar::_drag_slave_input);
 	ClassDB::bind_method(D_METHOD("_drag_slave_exit"), &ScrollBar::_drag_slave_exit);
 
+	ADD_SIGNAL(MethodInfo("scrolling"));
+
 	ADD_PROPERTY(PropertyInfo(Variant::REAL, "custom_step", PROPERTY_HINT_RANGE, "-1,4096"), "set_custom_step", "get_custom_step");
 }
 
@@ -787,6 +843,10 @@ ScrollBar::ScrollBar(Orientation p_orientation) {
 	drag_slave_speed = Vector2();
 	drag_slave_touching = false;
 	drag_slave_touching_deaccel = false;
+
+	scrolling = false;
+	target_scroll = 0;
+	smooth_scroll_enabled = false;
 
 	if (focus_by_default)
 		set_focus_mode(FOCUS_ALL);

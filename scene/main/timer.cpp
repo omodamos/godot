@@ -29,6 +29,8 @@
 /*************************************************************************/
 #include "timer.h"
 
+#include "engine.h"
+
 void Timer::_notification(int p_what) {
 
 	switch (p_what) {
@@ -37,7 +39,7 @@ void Timer::_notification(int p_what) {
 
 			if (autostart) {
 #ifdef TOOLS_ENABLED
-				if (get_tree()->is_editor_hint() && get_tree()->get_edited_scene_root() && (get_tree()->get_edited_scene_root() == this || get_tree()->get_edited_scene_root()->is_a_parent_of(this)))
+				if (Engine::get_singleton()->is_editor_hint() && get_tree()->get_edited_scene_root() && (get_tree()->get_edited_scene_root() == this || get_tree()->get_edited_scene_root()->is_a_parent_of(this)))
 					break;
 #endif
 				start();
@@ -202,8 +204,8 @@ void Timer::_bind_methods() {
 	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "one_shot"), "set_one_shot", "is_one_shot");
 	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "autostart"), "set_autostart", "has_autostart");
 
-	BIND_CONSTANT(TIMER_PROCESS_FIXED);
-	BIND_CONSTANT(TIMER_PROCESS_IDLE);
+	BIND_ENUM_CONSTANT(TIMER_PROCESS_FIXED);
+	BIND_ENUM_CONSTANT(TIMER_PROCESS_IDLE);
 }
 
 Timer::Timer() {

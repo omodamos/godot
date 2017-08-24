@@ -1299,7 +1299,7 @@ void AnimationKeyEditor::_track_editor_draw() {
 		Object *obj = NULL;
 
 		RES res;
-		Node *node = root->get_node_and_resource(animation->track_get_path(idx), res);
+		Node *node = root ? root->get_node_and_resource(animation->track_get_path(idx), res) : (Node *)NULL;
 
 		if (res.is_valid()) {
 			obj = res.ptr();
@@ -1324,7 +1324,7 @@ void AnimationKeyEditor::_track_editor_draw() {
 
 		te->draw_texture(type_icon[animation->track_get_type(idx)], ofs + Point2(0, y + (h - type_icon[0]->get_height()) / 2).floor());
 		NodePath np = animation->track_get_path(idx);
-		Node *n = root->get_node(np);
+		Node *n = root ? root->get_node(np) : (Node *)NULL;
 		Color ncol = color;
 		if (n && editor_selection->is_selected(n))
 			ncol = track_select_color;
@@ -2904,7 +2904,7 @@ void AnimationKeyEditor::_notification(int p_what) {
 			zoomicon->set_custom_minimum_size(Size2(24 * EDSCALE, 0));
 			zoomicon->set_stretch_mode(TextureRect::STRETCH_KEEP_CENTERED);
 
-			menu_add_track->set_icon(get_icon("AddTrack", "EditorIcons"));
+			menu_add_track->set_icon(get_icon("Add", "EditorIcons"));
 			menu_add_track->get_popup()->add_icon_item(get_icon("KeyValue", "EditorIcons"), "Add Normal Track", ADD_TRACK_MENU_ADD_VALUE_TRACK);
 			menu_add_track->get_popup()->add_icon_item(get_icon("KeyXform", "EditorIcons"), "Add Transform Track", ADD_TRACK_MENU_ADD_TRANSFORM_TRACK);
 			menu_add_track->get_popup()->add_icon_item(get_icon("KeyCall", "EditorIcons"), "Add Call Func Track", ADD_TRACK_MENU_ADD_CALL_TRACK);

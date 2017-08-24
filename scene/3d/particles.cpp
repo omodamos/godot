@@ -63,6 +63,8 @@ void Particles::set_one_shot(bool p_one_shot) {
 
 	one_shot = p_one_shot;
 	VS::get_singleton()->particles_set_one_shot(particles, one_shot);
+	if (!one_shot && emitting)
+		VisualServer::get_singleton()->particles_restart(particles);
 }
 
 void Particles::set_pre_process_time(float p_time) {
@@ -345,9 +347,10 @@ void Particles::_bind_methods() {
 		ADD_PROPERTYI(PropertyInfo(Variant::OBJECT, "draw_pass_" + itos(i + 1), PROPERTY_HINT_RESOURCE_TYPE, "Mesh"), "set_draw_pass_mesh", "get_draw_pass_mesh", i);
 	}
 
-	BIND_CONSTANT(DRAW_ORDER_INDEX);
-	BIND_CONSTANT(DRAW_ORDER_LIFETIME);
-	BIND_CONSTANT(DRAW_ORDER_VIEW_DEPTH);
+	BIND_ENUM_CONSTANT(DRAW_ORDER_INDEX);
+	BIND_ENUM_CONSTANT(DRAW_ORDER_LIFETIME);
+	BIND_ENUM_CONSTANT(DRAW_ORDER_VIEW_DEPTH);
+
 	BIND_CONSTANT(MAX_DRAW_PASSES);
 }
 
@@ -406,7 +409,7 @@ void ParticlesMaterial::init_shaders() {
 	shader_names->anim_speed = "anim_speed";
 	shader_names->anim_offset = "anim_offset";
 
-	shader_names->initial_linear_velocity = "initial_linear_velocity_random";
+	shader_names->initial_linear_velocity_random = "initial_linear_velocity_random";
 	shader_names->initial_angle_random = "initial_angle_random";
 	shader_names->angular_velocity_random = "angular_velocity_random";
 	shader_names->orbit_velocity_random = "orbit_velocity_random";
@@ -753,18 +756,20 @@ void ParticlesMaterial::_update_shader() {
 		code += "    pos.z=0.0; \n";
 	}
 	code += "    //apply linear acceleration\n";
-	code += "    force+=normalize(VELOCITY) * (linear_accel+tex_linear_accel)*mix(1.0,rand_from_seed(alt_seed),linear_accel_random);\n";
+	code += "    force+= length(VELOCITY) > 0.0 ? normalize(VELOCITY) * (linear_accel+tex_linear_accel)*mix(1.0,rand_from_seed(alt_seed),linear_accel_random) : vec3(0.0);\n";
 	code += "    //apply radial acceleration\n";
 	code += "    vec3 org = vec3(0.0);\n";
-	code += "   // if (!p_system->local_coordinates)\n";
-	code += "	//org=p_transform.origin;\n";
-	code += "    force+=normalize(pos-org) * (radial_accel+tex_radial_accel)*mix(1.0,rand_from_seed(alt_seed),radial_accel_random);\n";
+	code += "    // if (!p_system->local_coordinates)\n";
+	code += "    //org=p_transform.origin;\n";
+	code += "    vec3 diff = pos-org;\n";
+	code += "    force+=length(diff) > 0.0 ? normalize(diff) * (radial_accel+tex_radial_accel)*mix(1.0,rand_from_seed(alt_seed),radial_accel_random) : vec3(0.0);\n";
 	code += "    //apply tangential acceleration;\n";
 	if (flags[FLAG_DISABLE_Z]) {
-		code += "    force+=vec3(normalize((pos-org).yx * vec2(-1.0,1.0)),0.0) * ((tangent_accel+tex_tangent_accel)*mix(1.0,rand_from_seed(alt_seed),radial_accel_random));\n";
+		code += "    force+=length(diff.yx) > 0.0 ? vec3(normalize(diff.yx * vec2(-1.0,1.0)),0.0) * ((tangent_accel+tex_tangent_accel)*mix(1.0,rand_from_seed(alt_seed),radial_accel_random)) : vec3(0.0);\n";
 
 	} else {
-		code += "    force+=normalize(cross(normalize(pos-org),normalize(gravity))) * ((tangent_accel+tex_tangent_accel)*mix(1.0,rand_from_seed(alt_seed),radial_accel_random));\n";
+		code += "    vec3 crossDiff = cross(normalize(diff),normalize(gravity));\n";
+		code += "    force+=length(crossDiff) > 0.0 ? normalize(crossDiff) * ((tangent_accel+tex_tangent_accel)*mix(1.0,rand_from_seed(alt_seed),radial_accel_random)) : vec3(0.0);\n";
 	}
 	code += "    //apply attractor forces\n";
 	code += "    VELOCITY+=force * DELTA;\n";
@@ -1264,9 +1269,8 @@ int ParticlesMaterial::get_emission_point_count() const {
 
 void ParticlesMaterial::set_trail_divisor(int p_divisor) {
 
-	VisualServer::get_singleton()->material_set_param(_get_material(), shader_names->trail_divisor, p_divisor);
 	trail_divisor = p_divisor;
-	_change_notify();
+	VisualServer::get_singleton()->material_set_param(_get_material(), shader_names->trail_divisor, p_divisor);
 }
 
 int ParticlesMaterial::get_trail_divisor() const {
@@ -1484,29 +1488,29 @@ void ParticlesMaterial::_bind_methods() {
 	ADD_PROPERTYI(PropertyInfo(Variant::OBJECT, "anim_offset_curve", PROPERTY_HINT_RESOURCE_TYPE, "CurveTexture"), "set_param_texture", "get_param_texture", PARAM_ANIM_OFFSET);
 	ADD_PROPERTYI(PropertyInfo(Variant::BOOL, "anim_loop"), "set_flag", "get_flag", FLAG_ANIM_LOOP);
 
-	BIND_CONSTANT(PARAM_INITIAL_LINEAR_VELOCITY);
-	BIND_CONSTANT(PARAM_ANGULAR_VELOCITY);
-	BIND_CONSTANT(PARAM_ORBIT_VELOCITY);
-	BIND_CONSTANT(PARAM_LINEAR_ACCEL);
-	BIND_CONSTANT(PARAM_RADIAL_ACCEL);
-	BIND_CONSTANT(PARAM_TANGENTIAL_ACCEL);
-	BIND_CONSTANT(PARAM_DAMPING);
-	BIND_CONSTANT(PARAM_ANGLE);
-	BIND_CONSTANT(PARAM_SCALE);
-	BIND_CONSTANT(PARAM_HUE_VARIATION);
-	BIND_CONSTANT(PARAM_ANIM_SPEED);
-	BIND_CONSTANT(PARAM_ANIM_OFFSET);
-	BIND_CONSTANT(PARAM_MAX);
+	BIND_ENUM_CONSTANT(PARAM_INITIAL_LINEAR_VELOCITY);
+	BIND_ENUM_CONSTANT(PARAM_ANGULAR_VELOCITY);
+	BIND_ENUM_CONSTANT(PARAM_ORBIT_VELOCITY);
+	BIND_ENUM_CONSTANT(PARAM_LINEAR_ACCEL);
+	BIND_ENUM_CONSTANT(PARAM_RADIAL_ACCEL);
+	BIND_ENUM_CONSTANT(PARAM_TANGENTIAL_ACCEL);
+	BIND_ENUM_CONSTANT(PARAM_DAMPING);
+	BIND_ENUM_CONSTANT(PARAM_ANGLE);
+	BIND_ENUM_CONSTANT(PARAM_SCALE);
+	BIND_ENUM_CONSTANT(PARAM_HUE_VARIATION);
+	BIND_ENUM_CONSTANT(PARAM_ANIM_SPEED);
+	BIND_ENUM_CONSTANT(PARAM_ANIM_OFFSET);
+	BIND_ENUM_CONSTANT(PARAM_MAX);
 
-	BIND_CONSTANT(FLAG_ALIGN_Y_TO_VELOCITY);
-	BIND_CONSTANT(FLAG_ROTATE_Y);
-	BIND_CONSTANT(FLAG_MAX);
+	BIND_ENUM_CONSTANT(FLAG_ALIGN_Y_TO_VELOCITY);
+	BIND_ENUM_CONSTANT(FLAG_ROTATE_Y);
+	BIND_ENUM_CONSTANT(FLAG_MAX);
 
-	BIND_CONSTANT(EMISSION_SHAPE_POINT);
-	BIND_CONSTANT(EMISSION_SHAPE_SPHERE);
-	BIND_CONSTANT(EMISSION_SHAPE_BOX);
-	BIND_CONSTANT(EMISSION_SHAPE_POINTS);
-	BIND_CONSTANT(EMISSION_SHAPE_DIRECTED_POINTS);
+	BIND_ENUM_CONSTANT(EMISSION_SHAPE_POINT);
+	BIND_ENUM_CONSTANT(EMISSION_SHAPE_SPHERE);
+	BIND_ENUM_CONSTANT(EMISSION_SHAPE_BOX);
+	BIND_ENUM_CONSTANT(EMISSION_SHAPE_POINTS);
+	BIND_ENUM_CONSTANT(EMISSION_SHAPE_DIRECTED_POINTS);
 }
 
 ParticlesMaterial::ParticlesMaterial()
