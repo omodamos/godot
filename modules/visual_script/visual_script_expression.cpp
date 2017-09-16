@@ -3,7 +3,7 @@
 /*************************************************************************/
 /*                       This file is part of:                           */
 /*                           GODOT ENGINE                                */
-/*                    http://www.godotengine.org                         */
+/*                      https://godotengine.org                          */
 /*************************************************************************/
 /* Copyright (c) 2007-2017 Juan Linietsky, Ariel Manzur.                 */
 /* Copyright (c) 2014-2017 Godot Engine contributors (cf. AUTHORS.md)    */
@@ -831,7 +831,6 @@ VisualScriptExpression::ENode *VisualScriptExpression::_parse_expression() {
 			case TK_BUILTIN_FUNC: {
 				//builtin function
 
-				Variant::Type bt = Variant::Type(int(tk.value));
 				_get_token(tk);
 				if (tk.type != TK_PARENTHESIS_OPEN) {
 					_set_error("Expected '('");
@@ -1179,7 +1178,7 @@ VisualScriptExpression::ENode *VisualScriptExpression::_parse_expression() {
 			if (expression[next_op + 1].is_op) {
 				// this is not invalid and can really appear
 				// but it becomes invalid anyway because no binary op
-				// can be followed by an unary op in a valid combination,
+				// can be followed by a unary op in a valid combination,
 				// due to how precedence works, unaries will always disappear first
 
 				_set_error("Unexpected two consecutive operators.");

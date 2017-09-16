@@ -3,7 +3,7 @@
 /*************************************************************************/
 /*                       This file is part of:                           */
 /*                           GODOT ENGINE                                */
-/*                    http://www.godotengine.org                         */
+/*                      https://godotengine.org                          */
 /*************************************************************************/
 /* Copyright (c) 2007-2017 Juan Linietsky, Ariel Manzur.                 */
 /* Copyright (c) 2014-2017 Godot Engine contributors (cf. AUTHORS.md)    */
@@ -75,7 +75,7 @@ void EditorHistory::_add_object(ObjectID p_object, const String &p_property, int
 
 	Object *obj = ObjectDB::get_instance(p_object);
 	ERR_FAIL_COND(!obj);
-	Reference *r = obj->cast_to<Reference>();
+	Reference *r = Object::cast_to<Reference>(obj);
 	Obj o;
 	if (r)
 		o.ref = REF(r);
@@ -141,7 +141,7 @@ ObjectID EditorHistory::get_history_obj(int p_obj) const {
 	return history[p_obj].path[history[p_obj].level].object;
 }
 
-bool EditorHistory::is_at_begining() const {
+bool EditorHistory::is_at_beginning() const {
 	return current <= 0;
 }
 bool EditorHistory::is_at_end() const {

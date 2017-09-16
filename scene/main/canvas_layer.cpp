@@ -3,7 +3,7 @@
 /*************************************************************************/
 /*                       This file is part of:                           */
 /*                           GODOT ENGINE                                */
-/*                    http://www.godotengine.org                         */
+/*                      https://godotengine.org                          */
 /*************************************************************************/
 /* Copyright (c) 2007-2017 Juan Linietsky, Ariel Manzur.                 */
 /* Copyright (c) 2014-2017 Godot Engine contributors (cf. AUTHORS.md)    */
@@ -201,7 +201,7 @@ void CanvasLayer::set_custom_viewport(Node *p_viewport) {
 		viewport = RID();
 	}
 
-	custom_viewport = p_viewport->cast_to<Viewport>();
+	custom_viewport = Object::cast_to<Viewport>(p_viewport);
 
 	if (custom_viewport) {
 		custom_viewport_id = custom_viewport->get_instance_id();

@@ -1,9 +1,9 @@
 /*************************************************************************/
-/*  color_ramp_editor_plugin.cpp                                         */
+/*  gradient_editor_plugin.cpp                                           */
 /*************************************************************************/
 /*                       This file is part of:                           */
 /*                           GODOT ENGINE                                */
-/*                    http://www.godotengine.org                         */
+/*                      https://godotengine.org                          */
 /*************************************************************************/
 /* Copyright (c) 2007-2017 Juan Linietsky, Ariel Manzur.                 */
 /* Copyright (c) 2014-2017 Godot Engine contributors (cf. AUTHORS.md)    */
@@ -46,7 +46,7 @@ GradientEditorPlugin::GradientEditorPlugin(EditorNode *p_node) {
 
 void GradientEditorPlugin::edit(Object *p_object) {
 
-	Gradient *gradient = p_object->cast_to<Gradient>();
+	Gradient *gradient = Object::cast_to<Gradient>(p_object);
 	if (!gradient)
 		return;
 	gradient_ref = Ref<Gradient>(gradient);

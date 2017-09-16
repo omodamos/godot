@@ -3,7 +3,7 @@
 /*************************************************************************/
 /*                       This file is part of:                           */
 /*                           GODOT ENGINE                                */
-/*                    http://www.godotengine.org                         */
+/*                      https://godotengine.org                          */
 /*************************************************************************/
 /* Copyright (c) 2007-2017 Juan Linietsky, Ariel Manzur.                 */
 /* Copyright (c) 2014-2017 Godot Engine contributors (cf. AUTHORS.md)    */
@@ -75,6 +75,28 @@ double AudioDriver::get_mix_time() const {
 	double total = (OS::get_singleton()->get_ticks_usec() - _last_mix_time) / 1000000.0;
 	total += _mix_amount / (double)get_mix_rate();
 	return total;
+}
+
+AudioDriver::SpeakerMode AudioDriver::get_speaker_mode_by_total_channels(int p_channels) const {
+	switch (p_channels) {
+		case 4: return SPEAKER_SURROUND_31;
+		case 6: return SPEAKER_SURROUND_51;
+		case 8: return SPEAKER_SURROUND_71;
+	}
+
+	// Default to STEREO
+	return SPEAKER_MODE_STEREO;
+}
+
+int AudioDriver::get_total_channels_by_speaker_mode(AudioDriver::SpeakerMode p_mode) const {
+	switch (p_mode) {
+		case SPEAKER_MODE_STEREO: return 2;
+		case SPEAKER_SURROUND_31: return 4;
+		case SPEAKER_SURROUND_51: return 6;
+		case SPEAKER_SURROUND_71: return 8;
+	}
+
+	ERR_FAIL_V(2);
 }
 
 AudioDriver::AudioDriver() {
@@ -155,6 +177,29 @@ void AudioServer::_driver_process(int p_frames, int32_t *p_buffer) {
 		todo -= to_copy;
 		to_mix -= to_copy;
 	}
+
+#ifdef DEBUG_ENABLED
+	if (OS::get_singleton() && OS::get_singleton()->is_stdout_verbose()) {
+		static uint64_t first_ticks = 0;
+		static uint64_t last_ticks = 0;
+		static uint64_t ticks = 0;
+		static int count = 0;
+		static int total = 0;
+
+		ticks = OS::get_singleton()->get_ticks_msec();
+		if ((ticks - first_ticks) > 10 * 1000) {
+			print_line("Audio Driver " + String(AudioDriver::get_singleton()->get_name()) + " average latency: " + itos(total / count) + "ms (frame=" + itos(p_frames) + ")");
+			first_ticks = ticks;
+			total = 0;
+			count = 0;
+		}
+
+		total += ticks - last_ticks;
+		count++;
+
+		last_ticks = ticks;
+	}
+#endif
 }
 
 void AudioServer::_mix_step() {
@@ -180,8 +225,9 @@ void AudioServer::_mix_step() {
 					if (!bus_map.has(bus->send)) {
 						bus = buses[0]; //send to master
 					} else {
+						int prev_index_cache = bus->index_cache;
 						bus = bus_map[bus->send];
-						if (bus->index_cache >= bus->index_cache) { //invalid, send to master
+						if (prev_index_cache >= bus->index_cache) { //invalid, send to master
 							bus = buses[0];
 						}
 					}
@@ -400,8 +446,8 @@ void AudioServer::set_bus_count(int p_count) {
 		}
 
 		buses[i] = memnew(Bus);
-		buses[i]->channels.resize(_get_channel_count());
-		for (int j = 0; j < _get_channel_count(); j++) {
+		buses[i]->channels.resize(get_channel_count());
+		for (int j = 0; j < get_channel_count(); j++) {
 			buses[i]->channels[j].buffer.resize(buffer_size);
 		}
 		buses[i]->name = attempt;
@@ -470,8 +516,8 @@ void AudioServer::add_bus(int p_at_pos) {
 	}
 
 	Bus *bus = memnew(Bus);
-	bus->channels.resize(_get_channel_count());
-	for (int j = 0; j < _get_channel_count(); j++) {
+	bus->channels.resize(get_channel_count());
+	for (int j = 0; j < get_channel_count(); j++) {
 		bus->channels[j].buffer.resize(buffer_size);
 	}
 	bus->name = attempt;
@@ -654,8 +700,8 @@ void AudioServer::_update_bus_effects(int p_bus) {
 		buses[p_bus]->channels[i].effect_instances.resize(buses[p_bus]->effects.size());
 		for (int j = 0; j < buses[p_bus]->effects.size(); j++) {
 			Ref<AudioEffectInstance> fx = buses[p_bus]->effects[j].effect->instance();
-			if (fx->cast_to<AudioEffectCompressorInstance>()) {
-				fx->cast_to<AudioEffectCompressorInstance>()->set_current_channel(i);
+			if (Object::cast_to<AudioEffectCompressorInstance>(*fx)) {
+				Object::cast_to<AudioEffectCompressorInstance>(*fx)->set_current_channel(i);
 			}
 			buses[p_bus]->channels[i].effect_instances[j] = fx;
 		}
@@ -774,17 +820,8 @@ void AudioServer::init() {
 	channel_disable_threshold_db = GLOBAL_DEF("audio/channel_disable_threshold_db", -60.0);
 	channel_disable_frames = float(GLOBAL_DEF("audio/channel_disable_time", 2.0)) * get_mix_rate();
 	buffer_size = 1024; //harcoded for now
-	switch (get_speaker_mode()) {
-		case SPEAKER_MODE_STEREO: {
-			temp_buffer.resize(1);
-		} break;
-		case SPEAKER_SURROUND_51: {
-			temp_buffer.resize(3);
-		} break;
-		case SPEAKER_SURROUND_71: {
-			temp_buffer.resize(4);
-		} break;
-	}
+
+	temp_buffer.resize(get_channel_count());
 
 	for (int i = 0; i < temp_buffer.size(); i++) {
 		temp_buffer[i].resize(buffer_size);
@@ -792,11 +829,11 @@ void AudioServer::init() {
 
 	mix_count = 0;
 	set_bus_count(1);
-	;
 	set_bus_name(0, "Master");
 
 	if (AudioDriver::get_singleton())
 		AudioDriver::get_singleton()->start();
+
 #ifdef TOOLS_ENABLED
 	set_edited(false); //avoid editors from thinking this was edited
 #endif
@@ -968,8 +1005,8 @@ void AudioServer::set_bus_layout(const Ref<AudioBusLayout> &p_bus_layout) {
 		bus_map[bus->name] = bus;
 		buses[i] = bus;
 
-		buses[i]->channels.resize(_get_channel_count());
-		for (int j = 0; j < _get_channel_count(); j++) {
+		buses[i]->channels.resize(get_channel_count());
+		for (int j = 0; j < get_channel_count(); j++) {
 			buses[i]->channels[j].buffer.resize(buffer_size);
 		}
 		_update_bus_effects(i);
@@ -1057,6 +1094,10 @@ void AudioServer::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("generate_bus_layout"), &AudioServer::generate_bus_layout);
 
 	ADD_SIGNAL(MethodInfo("bus_layout_changed"));
+
+	BIND_ENUM_CONSTANT(SPEAKER_MODE_STEREO);
+	BIND_ENUM_CONSTANT(SPEAKER_SURROUND_51);
+	BIND_ENUM_CONSTANT(SPEAKER_SURROUND_71);
 }
 
 AudioServer::AudioServer() {

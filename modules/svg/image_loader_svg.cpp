@@ -3,7 +3,7 @@
 /*************************************************************************/
 /*                       This file is part of:                           */
 /*                           GODOT ENGINE                                */
-/*                    http://www.godotengine.org                         */
+/*                      https://godotengine.org                          */
 /*************************************************************************/
 /* Copyright (c) 2007-2017 Juan Linietsky, Ariel Manzur.                 */
 /* Copyright (c) 2014-2017 Godot Engine contributors (cf. AUTHORS.md)    */
@@ -47,7 +47,55 @@ SVGRasterizer::~SVGRasterizer() {
 
 SVGRasterizer ImageLoaderSVG::rasterizer;
 
-Error ImageLoaderSVG::_create_image(Ref<Image> p_image, const PoolVector<uint8_t> *p_data, float p_scale, bool upsample) {
+inline void change_nsvg_paint_color(NSVGpaint *p_paint, const uint32_t p_old, const uint32_t p_new) {
+
+	if (p_paint->type == NSVG_PAINT_COLOR) {
+		if (p_paint->color << 8 == p_old << 8) {
+			p_paint->color = p_new;
+		}
+	}
+
+	if (p_paint->type == NSVG_PAINT_LINEAR_GRADIENT || p_paint->type == NSVG_PAINT_RADIAL_GRADIENT) {
+		for (int stop_index = 0; stop_index < p_paint->gradient->nstops; stop_index++) {
+			if (p_paint->gradient->stops[stop_index].color << 8 == p_old << 8) {
+				p_paint->gradient->stops[stop_index].color = p_new;
+			}
+		}
+	}
+}
+
+void ImageLoaderSVG::_convert_colors(NSVGimage *p_svg_image) {
+
+	for (NSVGshape *shape = p_svg_image->shapes; shape != NULL; shape = shape->next) {
+
+		for (int i = 0; i < replace_colors.old_colors.size(); i++) {
+			change_nsvg_paint_color(&(shape->stroke), replace_colors.old_colors[i], replace_colors.new_colors[i]);
+			change_nsvg_paint_color(&(shape->fill), replace_colors.old_colors[i], replace_colors.new_colors[i]);
+		}
+	}
+}
+
+void ImageLoaderSVG::set_convert_colors(Dictionary *p_replace_color) {
+
+	if (p_replace_color) {
+		Dictionary replace_color = *p_replace_color;
+		for (int i = 0; i < replace_color.keys().size(); i++) {
+			Variant o_c = replace_color.keys()[i];
+			Variant n_c = replace_color[replace_color.keys()[i]];
+			if (o_c.get_type() == Variant::COLOR && n_c.get_type() == Variant::COLOR) {
+				Color old_color = o_c;
+				Color new_color = n_c;
+				replace_colors.old_colors.push_back(old_color.to_abgr32());
+				replace_colors.new_colors.push_back(new_color.to_abgr32());
+			}
+		}
+	} else {
+		replace_colors.old_colors.clear();
+		replace_colors.new_colors.clear();
+	}
+}
+
+Error ImageLoaderSVG::_create_image(Ref<Image> p_image, const PoolVector<uint8_t> *p_data, float p_scale, bool upsample, bool convert_colors) {
 	NSVGimage *svg_image;
 	PoolVector<uint8_t>::Read src_r = p_data->read();
 	svg_image = nsvgParse((char *)src_r.ptr(), "px", 96);
@@ -55,6 +103,8 @@ Error ImageLoaderSVG::_create_image(Ref<Image> p_image, const PoolVector<uint8_t
 		ERR_PRINT("SVG Corrupted");
 		return ERR_FILE_CORRUPT;
 	}
+	if (convert_colors)
+		_convert_colors(svg_image);
 
 	float upscale = upsample ? 2.0 : 1.0;
 
@@ -78,7 +128,7 @@ Error ImageLoaderSVG::_create_image(Ref<Image> p_image, const PoolVector<uint8_t
 	return OK;
 }
 
-Error ImageLoaderSVG::create_image_from_string(Ref<Image> p_image, const char *svg_str, float p_scale, bool upsample) {
+Error ImageLoaderSVG::create_image_from_string(Ref<Image> p_image, const char *svg_str, float p_scale, bool upsample, bool convert_colors) {
 
 	size_t str_len = strlen(svg_str);
 	PoolVector<uint8_t> src_data;
@@ -86,7 +136,7 @@ Error ImageLoaderSVG::create_image_from_string(Ref<Image> p_image, const char *s
 	PoolVector<uint8_t>::Write src_w = src_data.write();
 	memcpy(src_w.ptr(), svg_str, str_len + 1);
 
-	return _create_image(p_image, &src_data, p_scale, upsample);
+	return _create_image(p_image, &src_data, p_scale, upsample, convert_colors);
 }
 
 Error ImageLoaderSVG::load_image(Ref<Image> p_image, FileAccess *f, bool p_force_linear, float p_scale) {
@@ -109,3 +159,5 @@ void ImageLoaderSVG::get_recognized_extensions(List<String> *p_extensions) const
 
 ImageLoaderSVG::ImageLoaderSVG() {
 }
+
+ImageLoaderSVG::ReplaceColors ImageLoaderSVG::replace_colors;

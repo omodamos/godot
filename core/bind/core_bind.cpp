@@ -3,7 +3,7 @@
 /*************************************************************************/
 /*                       This file is part of:                           */
 /*                           GODOT ENGINE                                */
-/*                    http://www.godotengine.org                         */
+/*                      https://godotengine.org                          */
 /*************************************************************************/
 /* Copyright (c) 2007-2017 Juan Linietsky, Ariel Manzur.                 */
 /* Copyright (c) 2014-2017 Godot Engine contributors (cf. AUTHORS.md)    */
@@ -440,8 +440,8 @@ bool _OS::is_vsync_enabled() const {
 	return OS::get_singleton()->is_vsync_enabled();
 }
 
-PowerState _OS::get_power_state() {
-	return OS::get_singleton()->get_power_state();
+_OS::PowerState _OS::get_power_state() {
+	return _OS::PowerState(OS::get_singleton()->get_power_state());
 }
 
 int _OS::get_power_seconds_left() {
@@ -568,7 +568,7 @@ Dictionary _OS::get_time(bool utc) const {
 }
 
 /**
- *  Get a epoch time value from a dictionary of time values
+ *  Get an epoch time value from a dictionary of time values
  *  @p datetime must be populated with the following keys:
  *    day, hour, minute, month, second, year. (dst is ignored).
  *
@@ -1705,7 +1705,7 @@ Variant _File::get_var() const {
 	ERR_FAIL_COND_V(!f, Variant());
 	uint32_t len = get_32();
 	PoolVector<uint8_t> buff = get_buffer(len);
-	ERR_FAIL_COND_V(buff.size() != len, Variant());
+	ERR_FAIL_COND_V((uint32_t)buff.size() != len, Variant());
 
 	PoolVector<uint8_t>::Read r = buff.read();
 
@@ -2354,7 +2354,7 @@ Variant _ClassDB::instance(const StringName &p_class) const {
 	if (!obj)
 		return Variant();
 
-	Reference *r = obj->cast_to<Reference>();
+	Reference *r = Object::cast_to<Reference>(obj);
 	if (r) {
 		return REF(r);
 	} else {

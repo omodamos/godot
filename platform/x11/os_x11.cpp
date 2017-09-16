@@ -3,7 +3,7 @@
 /*************************************************************************/
 /*                       This file is part of:                           */
 /*                           GODOT ENGINE                                */
-/*                    http://www.godotengine.org                         */
+/*                      https://godotengine.org                          */
 /*************************************************************************/
 /* Copyright (c) 2007-2017 Juan Linietsky, Ariel Manzur.                 */
 /* Copyright (c) 2014-2017 Godot Engine contributors (cf. AUTHORS.md)    */
@@ -93,6 +93,13 @@ const char *OS_X11::get_audio_driver_name(int p_driver) const {
 	return AudioDriverManager::get_driver(p_driver)->get_name();
 }
 
+void OS_X11::initialize_core() {
+
+	crash_handler.initialize();
+
+	OS_Unix::initialize_core();
+}
+
 void OS_X11::initialize(const VideoMode &p_desired, int p_video_driver, int p_audio_driver) {
 
 	long im_event_mask = 0;
@@ -116,24 +123,22 @@ void OS_X11::initialize(const VideoMode &p_desired, int p_video_driver, int p_au
 	/** XLIB INITIALIZATION **/
 	x11_display = XOpenDisplay(NULL);
 
+	char *modifiers = NULL;
 	Bool xkb_dar = False;
 	if (x11_display) {
 		XAutoRepeatOn(x11_display);
 		xkb_dar = XkbSetDetectableAutoRepeat(x11_display, True, NULL);
-	}
 
-	char *modifiers = NULL;
-
-	// Try to support IME if detectable auto-repeat is supported
-
-	if (xkb_dar == True) {
+		// Try to support IME if detectable auto-repeat is supported
+		if (xkb_dar == True) {
 
 // Xutf8LookupString will be used later instead of XmbLookupString before
 // the multibyte sequences can be converted to unicode string.
 
 #ifdef X_HAVE_UTF8_STRING
-		modifiers = XSetLocaleModifiers("");
+			modifiers = XSetLocaleModifiers("");
 #endif
+		}
 	}
 
 	if (modifiers == NULL) {
@@ -141,8 +146,6 @@ void OS_X11::initialize(const VideoMode &p_desired, int p_video_driver, int p_au
 			WARN_PRINT("IME is disabled");
 		}
 		modifiers = XSetLocaleModifiers("@im=none");
-	}
-	if (modifiers == NULL) {
 		WARN_PRINT("Error setting locale modifiers");
 	}
 
@@ -250,6 +253,11 @@ void OS_X11::initialize(const VideoMode &p_desired, int p_video_driver, int p_au
 
 	// borderless fullscreen window mode
 	if (current_videomode.fullscreen) {
+		// set bypass compositor hint
+		Atom bypass_compositor = XInternAtom(x11_display, "_NET_WM_BYPASS_COMPOSITOR", False);
+		unsigned long compositing_disable_on = 1;
+		XChangeProperty(x11_display, x11_window, bypass_compositor, XA_CARDINAL, 32, PropModeReplace, (unsigned char *)&compositing_disable_on, 1);
+
 		// needed for lxde/openbox, possibly others
 		Hints hints;
 		Atom property;
@@ -538,6 +546,8 @@ void OS_X11::finalize() {
 	physics_2d_server->finish();
 	memdelete(physics_2d_server);
 
+	memdelete(power_manager);
+
 	if (xrandr_handle)
 		dlclose(xrandr_handle);
 
@@ -697,6 +707,12 @@ void OS_X11::set_wm_fullscreen(bool p_enabled) {
 	xev.xclient.data.l[2] = 0;
 
 	XSendEvent(x11_display, DefaultRootWindow(x11_display), False, SubstructureRedirectMask | SubstructureNotifyMask, &xev);
+
+	// set bypass compositor hint
+	Atom bypass_compositor = XInternAtom(x11_display, "_NET_WM_BYPASS_COMPOSITOR", False);
+	unsigned long compositing_disable_on = p_enabled ? 1 : 0;
+	XChangeProperty(x11_display, x11_window, bypass_compositor, XA_CARDINAL, 32, PropModeReplace, (unsigned char *)&compositing_disable_on, 1);
+
 	XFlush(x11_display);
 
 	if (!p_enabled && !is_window_resizable()) {
@@ -1239,7 +1255,7 @@ void OS_X11::handle_key_event(XKeyEvent *p_event, bool p_echo) {
 
 	unsigned int keycode = KeyMappingX11::get_keycode(keysym_keycode);
 
-	/* Phase 3, obtain an unicode character from the keysym */
+	/* Phase 3, obtain a unicode character from the keysym */
 
 	// KeyMappingX11 also translates keysym to unicode.
 	// It does a binary search on a table to translate
@@ -1603,8 +1619,7 @@ void OS_X11::process_xevents() {
 				Point2i pos(event.xmotion.x, event.xmotion.y);
 
 				if (mouse_mode == MOUSE_MODE_CAPTURED) {
-#if 1
-					//Vector2 c = Point2i(current_videomode.width/2,current_videomode.height/2);
+
 					if (pos == Point2i(current_videomode.width / 2, current_videomode.height / 2)) {
 						//this sucks, it's a hack, etc and is a little inaccurate, etc.
 						//but nothing I can do, X11 sucks.
@@ -1617,17 +1632,6 @@ void OS_X11::process_xevents() {
 					pos = last_mouse_pos + (pos - center);
 					center = new_center;
 					do_mouse_warp = window_has_focus; // warp the cursor if we're focused in
-#else
-					//Dear X11, thanks for making my life miserable
-
-					center.x = current_videomode.width / 2;
-					center.y = current_videomode.height / 2;
-					pos = last_mouse_pos + (pos - center);
-					if (pos == last_mouse_pos)
-						break;
-					XWarpPointer(x11_display, None, x11_window,
-							0, 0, 0, 0, (int)center.x, (int)center.y);
-#endif
 				}
 
 				if (!last_mouse_pos_valid) {
@@ -2163,7 +2167,7 @@ void OS_X11::set_context(int p_context) {
 	}
 }
 
-PowerState OS_X11::get_power_state() {
+OS::PowerState OS_X11::get_power_state() {
 	return power_manager->get_power_state();
 }
 
@@ -2173,6 +2177,14 @@ int OS_X11::get_power_seconds_left() {
 
 int OS_X11::get_power_percent_left() {
 	return power_manager->get_power_percent_left();
+}
+
+void OS_X11::disable_crash_handler() {
+	crash_handler.disable();
+}
+
+bool OS_X11::is_disable_crash_handler() const {
+	return crash_handler.is_disabled();
 }
 
 OS_X11::OS_X11() {

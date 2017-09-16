@@ -3,7 +3,7 @@
 /*************************************************************************/
 /*                       This file is part of:                           */
 /*                           GODOT ENGINE                                */
-/*                    http://www.godotengine.org                         */
+/*                      https://godotengine.org                          */
 /*************************************************************************/
 /* Copyright (c) 2007-2017 Juan Linietsky, Ariel Manzur.                 */
 /* Copyright (c) 2014-2017 Godot Engine contributors (cf. AUTHORS.md)    */
@@ -34,7 +34,7 @@
 #include "math_funcs.h"
 #include "print_string.h"
 
-uint32_t Color::to_ARGB32() const {
+uint32_t Color::to_argb32() const {
 
 	uint32_t c = (uint8_t)(a * 255);
 	c <<= 8;
@@ -47,15 +47,27 @@ uint32_t Color::to_ARGB32() const {
 	return c;
 }
 
-uint32_t Color::to_32() const {
-
+uint32_t Color::to_abgr32() const {
 	uint32_t c = (uint8_t)(a * 255);
 	c <<= 8;
+	c |= (uint8_t)(b * 255);
+	c <<= 8;
+	c |= (uint8_t)(g * 255);
+	c <<= 8;
 	c |= (uint8_t)(r * 255);
+
+	return c;
+}
+
+uint32_t Color::to_rgba32() const {
+
+	uint32_t c = (uint8_t)(r * 255);
 	c <<= 8;
 	c |= (uint8_t)(g * 255);
 	c <<= 8;
 	c |= (uint8_t)(b * 255);
+	c <<= 8;
+	c |= (uint8_t)(a * 255);
 
 	return c;
 }

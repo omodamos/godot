@@ -3,7 +3,7 @@
 /*************************************************************************/
 /*                       This file is part of:                           */
 /*                           GODOT ENGINE                                */
-/*                    http://www.godotengine.org                         */
+/*                      https://godotengine.org                          */
 /*************************************************************************/
 /* Copyright (c) 2007-2017 Juan Linietsky, Ariel Manzur.                 */
 /* Copyright (c) 2014-2017 Godot Engine contributors (cf. AUTHORS.md)    */
@@ -165,7 +165,7 @@ void EditorSettingsDialog::_update_shortcuts() {
 			section->set_custom_bg_color(1, get_color("prop_subsection", "Editor"));
 		}
 
-		if (shortcut_filter.is_subsequence_ofi(sc->get_name())) {
+		if (shortcut_filter.is_subsequence_ofi(sc->get_name()) || shortcut_filter.is_subsequence_ofi(sc->get_as_text())) {
 			TreeItem *item = shortcuts->create_item(section);
 
 			item->set_text(0, sc->get_name());
@@ -191,7 +191,7 @@ void EditorSettingsDialog::_update_shortcuts() {
 
 void EditorSettingsDialog::_shortcut_button_pressed(Object *p_item, int p_column, int p_idx) {
 
-	TreeItem *ti = p_item->cast_to<TreeItem>();
+	TreeItem *ti = Object::cast_to<TreeItem>(p_item);
 	ERR_FAIL_COND(!ti);
 
 	String item = ti->get_metadata(0);

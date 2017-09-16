@@ -3,7 +3,7 @@
 /*************************************************************************/
 /*                       This file is part of:                           */
 /*                           GODOT ENGINE                                */
-/*                    http://www.godotengine.org                         */
+/*                      https://godotengine.org                          */
 /*************************************************************************/
 /* Copyright (c) 2007-2017 Juan Linietsky, Ariel Manzur.                 */
 /* Copyright (c) 2014-2017 Godot Engine contributors (cf. AUTHORS.md)    */
@@ -216,8 +216,8 @@ void ImageLoaderPNG::get_recognized_extensions(List<String> *p_extensions) const
 
 struct PNGReadStatus {
 
-	int offset;
-	int size;
+	uint32_t offset;
+	uint32_t size;
 	const unsigned char *image;
 };
 

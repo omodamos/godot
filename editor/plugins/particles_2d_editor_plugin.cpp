@@ -3,7 +3,7 @@
 /*************************************************************************/
 /*                       This file is part of:                           */
 /*                           GODOT ENGINE                                */
-/*                    http://www.godotengine.org                         */
+/*                      https://godotengine.org                          */
 /*************************************************************************/
 /* Copyright (c) 2007-2017 Juan Linietsky, Ariel Manzur.                 */
 /* Copyright (c) 2014-2017 Godot Engine contributors (cf. AUTHORS.md)    */
@@ -33,13 +33,10 @@
 #include "io/image_loader.h"
 #include "scene/3d/particles.h"
 #include "scene/gui/separator.h"
+
 void Particles2DEditorPlugin::edit(Object *p_object) {
 
-	if (p_object) {
-		particles = p_object->cast_to<Particles2D>();
-	} else {
-		particles = NULL;
-	}
+	particles = Object::cast_to<Particles2D>(p_object);
 }
 
 bool Particles2DEditorPlugin::handles(Object *p_object) const {
@@ -357,7 +354,7 @@ Particles2DEditorPlugin::Particles2DEditorPlugin(EditorNode *p_node) {
 	menu->get_popup()->add_separator();
 	menu->get_popup()->add_item(TTR("Load Emission Mask"), MENU_LOAD_EMISSION_MASK);
 	//	menu->get_popup()->add_item(TTR("Clear Emission Mask"), MENU_CLEAR_EMISSION_MASK);
-	menu->set_text("Particles");
+	menu->set_text(TTR("Particles"));
 	toolbar->add_child(menu);
 
 	file = memnew(EditorFileDialog);

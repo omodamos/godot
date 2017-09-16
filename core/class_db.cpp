@@ -3,7 +3,7 @@
 /*************************************************************************/
 /*                       This file is part of:                           */
 /*                           GODOT ENGINE                                */
-/*                    http://www.godotengine.org                         */
+/*                      https://godotengine.org                          */
 /*************************************************************************/
 /* Copyright (c) 2007-2017 Juan Linietsky, Ariel Manzur.                 */
 /* Copyright (c) 2014-2017 Godot Engine contributors (cf. AUTHORS.md)    */
@@ -45,11 +45,6 @@
 #endif
 
 #ifdef DEBUG_METHODS_ENABLED
-
-ParamDef::ParamDef(const Variant &p_variant)
-	: used(true),
-	  val(p_variant) {
-}
 
 MethodDefinition D_METHOD(const char *p_name) {
 
@@ -539,8 +534,13 @@ void ClassDB::get_method_list(StringName p_class, List<MethodInfo> *p_methods, b
 			}
 
 			minfo.return_val = method->get_return_info();
-
 			minfo.flags = method->get_hint_flags();
+
+			for (int i = 0; i < method->get_argument_count(); i++) {
+				if (method->has_default_argument(i))
+					minfo.default_arguments.push_back(method->get_default_argument(i));
+			}
+
 			p_methods->push_back(minfo);
 		}
 
@@ -600,9 +600,9 @@ void ClassDB::bind_integer_constant(const StringName &p_class, const StringName 
 #ifdef DEBUG_METHODS_ENABLED
 
 	String enum_name = p_enum;
-	if (enum_name!=String()) {
-		if (enum_name.find(".")!=-1) {
-			enum_name=enum_name.get_slicec('.',1);
+	if (enum_name != String()) {
+		if (enum_name.find(".") != -1) {
+			enum_name = enum_name.get_slicec('.', 1);
 		}
 
 		List<StringName> *constants_list = type->enum_map.getptr(enum_name);
@@ -614,7 +614,6 @@ void ClassDB::bind_integer_constant(const StringName &p_class, const StringName 
 			new_list.push_back(p_name);
 			type->enum_map[enum_name] = new_list;
 		}
-
 	}
 
 	type->constant_order.push_back(p_name);
@@ -865,7 +864,7 @@ void ClassDB::add_property(StringName p_class, const PropertyInfo &p_pinfo, cons
 	MethodBind *mb_get = NULL;
 	if (p_getter) {
 
-		MethodBind *mb_get = get_method(p_class, p_getter);
+		mb_get = get_method(p_class, p_getter);
 #ifdef DEBUG_METHODS_ENABLED
 
 		if (!mb_get) {

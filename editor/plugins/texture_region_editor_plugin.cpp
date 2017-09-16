@@ -3,7 +3,7 @@
 /*************************************************************************/
 /*                       This file is part of:                           */
 /*                           GODOT ENGINE                                */
-/*                    http://www.godotengine.org                         */
+/*                      https://godotengine.org                          */
 /*************************************************************************/
 /* Copyright (c) 2007-2017 Juan Linietsky, Ariel Manzur.                 */
 /* Copyright (c) 2014-2017 Godot Engine contributors (cf. AUTHORS.md)    */
@@ -67,7 +67,7 @@ void TextureRegionEditor::_region_draw() {
 
 	if (snap_mode == SNAP_GRID) {
 		Size2 s = edit_draw->get_size();
-		int last_cell;
+		int last_cell = 0;
 
 		if (snap_step.x != 0) {
 			if (snap_separation.x == 0)
@@ -280,7 +280,7 @@ void TextureRegionEditor::_region_input(const Ref<InputEvent> &p_input) {
 								rect.expand_to(r.position);
 								rect.expand_to(r.position + r.size);
 							}
-							undo_redo->create_action("Set Region Rect");
+							undo_redo->create_action(TTR("Set Region Rect"));
 							if (node_sprite) {
 								undo_redo->add_do_method(node_sprite, "set_region_rect", rect);
 								undo_redo->add_undo_method(node_sprite, "set_region_rect", node_sprite->get_region_rect());
@@ -406,7 +406,7 @@ void TextureRegionEditor::_region_input(const Ref<InputEvent> &p_input) {
 		} else if (drag) {
 
 			if (edited_margin >= 0) {
-				float new_margin;
+				float new_margin = 0;
 				if (edited_margin == 0)
 					new_margin = prev_margin + (mm->get_position().y - drag_from.y) / draw_zoom;
 				else if (edited_margin == 1)
@@ -415,6 +415,9 @@ void TextureRegionEditor::_region_input(const Ref<InputEvent> &p_input) {
 					new_margin = prev_margin + (mm->get_position().x - drag_from.x) / draw_zoom;
 				else if (edited_margin == 3)
 					new_margin = prev_margin - (mm->get_position().x - drag_from.x) / draw_zoom;
+				else
+					ERR_PRINT("Unexpected edited_margin");
+
 				if (new_margin < 0)
 					new_margin = 0;
 				static Margin m[4] = { MARGIN_TOP, MARGIN_BOTTOM, MARGIN_LEFT, MARGIN_RIGHT };
@@ -626,12 +629,12 @@ void TextureRegionEditor::edit(Object *p_obj) {
 	if (atlas_tex.is_valid())
 		atlas_tex->remove_change_receptor(this);
 	if (p_obj) {
-		node_sprite = p_obj->cast_to<Sprite>();
-		node_patch9 = p_obj->cast_to<NinePatchRect>();
-		if (p_obj->cast_to<StyleBoxTexture>())
-			obj_styleBox = Ref<StyleBoxTexture>(p_obj->cast_to<StyleBoxTexture>());
-		if (p_obj->cast_to<AtlasTexture>())
-			atlas_tex = Ref<AtlasTexture>(p_obj->cast_to<AtlasTexture>());
+		node_sprite = Object::cast_to<Sprite>(p_obj);
+		node_patch9 = Object::cast_to<NinePatchRect>(p_obj);
+		if (Object::cast_to<StyleBoxTexture>(p_obj))
+			obj_styleBox = Ref<StyleBoxTexture>(Object::cast_to<StyleBoxTexture>(p_obj));
+		if (Object::cast_to<AtlasTexture>(p_obj))
+			atlas_tex = Ref<AtlasTexture>(Object::cast_to<AtlasTexture>(p_obj));
 		p_obj->add_change_receptor(this);
 		_edit_region();
 	} else {

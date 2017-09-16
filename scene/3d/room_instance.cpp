@@ -3,7 +3,7 @@
 /*************************************************************************/
 /*                       This file is part of:                           */
 /*                           GODOT ENGINE                                */
-/*                    http://www.godotengine.org                         */
+/*                      https://godotengine.org                          */
 /*************************************************************************/
 /* Copyright (c) 2007-2017 Juan Linietsky, Ariel Manzur.                 */
 /* Copyright (c) 2014-2017 Godot Engine contributors (cf. AUTHORS.md)    */
@@ -31,6 +31,8 @@
 
 #include "servers/visual_server.h"
 
+// FIXME: Will be removed, kept as reference for new implementation
+#if 0
 #include "geometry.h"
 #include "project_settings.h"
 #include "scene/resources/surface_tool.h"
@@ -45,7 +47,7 @@ void Room::_notification(int p_what) {
 
 			while (parent_room) {
 
-				Room *r = parent_room->cast_to<Room>();
+				Room *r = Object::cast_to<Room>(parent_room);
 				if (r) {
 
 					level = r->level + 1;
@@ -103,7 +105,7 @@ Ref<RoomBounds> Room::get_room() const {
 
 void Room::_parse_node_faces(PoolVector<Face3> &all_faces, const Node *p_node) const {
 
-	const VisualInstance *vi = p_node->cast_to<VisualInstance>();
+	const VisualInstance *vi = Object::cast_to<VisualInstance>(p_node);
 
 	if (vi) {
 		PoolVector<Face3> faces = vi->get_faces(FACES_ENCLOSING);
@@ -158,3 +160,4 @@ Room::Room() {
 
 Room::~Room() {
 }
+#endif

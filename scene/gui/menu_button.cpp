@@ -3,7 +3,7 @@
 /*************************************************************************/
 /*                       This file is part of:                           */
 /*                           GODOT ENGINE                                */
-/*                    http://www.godotengine.org                         */
+/*                      https://godotengine.org                          */
 /*************************************************************************/
 /* Copyright (c) 2007-2017 Juan Linietsky, Ariel Manzur.                 */
 /* Copyright (c) 2014-2017 Godot Engine contributors (cf. AUTHORS.md)    */
@@ -33,7 +33,7 @@
 
 void MenuButton::_unhandled_key_input(Ref<InputEvent> p_event) {
 
-	if (p_event->is_pressed() && !p_event->is_echo() && (p_event->cast_to<InputEventKey>() || p_event->cast_to<InputEventJoypadButton>() || p_event->cast_to<InputEventAction>())) {
+	if (p_event->is_pressed() && !p_event->is_echo() && (Object::cast_to<InputEventKey>(p_event.ptr()) || Object::cast_to<InputEventJoypadButton>(p_event.ptr()) || Object::cast_to<InputEventAction>(*p_event))) {
 
 		if (!get_parent() || !is_visible_in_tree() || is_disabled())
 			return;

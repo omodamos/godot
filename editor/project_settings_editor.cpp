@@ -1,9 +1,9 @@
 /*************************************************************************/
-/*  project_settings.cpp                                                 */
+/*  project_settings_editor.cpp                                          */
 /*************************************************************************/
 /*                       This file is part of:                           */
 /*                           GODOT ENGINE                                */
-/*                    http://www.godotengine.org                         */
+/*                      https://godotengine.org                          */
 /*************************************************************************/
 /* Copyright (c) 2007-2017 Juan Linietsky, Ariel Manzur.                 */
 /* Copyright (c) 2014-2017 Godot Engine contributors (cf. AUTHORS.md)    */
@@ -29,13 +29,13 @@
 /*************************************************************************/
 #include "project_settings_editor.h"
 
-#include "editor_node.h"
-#include "global_constants.h"
-#include "os/keyboard.h"
-#include "project_settings.h"
+#include "core/global_constants.h"
+#include "core/os/keyboard.h"
+#include "core/project_settings.h"
+#include "core/translation.h"
+#include "editor/editor_node.h"
 #include "scene/gui/margin_container.h"
 #include "scene/gui/tab_container.h"
-#include "translation.h"
 
 ProjectSettingsEditor *ProjectSettingsEditor::singleton = NULL;
 
@@ -182,10 +182,8 @@ void ProjectSettingsEditor::_device_input_add() {
 	Ref<InputEvent> ie;
 	String name = add_at;
 	int idx = edit_idx;
-	Variant old_val = ProjectSettings::get_singleton()->get(name);
-	Array arr = old_val;
-	//	ie.device = device_id->get_value();
-	//	ie.type = add_type;
+	Array old_val = ProjectSettings::get_singleton()->get(name);
+	Array arr = old_val.duplicate();
 
 	switch (add_type) {
 
@@ -287,8 +285,8 @@ void ProjectSettingsEditor::_press_a_key_confirm() {
 	String name = add_at;
 	int idx = edit_idx;
 
-	Variant old_val = ProjectSettings::get_singleton()->get(name);
-	Array arr = old_val;
+	Array old_val = ProjectSettings::get_singleton()->get(name);
+	Array arr = old_val.duplicate();
 
 	for (int i = 0; i < arr.size(); i++) {
 
@@ -505,7 +503,7 @@ void ProjectSettingsEditor::_action_activated() {
 
 void ProjectSettingsEditor::_action_button_pressed(Object *p_obj, int p_column, int p_id) {
 
-	TreeItem *ti = p_obj->cast_to<TreeItem>();
+	TreeItem *ti = Object::cast_to<TreeItem>(p_obj);
 
 	ERR_FAIL_COND(!ti);
 
@@ -619,7 +617,6 @@ void ProjectSettingsEditor::_update_actions() {
 			continue;
 
 		TreeItem *item = input_editor->create_item(root);
-		//item->set_cell_mode(0,TreeItem::CELL_MODE_CHECK);
 		item->set_text(0, name);
 		item->add_button(0, get_icon("Add", "EditorIcons"), 1, false, TTR("Add Event"));
 		if (!ProjectSettings::get_singleton()->get_input_presets().find(pi.name)) {
@@ -627,7 +624,6 @@ void ProjectSettingsEditor::_update_actions() {
 			item->set_editable(0, true);
 		}
 		item->set_custom_bg_color(0, get_color("prop_subsection", "Editor"));
-		//item->set_checked(0,pi.usage&PROPERTY_USAGE_CHECKED);
 
 		Array actions = ProjectSettings::get_singleton()->get(pi.name);
 
@@ -704,6 +700,8 @@ void ProjectSettingsEditor::_update_actions() {
 			action->set_meta("__input", ie);
 		}
 	}
+
+	_action_check(action_name->get_text());
 }
 
 void ProjectSettingsEditor::popup_project_settings() {
@@ -748,22 +746,10 @@ void ProjectSettingsEditor::_item_add() {
 	}
 
 	String catname = category->get_text().strip_edges();
-	/*if (!catname.is_valid_identifier()) {
-		message->set_text("Invalid Category.\nValid characters: a-z,A-Z,0-9 or _");
-		message->popup_centered(Size2(300,100));
-		return;
-	}*/
-
 	String propname = property->get_text().strip_edges();
-	/*if (!propname.is_valid_identifier()) {
-		message->set_text("Invalid Property.\nValid characters: a-z,A-Z,0-9 or _");
-		message->popup_centered(Size2(300,100));
-		return;
-	}*/
-
 	String name = catname != "" ? catname + "/" + propname : propname;
 
-	undo_redo->create_action("Add Global Property");
+	undo_redo->create_action(TTR("Add Global Property"));
 
 	undo_redo->add_do_property(ProjectSettings::get_singleton(), name, value);
 
@@ -790,7 +776,7 @@ void ProjectSettingsEditor::_item_del() {
 
 	String path = globals_editor->get_property_editor()->get_selected_path();
 	if (path == String()) {
-		EditorNode::get_singleton()->show_warning(TTR("Select an setting item first!"));
+		EditorNode::get_singleton()->show_warning(TTR("Select a setting item first!"));
 		return;
 	}
 
@@ -825,28 +811,41 @@ void ProjectSettingsEditor::_item_del() {
 	undo_redo->commit_action();
 }
 
+void ProjectSettingsEditor::_action_check(String p_action) {
+
+	if (p_action == "") {
+
+		action_add->set_disabled(true);
+	} else {
+
+		if (p_action.find("/") != -1 || p_action.find(":") != -1) {
+			action_add->set_text(TTR("Can't contain '/' or ':'"));
+			action_add->set_disabled(true);
+			return;
+		}
+		if (ProjectSettings::get_singleton()->has("input/" + p_action)) {
+			action_add->set_text(TTR("Already existing"));
+			action_add->set_disabled(true);
+			return;
+		}
+
+		action_add->set_disabled(false);
+	}
+
+	action_add->set_text(TTR("Add"));
+}
+
 void ProjectSettingsEditor::_action_adds(String) {
 
-	_action_add();
+	if (!action_add->is_disabled()) {
+		_action_add();
+	}
 }
 
 void ProjectSettingsEditor::_action_add() {
 
-	String action = action_name->get_text();
-	if (action.find("/") != -1 || action.find(":") != -1 || action == "") {
-		message->set_text(TTR("Invalid action (anything goes but '/' or ':')."));
-		message->popup_centered(Size2(300, 100) * EDSCALE);
-		return;
-	}
-
-	if (ProjectSettings::get_singleton()->has("input/" + action)) {
-		message->set_text(vformat(TTR("Action '%s' already exists!"), action));
-		message->popup_centered(Size2(300, 100) * EDSCALE);
-		return;
-	}
-
 	Array va;
-	String name = "input/" + action;
+	String name = "input/" + action_name->get_text();
 	undo_redo->create_action(TTR("Add Input Action Event"));
 	undo_redo->add_do_method(ProjectSettings::get_singleton(), "set", name, va);
 	undo_redo->add_undo_method(ProjectSettings::get_singleton(), "clear", name);
@@ -870,6 +869,7 @@ void ProjectSettingsEditor::_action_add() {
 		return;
 	r->select(0);
 	input_editor->ensure_cursor_is_visible();
+	action_add->set_text(TTR("Add"));
 }
 
 void ProjectSettingsEditor::_item_checked(const String &p_item, bool p_check) {
@@ -884,8 +884,7 @@ void ProjectSettingsEditor::_save() {
 
 void ProjectSettingsEditor::_settings_prop_edited(const String &p_name) {
 
-	String full_item = globals_editor->get_full_item_path(p_name);
-
+	// Method needed to discard the mandatory argument of the property_edited signal
 	_settings_changed();
 }
 
@@ -946,7 +945,7 @@ void ProjectSettingsEditor::_copy_to_platform(int p_which) {
 
 	String path = globals_editor->get_property_editor()->get_selected_path();
 	if (path == String()) {
-		EditorNode::get_singleton()->show_warning(TTR("Select an setting item first!"));
+		EditorNode::get_singleton()->show_warning(TTR("Select a setting item first!"));
 		return;
 	}
 
@@ -1010,7 +1009,7 @@ void ProjectSettingsEditor::_translation_file_open() {
 
 void ProjectSettingsEditor::_translation_delete(Object *p_item, int p_column, int p_button) {
 
-	TreeItem *ti = p_item->cast_to<TreeItem>();
+	TreeItem *ti = Object::cast_to<TreeItem>(p_item);
 	ERR_FAIL_COND(!ti);
 
 	int idx = ti->get_metadata(0);
@@ -1151,7 +1150,7 @@ void ProjectSettingsEditor::_translation_res_delete(Object *p_item, int p_column
 
 	Dictionary remaps = ProjectSettings::get_singleton()->get("locale/translation_remaps");
 
-	TreeItem *k = p_item->cast_to<TreeItem>();
+	TreeItem *k = Object::cast_to<TreeItem>(p_item);
 
 	String key = k->get_metadata(0);
 	ERR_FAIL_COND(!remaps.has(key));
@@ -1180,7 +1179,7 @@ void ProjectSettingsEditor::_translation_res_option_delete(Object *p_item, int p
 
 	TreeItem *k = translation_remap->get_selected();
 	ERR_FAIL_COND(!k);
-	TreeItem *ed = p_item->cast_to<TreeItem>();
+	TreeItem *ed = Object::cast_to<TreeItem>(p_item);
 	ERR_FAIL_COND(!ed);
 
 	String key = k->get_metadata(0);
@@ -1338,6 +1337,11 @@ void ProjectSettingsEditor::set_plugins_page() {
 	tab_container->set_current_tab(plugin_settings->get_index());
 }
 
+TabContainer *ProjectSettingsEditor::get_tabs() {
+
+	return tab_container;
+}
+
 void ProjectSettingsEditor::_bind_methods() {
 
 	ClassDB::bind_method(D_METHOD("_item_selected"), &ProjectSettingsEditor::_item_selected);
@@ -1348,6 +1352,7 @@ void ProjectSettingsEditor::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("_save"), &ProjectSettingsEditor::_save);
 	ClassDB::bind_method(D_METHOD("_action_add"), &ProjectSettingsEditor::_action_add);
 	ClassDB::bind_method(D_METHOD("_action_adds"), &ProjectSettingsEditor::_action_adds);
+	ClassDB::bind_method(D_METHOD("_action_check"), &ProjectSettingsEditor::_action_check);
 	ClassDB::bind_method(D_METHOD("_action_selected"), &ProjectSettingsEditor::_action_selected);
 	ClassDB::bind_method(D_METHOD("_action_edited"), &ProjectSettingsEditor::_action_edited);
 	ClassDB::bind_method(D_METHOD("_action_activated"), &ProjectSettingsEditor::_action_activated);
@@ -1378,6 +1383,8 @@ void ProjectSettingsEditor::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("_toggle_search_bar"), &ProjectSettingsEditor::_toggle_search_bar);
 
 	ClassDB::bind_method(D_METHOD("_copy_to_platform_about_to_show"), &ProjectSettingsEditor::_copy_to_platform_about_to_show);
+
+	ClassDB::bind_method(D_METHOD("get_tabs"), &ProjectSettingsEditor::get_tabs);
 }
 
 ProjectSettingsEditor::ProjectSettingsEditor(EditorData *p_data) {
@@ -1391,12 +1398,6 @@ ProjectSettingsEditor::ProjectSettingsEditor(EditorData *p_data) {
 	tab_container = memnew(TabContainer);
 	tab_container->set_tab_align(TabContainer::ALIGN_LEFT);
 	add_child(tab_container);
-	//set_child_rect(tab_container);
-
-	//tab_container->set_anchor_and_margin(MARGIN_LEFT,ANCHOR_BEGIN, 15 );
-	//tab_container->set_anchor_and_margin(MARGIN_RIGHT,ANCHOR_END, 15 );
-	//tab_container->set_anchor_and_margin(MARGIN_TOP,ANCHOR_BEGIN, 15 );
-	//tab_container->set_anchor_and_margin(MARGIN_BOTTOM,ANCHOR_END, 35 );
 
 	VBoxContainer *props_base = memnew(VBoxContainer);
 	props_base->set_alignment(BoxContainer::ALIGN_BEGIN);
@@ -1480,20 +1481,6 @@ ProjectSettingsEditor::ProjectSettingsEditor(EditorData *p_data) {
 	globals_editor->get_property_editor()->connect("property_toggled", this, "_item_checked", varray(), CONNECT_DEFERRED);
 	globals_editor->get_property_editor()->connect("property_edited", this, "_settings_prop_edited");
 
-	/*
-	Button *save = memnew( Button );
-	props_base->add_child(save);
-
-	save->set_anchor(MARGIN_LEFT,ANCHOR_END);
-	save->set_anchor(MARGIN_RIGHT,ANCHOR_END);
-	save->set_anchor(MARGIN_TOP,ANCHOR_END);
-	save->set_anchor(MARGIN_BOTTOM,ANCHOR_END);
-	save->set_begin( Point2(80,28) );
-	save->set_end( Point2(10,20) );
-	save->set_text("Save");
-	save->connect("pressed",this,"_save");
-*/
-
 	Button *del = memnew(Button);
 	hbc->add_child(del);
 	del->set_text(TTR("Delete"));
@@ -1506,26 +1493,14 @@ ProjectSettingsEditor::ProjectSettingsEditor(EditorData *p_data) {
 	popup_copy_to_feature->set_disabled(true);
 	add_prop_bar->add_child(popup_copy_to_feature);
 
-	/*List<StringName> ep;
-	EditorImportExport::get_singleton()->get_export_platforms(&ep);
-	ep.sort_custom<StringName::AlphCompare>();
-
-	for(List<StringName>::Element *E=ep.front();E;E=E->next()) {
-
-		popup_copy_to_feature->get_popup()->add_item( E->get() );
-
-	}*/
-
 	popup_copy_to_feature->get_popup()->connect("id_pressed", this, "_copy_to_platform");
 	popup_copy_to_feature->get_popup()->connect("about_to_show", this, "_copy_to_platform_about_to_show");
 
 	get_ok()->set_text(TTR("Close"));
 	set_hide_on_ok(true);
 
-	message = memnew(ConfirmationDialog);
+	message = memnew(AcceptDialog);
 	add_child(message);
-	//message->get_cancel()->hide();
-	message->set_hide_on_ok(true);
 
 	Control *input_base = memnew(Control);
 	input_base->set_name(TTR("Input Map"));
@@ -1541,7 +1516,6 @@ ProjectSettingsEditor::ProjectSettingsEditor(EditorData *p_data) {
 
 	l = memnew(Label);
 	vbc->add_child(l);
-	l->set_position(Point2(6, 5) * EDSCALE);
 	l->set_text(TTR("Action:"));
 
 	hbc = memnew(HBoxContainer);
@@ -1551,12 +1525,15 @@ ProjectSettingsEditor::ProjectSettingsEditor(EditorData *p_data) {
 	action_name->set_h_size_flags(SIZE_EXPAND_FILL);
 	hbc->add_child(action_name);
 	action_name->connect("text_entered", this, "_action_adds");
+	action_name->connect("text_changed", this, "_action_check");
 
 	add = memnew(Button);
 	hbc->add_child(add);
 	add->set_custom_minimum_size(Size2(150, 0) * EDSCALE);
 	add->set_text(TTR("Add"));
+	add->set_disabled(true);
 	add->connect("pressed", this, "_action_add");
+	action_add = add;
 
 	input_editor = memnew(Tree);
 	vbc->add_child(input_editor);
@@ -1591,7 +1568,6 @@ ProjectSettingsEditor::ProjectSettingsEditor(EditorData *p_data) {
 
 	hbc = memnew(HBoxContainer);
 	device_input->add_child(hbc);
-	//device_input->set_child_rect(hbc);
 
 	VBoxContainer *vbc_left = memnew(VBoxContainer);
 	hbc->add_child(vbc_left);
@@ -1616,18 +1592,6 @@ ProjectSettingsEditor::ProjectSettingsEditor(EditorData *p_data) {
 	device_index = memnew(OptionButton);
 	vbc_right->add_child(device_index);
 
-	/*
-	save = memnew( Button );
-	input_base->add_child(save);
-	save->set_anchor(MARGIN_LEFT,ANCHOR_END);
-	save->set_anchor(MARGIN_RIGHT,ANCHOR_END);
-	save->set_anchor(MARGIN_TOP,ANCHOR_END);
-	save->set_anchor(MARGIN_BOTTOM,ANCHOR_END);
-	save->set_begin( Point2(80,28) );
-	save->set_end( Point2(10,20) );
-	save->set_text("Save");
-	save->connect("pressed",this,"_save");
-*/
 	setting = false;
 
 	//translations
@@ -1739,14 +1703,4 @@ ProjectSettingsEditor::ProjectSettingsEditor(EditorData *p_data) {
 	add_child(timer);
 
 	updating_translations = false;
-
-	/*
-	Control * es = memnew( Control );
-	es->set_name("Export");
-	tab_container->add_child(es);
-	export_settings = memnew( ProjectExportSettings );
-	es->add_child(export_settings);
-	export_settings->set_area_as_parent_rect();
-	export_settings->set_anchor_and_margin(MARGIN_BOTTOM,ANCHOR_END, 35 );
-*/
 }

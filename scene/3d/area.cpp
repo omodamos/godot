@@ -3,7 +3,7 @@
 /*************************************************************************/
 /*                       This file is part of:                           */
 /*                           GODOT ENGINE                                */
-/*                    http://www.godotengine.org                         */
+/*                      https://godotengine.org                          */
 /*************************************************************************/
 /* Copyright (c) 2007-2017 Juan Linietsky, Ariel Manzur.                 */
 /* Copyright (c) 2014-2017 Godot Engine contributors (cf. AUTHORS.md)    */
@@ -115,7 +115,7 @@ real_t Area::get_priority() const {
 void Area::_body_enter_tree(ObjectID p_id) {
 
 	Object *obj = ObjectDB::get_instance(p_id);
-	Node *node = obj ? obj->cast_to<Node>() : NULL;
+	Node *node = Object::cast_to<Node>(obj);
 	ERR_FAIL_COND(!node);
 
 	Map<ObjectID, BodyState>::Element *E = body_map.find(p_id);
@@ -133,7 +133,7 @@ void Area::_body_enter_tree(ObjectID p_id) {
 void Area::_body_exit_tree(ObjectID p_id) {
 
 	Object *obj = ObjectDB::get_instance(p_id);
-	Node *node = obj ? obj->cast_to<Node>() : NULL;
+	Node *node = Object::cast_to<Node>(obj);
 	ERR_FAIL_COND(!node);
 	Map<ObjectID, BodyState>::Element *E = body_map.find(p_id);
 	ERR_FAIL_COND(!E);
@@ -152,7 +152,7 @@ void Area::_body_inout(int p_status, const RID &p_body, int p_instance, int p_bo
 	ObjectID objid = p_instance;
 
 	Object *obj = ObjectDB::get_instance(objid);
-	Node *node = obj ? obj->cast_to<Node>() : NULL;
+	Node *node = Object::cast_to<Node>(obj);
 
 	Map<ObjectID, BodyState>::Element *E = body_map.find(objid);
 
@@ -228,7 +228,7 @@ void Area::_clear_monitoring() {
 		for (Map<ObjectID, BodyState>::Element *E = bmcopy.front(); E; E = E->next()) {
 
 			Object *obj = ObjectDB::get_instance(E->key());
-			Node *node = obj ? obj->cast_to<Node>() : NULL;
+			Node *node = Object::cast_to<Node>(obj);
 
 			if (!node) //node may have been deleted in previous frame or at other legiminate point
 				continue;
@@ -258,7 +258,7 @@ void Area::_clear_monitoring() {
 		for (Map<ObjectID, AreaState>::Element *E = bmcopy.front(); E; E = E->next()) {
 
 			Object *obj = ObjectDB::get_instance(E->key());
-			Node *node = obj ? obj->cast_to<Node>() : NULL;
+			Node *node = Object::cast_to<Node>(obj);
 
 			if (!node) //node may have been deleted in previous frame or at other legiminate point
 				continue;
@@ -312,7 +312,7 @@ void Area::set_monitoring(bool p_enable) {
 void Area::_area_enter_tree(ObjectID p_id) {
 
 	Object *obj = ObjectDB::get_instance(p_id);
-	Node *node = obj ? obj->cast_to<Node>() : NULL;
+	Node *node = Object::cast_to<Node>(obj);
 	ERR_FAIL_COND(!node);
 
 	Map<ObjectID, AreaState>::Element *E = area_map.find(p_id);
@@ -330,7 +330,7 @@ void Area::_area_enter_tree(ObjectID p_id) {
 void Area::_area_exit_tree(ObjectID p_id) {
 
 	Object *obj = ObjectDB::get_instance(p_id);
-	Node *node = obj ? obj->cast_to<Node>() : NULL;
+	Node *node = Object::cast_to<Node>(obj);
 	ERR_FAIL_COND(!node);
 	Map<ObjectID, AreaState>::Element *E = area_map.find(p_id);
 	ERR_FAIL_COND(!E);
@@ -349,7 +349,7 @@ void Area::_area_inout(int p_status, const RID &p_area, int p_instance, int p_ar
 	ObjectID objid = p_instance;
 
 	Object *obj = ObjectDB::get_instance(objid);
-	Node *node = obj ? obj->cast_to<Node>() : NULL;
+	Node *node = Object::cast_to<Node>(obj);
 
 	Map<ObjectID, AreaState>::Element *E = area_map.find(objid);
 
@@ -729,6 +729,12 @@ void Area::_bind_methods() {
 	ADD_PROPERTY(PropertyInfo(Variant::STRING, "reverb_bus_name", PROPERTY_HINT_ENUM, ""), "set_reverb_bus", "get_reverb_bus");
 	ADD_PROPERTY(PropertyInfo(Variant::REAL, "reverb_bus_amount", PROPERTY_HINT_RANGE, "0,1,0.01"), "set_reverb_amount", "get_reverb_amount");
 	ADD_PROPERTY(PropertyInfo(Variant::REAL, "reverb_bus_uniformity", PROPERTY_HINT_RANGE, "0,1,0.01"), "set_reverb_uniformity", "get_reverb_uniformity");
+
+	BIND_ENUM_CONSTANT(SPACE_OVERRIDE_DISABLED);
+	BIND_ENUM_CONSTANT(SPACE_OVERRIDE_COMBINE);
+	BIND_ENUM_CONSTANT(SPACE_OVERRIDE_COMBINE_REPLACE);
+	BIND_ENUM_CONSTANT(SPACE_OVERRIDE_REPLACE);
+	BIND_ENUM_CONSTANT(SPACE_OVERRIDE_REPLACE_COMBINE);
 }
 
 Area::Area()

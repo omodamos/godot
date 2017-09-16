@@ -3,7 +3,7 @@
 /*************************************************************************/
 /*                       This file is part of:                           */
 /*                           GODOT ENGINE                                */
-/*                    http://www.godotengine.org                         */
+/*                      https://godotengine.org                          */
 /*************************************************************************/
 /* Copyright (c) 2007-2017 Juan Linietsky, Ariel Manzur.                 */
 /* Copyright (c) 2014-2017 Godot Engine contributors (cf. AUTHORS.md)    */
@@ -125,6 +125,9 @@ void ScriptDebuggerRemote::_put_variable(const String &p_name, const Variant &p_
 	packet_peer_stream->put_var(p_name);
 	int len = 0;
 	Error err = encode_variant(p_variable, NULL, len);
+	if (err != OK)
+		ERR_PRINT("Failed to encode variant");
+
 	if (len > packet_peer_stream->get_output_buffer_max_size()) { //limit to max size
 		packet_peer_stream->put_var(Variant());
 	} else {

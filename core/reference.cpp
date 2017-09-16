@@ -3,7 +3,7 @@
 /*************************************************************************/
 /*                       This file is part of:                           */
 /*                           GODOT ENGINE                                */
-/*                    http://www.godotengine.org                         */
+/*                      https://godotengine.org                          */
 /*************************************************************************/
 /* Copyright (c) 2007-2017 Juan Linietsky, Ariel Manzur.                 */
 /* Copyright (c) 2014-2017 Godot Engine contributors (cf. AUTHORS.md)    */
@@ -33,7 +33,7 @@
 
 bool Reference::init_ref() {
 
-	if (refcount.ref()) {
+	if (reference()) {
 
 		// this may fail in the scenario of two threads assigning the pointer for the FIRST TIME
 		// at the same time, which is never likely to happen (would be crazy to do)
@@ -41,7 +41,7 @@ bool Reference::init_ref() {
 
 		if (refcount_init.get() > 0) {
 			refcount_init.unref();
-			refcount.unref(); // first referencing is already 1, so compensate for the ref above
+			unreference(); // first referencing is already 1, so compensate for the ref above
 		}
 
 		return true;
@@ -62,13 +62,16 @@ int Reference::reference_get_count() const {
 	return refcount.get();
 }
 
-void Reference::reference() {
+bool Reference::reference() {
+	bool success = refcount.ref();
 
-	refcount.ref();
-	if (get_script_instance()) {
+	if (success && get_script_instance()) {
 		get_script_instance()->refcount_incremented();
 	}
+
+	return success;
 }
+
 bool Reference::unreference() {
 
 	bool die = refcount.unref();
@@ -98,7 +101,7 @@ Variant WeakRef::get_ref() const {
 	Object *obj = ObjectDB::get_instance(ref);
 	if (!obj)
 		return Variant();
-	Reference *r = obj->cast_to<Reference>();
+	Reference *r = cast_to<Reference>(obj);
 	if (r) {
 
 		return REF(r);
@@ -124,44 +127,3 @@ void WeakRef::_bind_methods() {
 
 	ClassDB::bind_method(D_METHOD("get_ref"), &WeakRef::get_ref);
 }
-#if 0
-
-Reference * RefBase::get_reference_from_ref(const RefBase &p_base) {
-
-	return p_base.get_reference();
-}
-void RefBase::ref_inc(Reference *p_reference) {
-
-	p_reference->refcount.ref();
-}
-bool RefBase::ref_dec(Reference *p_reference) {
-
-	bool ref = p_reference->refcount.unref();
-	return ref;
-}
-
-Reference *RefBase::first_ref(Reference *p_reference) {
-
-	if (p_reference->refcount.ref()) {
-
-		// this may fail in the scenario of two threads assigning the pointer for the FIRST TIME
-		// at the same time, which is never likely to happen (would be crazy to do)
-		// so don't do it.
-
-		if (p_reference->refcount_init.get()>0) {
-			p_reference->refcount_init.unref();
-			p_reference->refcount.unref(); // first referencing is already 1, so compensate for the ref above
-		}
-
-		return p_reference;
-	} else {
-
-		return 0;
-	}
-
-}
-char * RefBase::get_refptr_data(const RefPtr &p_refptr) const {
-
-	return p_refptr.data;
-}
-#endif

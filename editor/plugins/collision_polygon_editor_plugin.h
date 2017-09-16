@@ -3,7 +3,7 @@
 /*************************************************************************/
 /*                       This file is part of:                           */
 /*                           GODOT ENGINE                                */
-/*                    http://www.godotengine.org                         */
+/*                      https://godotengine.org                          */
 /*************************************************************************/
 /* Copyright (c) 2007-2017 Juan Linietsky, Ariel Manzur.                 */
 /* Copyright (c) 2014-2017 Godot Engine contributors (cf. AUTHORS.md)    */
@@ -35,7 +35,6 @@
 #include "scene/3d/collision_polygon.h"
 #include "scene/3d/immediate_geometry.h"
 #include "scene/3d/mesh_instance.h"
-#include "scene/gui/button_group.h"
 #include "scene/gui/tool_button.h"
 
 /**

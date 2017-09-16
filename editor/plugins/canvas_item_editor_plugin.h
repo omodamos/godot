@@ -3,7 +3,7 @@
 /*************************************************************************/
 /*                       This file is part of:                           */
 /*                           GODOT ENGINE                                */
-/*                    http://www.godotengine.org                         */
+/*                      https://godotengine.org                          */
 /*************************************************************************/
 /* Copyright (c) 2007-2017 Juan Linietsky, Ariel Manzur.                 */
 /* Copyright (c) 2014-2017 Godot Engine contributors (cf. AUTHORS.md)    */
@@ -34,7 +34,6 @@
 #include "editor/editor_plugin.h"
 #include "scene/2d/canvas_item.h"
 #include "scene/gui/box_container.h"
-#include "scene/gui/button_group.h"
 #include "scene/gui/check_box.h"
 #include "scene/gui/label.h"
 #include "scene/gui/panel_container.h"
@@ -94,8 +93,6 @@ class CanvasItemEditor : public VBoxContainer {
 		UNLOCK_SELECTED,
 		GROUP_SELECTED,
 		UNGROUP_SELECTED,
-		ALIGN_HORIZONTAL,
-		ALIGN_VERTICAL,
 		ANCHOR_ALIGN_TOP_LEFT,
 		ANCHOR_ALIGN_TOP_RIGHT,
 		ANCHOR_ALIGN_BOTTOM_LEFT,
@@ -113,9 +110,6 @@ class CanvasItemEditor : public VBoxContainer {
 		ANCHOR_ALIGN_HCENTER_WIDE,
 		ANCHOR_ALIGN_WIDE,
 		ANCHOR_ALIGN_WIDE_FIT,
-
-		SPACE_HORIZONTAL,
-		SPACE_VERTICAL,
 		ANIM_INSERT_KEY,
 		ANIM_INSERT_KEY_EXISTING,
 		ANIM_INSERT_POS,
@@ -289,27 +283,14 @@ class CanvasItemEditor : public VBoxContainer {
 	bool updating_value_dialog;
 	Point2 display_rotate_from;
 	Point2 display_rotate_to;
-#if 0
-	struct EditInfo {
 
-		Variant undo_state;
-
-		Matrix32 prev_xform;
-		float prev_rot;
-		Rect2 prev_rect;
-		EditInfo() { prev_rot=0; }
-	};
-
-	typedef Map<CanvasItem*,EditInfo> CanvasItemMap;
-	CanvasItemMap canvas_items;
-#endif
 	Ref<StyleBoxTexture> select_sb;
 	Ref<Texture> select_handle;
 	Ref<Texture> anchor_handle;
 
 	int handle_len;
 	bool _is_part_of_subscene(CanvasItem *p_item);
-	void _find_canvas_items_at_pos(const Point2 &p_pos, Node *p_node, const Transform2D &p_parent_xform, const Transform2D &p_canvas_xform, Vector<_SelectResult> &r_items, unsigned int limit = 0);
+	void _find_canvas_items_at_pos(const Point2 &p_pos, Node *p_node, const Transform2D &p_parent_xform, const Transform2D &p_canvas_xform, Vector<_SelectResult> &r_items, int limit = 0);
 	void _find_canvas_items_at_rect(const Rect2 &p_rect, Node *p_node, const Transform2D &p_parent_xform, const Transform2D &p_canvas_xform, List<CanvasItem *> *r_items);
 
 	void _select_click_on_empty_area(Point2 p_click_pos, bool p_append, bool p_box_selection);
@@ -327,7 +308,6 @@ class CanvasItemEditor : public VBoxContainer {
 	void _add_canvas_item(CanvasItem *p_canvas_item);
 	void _remove_canvas_item(CanvasItem *p_canvas_item);
 	void _clear_canvas_items();
-	void _visibility_changed(ObjectID p_canvas_item);
 	void _key_move(const Vector2 &p_dir, bool p_snap, KeyMoveMODE p_move_mode);
 	void _list_select(const Ref<InputEventMouseButton> &b);
 
@@ -343,6 +323,7 @@ class CanvasItemEditor : public VBoxContainer {
 	bool updating_scroll;
 	void _update_scroll(float);
 	void _update_scrollbars();
+	void _update_cursor();
 	void incbeg(float &beg, float &end, float inc, float minsize, bool p_symmetric);
 	void incend(float &beg, float &end, float inc, float minsize, bool p_symmetric);
 
@@ -384,7 +365,6 @@ class CanvasItemEditor : public VBoxContainer {
 protected:
 	void _notification(int p_what);
 
-	void _node_removed(Node *p_node);
 	static void _bind_methods();
 	void end_drag();
 	void box_selection_start(Point2 &click);
@@ -436,7 +416,6 @@ public:
 
 	Control *get_viewport_control() { return viewport; }
 
-	bool get_remove_list(List<Node *> *p_list);
 	void set_undo_redo(UndoRedo *p_undo_redo) { undo_redo = p_undo_redo; }
 	void edit(CanvasItem *p_canvas_item);
 
@@ -458,7 +437,6 @@ public:
 	virtual void edit(Object *p_object);
 	virtual bool handles(Object *p_object) const;
 	virtual void make_visible(bool p_visible);
-	virtual bool get_remove_list(List<Node *> *p_list) { return canvas_item_editor->get_remove_list(p_list); }
 	virtual Dictionary get_state() const;
 	virtual void set_state(const Dictionary &p_state);
 
@@ -481,7 +459,7 @@ class CanvasItemEditorViewport : public Control {
 	EditorNode *editor;
 	EditorData *editor_data;
 	CanvasItemEditor *canvas;
-	Node2D *preview;
+	Node2D *preview_node;
 	AcceptDialog *accept;
 	WindowDialog *selector;
 	Label *selector_label;
@@ -512,6 +490,7 @@ public:
 	virtual void drop_data(const Point2 &p_point, const Variant &p_data);
 
 	CanvasItemEditorViewport(EditorNode *p_node, CanvasItemEditor *p_canvas);
+	~CanvasItemEditorViewport();
 };
 
 #endif

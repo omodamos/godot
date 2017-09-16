@@ -3,7 +3,7 @@
 /*************************************************************************/
 /*                       This file is part of:                           */
 /*                           GODOT ENGINE                                */
-/*                    http://www.godotengine.org                         */
+/*                      https://godotengine.org                          */
 /*************************************************************************/
 /* Copyright (c) 2007-2017 Juan Linietsky, Ariel Manzur.                 */
 /* Copyright (c) 2014-2017 Godot Engine contributors (cf. AUTHORS.md)    */
@@ -88,7 +88,12 @@ public:
 		//binary search
 		int low = 0;
 		int high = points.size() - 1;
-		int middle;
+		int middle = 0;
+
+#if DEBUG_ENABLED
+		if (low > high)
+			ERR_PRINT("low > high, this may be a bug");
+#endif
 
 		while (low <= high) {
 			middle = (low + high) / 2;

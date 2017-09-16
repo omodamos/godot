@@ -3,7 +3,7 @@
 /*************************************************************************/
 /*                       This file is part of:                           */
 /*                           GODOT ENGINE                                */
-/*                    http://www.godotengine.org                         */
+/*                      https://godotengine.org                          */
 /*************************************************************************/
 /* Copyright (c) 2007-2017 Juan Linietsky, Ariel Manzur.                 */
 /* Copyright (c) 2014-2017 Godot Engine contributors (cf. AUTHORS.md)    */
@@ -28,6 +28,7 @@
 /* SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                */
 /*************************************************************************/
 #include "gd_script.h"
+
 #include "gd_compiler.h"
 #include "global_constants.h"
 #include "io/file_access_encrypted.h"
@@ -41,11 +42,6 @@ GDNativeClass::GDNativeClass(const StringName &p_name) {
 
 	name = p_name;
 }
-
-/*void GDNativeClass::call_multilevel(const StringName& p_method,const Variant** p_args,int p_argcount){
-
-
-}*/
 
 bool GDNativeClass::_get(const StringName &p_name, Variant &r_ret) const {
 
@@ -73,7 +69,7 @@ Variant GDNativeClass::_new() {
 		ERR_FAIL_COND_V(!o, Variant());
 	}
 
-	Reference *ref = o->cast_to<Reference>();
+	Reference *ref = Object::cast_to<Reference>(o);
 	if (ref) {
 		return REF(ref);
 	} else {
@@ -161,7 +157,7 @@ Variant GDScript::_new(const Variant **p_args, int p_argcount, Variant::CallErro
 		owner = memnew(Reference); //by default, no base means use reference
 	}
 
-	Reference *r = owner->cast_to<Reference>();
+	Reference *r = Object::cast_to<Reference>(owner);
 	if (r) {
 		ref = REF(r);
 	}
@@ -183,7 +179,6 @@ Variant GDScript::_new(const Variant **p_args, int p_argcount, Variant::CallErro
 
 bool GDScript::can_instance() const {
 
-	//return valid; //any script in GDscript can instance
 	return valid || (!tool && !ScriptServer::is_scripting_enabled());
 }
 
@@ -218,49 +213,6 @@ void GDScript::_placeholder_erased(PlaceHolderScriptInstance *p_placeholder) {
 
 	placeholders.erase(p_placeholder);
 }
-
-/*
-void GDScript::_update_placeholder(PlaceHolderScriptInstance *p_placeholder) {
-
-
-	List<PropertyInfo> plist;
-	GDScript *scr=this;
-
-	Map<StringName,Variant> default_values;
-	while(scr) {
-
-		Vector<_GDScriptMemberSort> msort;
-		for(Map<StringName,PropertyInfo>::Element *E=scr->member_info.front();E;E=E->next()) {
-
-			_GDScriptMemberSort ms;
-			ERR_CONTINUE(!scr->member_indices.has(E->key()));
-			ms.index=scr->member_indices[E->key()].index;
-			ms.name=E->key();
-
-			msort.push_back(ms);
-
-		}
-
-		msort.sort();
-		msort.invert();
-		for(int i=0;i<msort.size();i++) {
-
-			plist.push_front(scr->member_info[msort[i].name]);
-			if (scr->member_default_values.has(msort[i].name))
-				default_values[msort[i].name]=scr->member_default_values[msort[i].name];
-			else {
-				Variant::CallError err;
-				default_values[msort[i].name]=Variant::construct(scr->member_info[msort[i].name].type,NULL,0,err);
-			}
-		}
-
-		scr=scr->_base;
-	}
-
-
-	p_placeholder->update(plist,default_values);
-
-}*/
 #endif
 
 void GDScript::get_script_method_list(List<MethodInfo> *p_list) const {
@@ -397,7 +349,7 @@ ScriptInstance *GDScript::instance_create(Object *p_this) {
 	}
 
 	Variant::CallError unchecked_error;
-	return _create_instance(NULL, 0, p_this, p_this->cast_to<Reference>(), unchecked_error);
+	return _create_instance(NULL, 0, p_this, Object::cast_to<Reference>(p_this), unchecked_error);
 }
 bool GDScript::instance_has(const Object *p_this) const {
 
@@ -428,7 +380,6 @@ void GDScript::set_source_code(const String &p_code) {
 	source = p_code;
 #ifdef TOOLS_ENABLED
 	source_changed_cache = true;
-//print_line("SC CHANGED "+get_path());
 #endif
 }
 
@@ -575,9 +526,7 @@ void GDScript::update_exports() {
 	//print_line("update exports for "+get_path()+" ic: "+itos(copy.size()));
 	for (Set<ObjectID>::Element *E = copy.front(); E; E = E->next()) {
 		Object *id = ObjectDB::get_instance(E->get());
-		if (!id)
-			continue;
-		GDScript *s = id->cast_to<GDScript>();
+		GDScript *s = Object::cast_to<GDScript>(id);
 		if (!s)
 			continue;
 		s->update_exports();
@@ -616,7 +565,7 @@ Error GDScript::reload(bool p_keep_state) {
 	if (basedir != "")
 		basedir = basedir.get_base_dir();
 
-	if (basedir != "" && basedir.find("res://") == -1 && basedir.find("user://") == -1) {
+	if (source.find("%BASE%") != -1) {
 		//loading a template, don't parse
 		return OK;
 	}
@@ -657,12 +606,6 @@ Error GDScript::reload(bool p_keep_state) {
 		_set_subclass_path(E->get(), path);
 	}
 
-#ifdef TOOLS_ENABLED
-/*for (Set<PlaceHolderScriptInstance*>::Element *E=placeholders.front();E;E=E->next()) {
-
-		_update_placeholder(E->get());
-	}*/
-#endif
 	return OK;
 }
 
@@ -1143,52 +1086,9 @@ void GDInstance::get_property_list(List<PropertyInfo> *p_properties) const {
 
 			props.push_front(sptr->member_info[msort[i].name]);
 		}
-#if 0
-		if (sptr->member_functions.has("_get_property_list")) {
-
-			Variant::CallError err;
-			GDFunction *f = const_cast<GDFunction*>(sptr->member_functions["_get_property_list"]);
-			Variant plv = f->call(const_cast<GDInstance*>(this),NULL,0,err);
-
-			if (plv.get_type()!=Variant::ARRAY) {
-
-				ERR_PRINT("_get_property_list: expected array returned");
-			} else {
-
-				Array pl=plv;
-
-				for(int i=0;i<pl.size();i++) {
-
-					Dictionary p = pl[i];
-					PropertyInfo pinfo;
-					if (!p.has("name")) {
-						ERR_PRINT("_get_property_list: expected 'name' key of type string.")
-								continue;
-					}
-					if (!p.has("type")) {
-						ERR_PRINT("_get_property_list: expected 'type' key of type integer.")
-								continue;
-					}
-					pinfo.name=p["name"];
-					pinfo.type=Variant::Type(int(p["type"]));
-					if (p.has("hint"))
-						pinfo.hint=PropertyHint(int(p["hint"]));
-					if (p.has("hint_string"))
-						pinfo.hint_string=p["hint_string"];
-					if (p.has("usage"))
-						pinfo.usage=p["usage"];
-
-
-					props.push_back(pinfo);
-				}
-			}
-		}
-#endif
 
 		sptr = sptr->_base;
 	}
-
-	//props.invert();
 
 	for (List<PropertyInfo>::Element *E = props.front(); E; E = E->next()) {
 
@@ -1391,10 +1291,6 @@ GDInstance::~GDInstance() {
 	}
 }
 
-/************* SCRIPT LANGUAGE **************/
-/************* SCRIPT LANGUAGE **************/
-/************* SCRIPT LANGUAGE **************/
-/************* SCRIPT LANGUAGE **************/
 /************* SCRIPT LANGUAGE **************/
 
 GDScriptLanguage *GDScriptLanguage::singleton = NULL;
@@ -2006,11 +1902,11 @@ Error ResourceFormatSaverGDScript::save(const String &p_path, const RES &p_resou
 
 void ResourceFormatSaverGDScript::get_recognized_extensions(const RES &p_resource, List<String> *p_extensions) const {
 
-	if (p_resource->cast_to<GDScript>()) {
+	if (Object::cast_to<GDScript>(*p_resource)) {
 		p_extensions->push_back("gd");
 	}
 }
 bool ResourceFormatSaverGDScript::recognize(const RES &p_resource) const {
 
-	return p_resource->cast_to<GDScript>() != NULL;
+	return Object::cast_to<GDScript>(*p_resource) != NULL;
 }

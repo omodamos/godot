@@ -3,7 +3,7 @@
 /*************************************************************************/
 /*                       This file is part of:                           */
 /*                           GODOT ENGINE                                */
-/*                    http://www.godotengine.org                         */
+/*                      https://godotengine.org                          */
 /*************************************************************************/
 /* Copyright (c) 2007-2017 Juan Linietsky, Ariel Manzur.                 */
 /* Copyright (c) 2014-2017 Godot Engine contributors (cf. AUTHORS.md)    */
@@ -68,7 +68,7 @@ private:
 	bool show_close;
 	Vector2 offset;
 	bool comment;
-	bool resizeable;
+	bool resizable;
 
 	bool resizing;
 	Vector2 resizing_from;
@@ -151,8 +151,8 @@ public:
 	void set_comment(bool p_enable);
 	bool is_comment() const;
 
-	void set_resizeable(bool p_enable);
-	bool is_resizeable() const;
+	void set_resizable(bool p_enable);
+	bool is_resizable() const;
 
 	virtual Size2 get_minimum_size() const;
 

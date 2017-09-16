@@ -3,7 +3,7 @@
 /*************************************************************************/
 /*                       This file is part of:                           */
 /*                           GODOT ENGINE                                */
-/*                    http://www.godotengine.org                         */
+/*                      https://godotengine.org                          */
 /*************************************************************************/
 /* Copyright (c) 2007-2017 Juan Linietsky, Ariel Manzur.                 */
 /* Copyright (c) 2014-2017 Godot Engine contributors (cf. AUTHORS.md)    */
@@ -58,14 +58,14 @@ Error AudioDriverOSX::initDevice() {
 
 	AudioStreamBasicDescription strdesc;
 
-	// TODO: Implement this
-	/*zeromem(&strdesc, sizeof(strdesc));
+	zeromem(&strdesc, sizeof(strdesc));
 	UInt32 size = sizeof(strdesc);
 	result = AudioUnitGetProperty(audio_unit, kAudioUnitProperty_StreamFormat, kAudioUnitScope_Output, kOutputBus, &strdesc, &size);
 	ERR_FAIL_COND_V(result != noErr, FAILED);
 
 	switch (strdesc.mChannelsPerFrame) {
 		case 2: // Stereo
+		case 4: // Surround 3.1
 		case 6: // Surround 5.1
 		case 8: // Surround 7.1
 			channels = strdesc.mChannelsPerFrame;
@@ -75,9 +75,9 @@ Error AudioDriverOSX::initDevice() {
 			// Unknown number of channels, default to stereo
 			channels = 2;
 			break;
-	}*/
+	}
 
-	mix_rate = GLOBAL_DEF("audio/mix_rate", 44100);
+	mix_rate = GLOBAL_DEF("audio/mix_rate", DEFAULT_MIX_RATE);
 
 	zeromem(&strdesc, sizeof(strdesc));
 	strdesc.mFormatID = kAudioFormatLinearPCM;
@@ -92,15 +92,20 @@ Error AudioDriverOSX::initDevice() {
 	result = AudioUnitSetProperty(audio_unit, kAudioUnitProperty_StreamFormat, kAudioUnitScope_Input, kOutputBus, &strdesc, sizeof(strdesc));
 	ERR_FAIL_COND_V(result != noErr, FAILED);
 
-	int latency = GLOBAL_DEF("audio/output_latency", 25);
-	unsigned int buffer_size = closest_power_of_2(latency * mix_rate / 1000);
+	int latency = GLOBAL_DEF("audio/output_latency", DEFAULT_OUTPUT_LATENCY);
+	// Sample rate is independent of channels (ref: https://stackoverflow.com/questions/11048825/audio-sample-frequency-rely-on-channels)
+	buffer_frames = closest_power_of_2(latency * mix_rate / 1000);
+
+	result = AudioUnitSetProperty(audio_unit, kAudioDevicePropertyBufferFrameSize, kAudioUnitScope_Global, kOutputBus, &buffer_frames, sizeof(UInt32));
+	ERR_FAIL_COND_V(result != noErr, FAILED);
+
+	buffer_size = buffer_frames * channels;
+	samples_in.resize(buffer_size);
 
 	if (OS::get_singleton()->is_stdout_verbose()) {
-		print_line("audio buffer size: " + itos(buffer_size) + " calculated latency: " + itos(buffer_size * 1000 / mix_rate));
+		print_line("CoreAudio: detected " + itos(channels) + " channels");
+		print_line("CoreAudio: audio buffer frames: " + itos(buffer_frames) + " calculated latency: " + itos(buffer_frames * 1000 / mix_rate) + "ms");
 	}
-
-	samples_in.resize(buffer_size);
-	buffer_frames = buffer_size / channels;
 
 	AURenderCallbackStruct callback;
 	zeromem(&callback, sizeof(AURenderCallbackStruct));
@@ -234,11 +239,11 @@ void AudioDriverOSX::start() {
 };
 
 int AudioDriverOSX::get_mix_rate() const {
-	return 44100;
+	return mix_rate;
 };
 
 AudioDriver::SpeakerMode AudioDriverOSX::get_speaker_mode() const {
-	return SPEAKER_MODE_STEREO;
+	return get_speaker_mode_by_total_channels(channels);
 };
 
 void AudioDriverOSX::lock() {
@@ -282,8 +287,12 @@ AudioDriverOSX::AudioDriverOSX() {
 	active = false;
 	mutex = NULL;
 
-	mix_rate = 44100;
+	mix_rate = 0;
 	channels = 2;
+
+	buffer_size = 0;
+	buffer_frames = 0;
+
 	samples_in.clear();
 };
 

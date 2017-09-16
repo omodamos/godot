@@ -3,7 +3,7 @@
 /*************************************************************************/
 /*                       This file is part of:                           */
 /*                           GODOT ENGINE                                */
-/*                    http://www.godotengine.org                         */
+/*                      https://godotengine.org                          */
 /*************************************************************************/
 /* Copyright (c) 2007-2017 Juan Linietsky, Ariel Manzur.                 */
 /* Copyright (c) 2014-2017 Godot Engine contributors (cf. AUTHORS.md)    */
@@ -34,7 +34,10 @@
 #include "servers/audio/audio_stream.h"
 
 #define STB_VORBIS_HEADER_ONLY
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wmaybe-uninitialized"
 #include "thirdparty/misc/stb_vorbis.c"
+#pragma GCC diagnostic pop
 #undef STB_VORBIS_HEADER_ONLY
 
 class AudioStreamOGGVorbis;

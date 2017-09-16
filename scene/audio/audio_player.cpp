@@ -3,7 +3,7 @@
 /*************************************************************************/
 /*                       This file is part of:                           */
 /*                           GODOT ENGINE                                */
-/*                    http://www.godotengine.org                         */
+/*                      https://godotengine.org                          */
 /*************************************************************************/
 /* Copyright (c) 2007-2017 Juan Linietsky, Ariel Manzur.                 */
 /* Copyright (c) 2014-2017 Godot Engine contributors (cf. AUTHORS.md)    */
@@ -66,29 +66,27 @@ void AudioStreamPlayer::_mix_audio() {
 	//set volume for next mix
 	mix_volume_db = volume_db;
 
-	AudioFrame *targets[3] = { NULL, NULL, NULL };
+	AudioFrame *targets[4] = { NULL, NULL, NULL, NULL };
 
 	if (AudioServer::get_singleton()->get_speaker_mode() == AudioServer::SPEAKER_MODE_STEREO) {
 		targets[0] = AudioServer::get_singleton()->thread_get_channel_mix_buffer(bus_index, 0);
 	} else {
 		switch (mix_target) {
 			case MIX_TARGET_STEREO: {
-				targets[0] = AudioServer::get_singleton()->thread_get_channel_mix_buffer(bus_index, 1);
+				targets[0] = AudioServer::get_singleton()->thread_get_channel_mix_buffer(bus_index, 0);
 			} break;
 			case MIX_TARGET_SURROUND: {
-				targets[0] = AudioServer::get_singleton()->thread_get_channel_mix_buffer(bus_index, 1);
-				targets[1] = AudioServer::get_singleton()->thread_get_channel_mix_buffer(bus_index, 2);
-				if (AudioServer::get_singleton()->get_speaker_mode() == AudioServer::SPEAKER_SURROUND_71) {
-					targets[2] = AudioServer::get_singleton()->thread_get_channel_mix_buffer(bus_index, 3);
+				for (int i = 0; i < AudioServer::get_singleton()->get_channel_count(); i++) {
+					targets[i] = AudioServer::get_singleton()->thread_get_channel_mix_buffer(bus_index, i);
 				}
 			} break;
 			case MIX_TARGET_CENTER: {
-				targets[0] = AudioServer::get_singleton()->thread_get_channel_mix_buffer(bus_index, 0);
+				targets[0] = AudioServer::get_singleton()->thread_get_channel_mix_buffer(bus_index, 1);
 			} break;
 		}
 	}
 
-	for (int c = 0; c < 3; c++) {
+	for (int c = 0; c < 4; c++) {
 		if (!targets[c])
 			break;
 		for (int i = 0; i < buffer_size; i++) {
@@ -104,6 +102,15 @@ void AudioStreamPlayer::_notification(int p_what) {
 		AudioServer::get_singleton()->add_callback(_mix_audios, this);
 		if (autoplay && !Engine::get_singleton()->is_editor_hint()) {
 			play();
+		}
+	}
+
+	if (p_what == NOTIFICATION_INTERNAL_PROCESS) {
+
+		if (!active || (setseek < 0 && !stream_playback->is_playing())) {
+			active = false;
+			emit_signal("finished");
+			set_process_internal(false);
 		}
 	}
 
@@ -130,12 +137,12 @@ void AudioStreamPlayer::set_stream(Ref<AudioStream> p_stream) {
 	stream = p_stream;
 	stream_playback = p_stream->instance_playback();
 
+	AudioServer::get_singleton()->unlock();
+
 	if (stream_playback.is_null()) {
 		stream.unref();
 		ERR_FAIL_COND(stream_playback.is_null());
 	}
-
-	AudioServer::get_singleton()->unlock();
 }
 
 Ref<AudioStream> AudioStreamPlayer::get_stream() const {
@@ -158,6 +165,7 @@ void AudioStreamPlayer::play(float p_from_pos) {
 		mix_volume_db = volume_db; //reset volume ramp
 		setseek = p_from_pos;
 		active = true;
+		set_process_internal(true);
 	}
 }
 
@@ -172,13 +180,14 @@ void AudioStreamPlayer::stop() {
 
 	if (stream_playback.is_valid()) {
 		active = false;
+		set_process_internal(false);
 	}
 }
 
 bool AudioStreamPlayer::is_playing() const {
 
 	if (stream_playback.is_valid()) {
-		return active && stream_playback->is_playing();
+		return active; //&& stream_playback->is_playing();
 	}
 
 	return false;
@@ -293,10 +302,16 @@ void AudioStreamPlayer::_bind_methods() {
 
 	ADD_PROPERTY(PropertyInfo(Variant::OBJECT, "stream", PROPERTY_HINT_RESOURCE_TYPE, "AudioStream"), "set_stream", "get_stream");
 	ADD_PROPERTY(PropertyInfo(Variant::REAL, "volume_db", PROPERTY_HINT_RANGE, "-80,24"), "set_volume_db", "get_volume_db");
-	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "playing", PROPERTY_HINT_NONE, "", PROPERTY_USAGE_EDITOR), "_set_playing", "_is_active");
+	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "playing", PROPERTY_HINT_NONE, "", PROPERTY_USAGE_EDITOR), "_set_playing", "is_playing");
 	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "autoplay"), "set_autoplay", "is_autoplay_enabled");
 	ADD_PROPERTY(PropertyInfo(Variant::INT, "mix_target", PROPERTY_HINT_ENUM, "Stereo,Surround,Center"), "set_mix_target", "get_mix_target");
 	ADD_PROPERTY(PropertyInfo(Variant::STRING, "bus", PROPERTY_HINT_ENUM, ""), "set_bus", "get_bus");
+
+	ADD_SIGNAL(MethodInfo("finished"));
+
+	BIND_ENUM_CONSTANT(MIX_TARGET_STEREO);
+	BIND_ENUM_CONSTANT(MIX_TARGET_SURROUND);
+	BIND_ENUM_CONSTANT(MIX_TARGET_CENTER);
 }
 
 AudioStreamPlayer::AudioStreamPlayer() {

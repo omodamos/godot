@@ -3,7 +3,7 @@
 /*************************************************************************/
 /*                       This file is part of:                           */
 /*                           GODOT ENGINE                                */
-/*                    http://www.godotengine.org                         */
+/*                      https://godotengine.org                          */
 /*************************************************************************/
 /* Copyright (c) 2007-2017 Juan Linietsky, Ariel Manzur.                 */
 /* Copyright (c) 2014-2017 Godot Engine contributors (cf. AUTHORS.md)    */
@@ -72,8 +72,8 @@ StyleBoxEditor::StyleBoxEditor() {
 
 void StyleBoxEditorPlugin::edit(Object *p_node) {
 
-	if (p_node && p_node->cast_to<StyleBox>()) {
-		stylebox_editor->edit(p_node->cast_to<StyleBox>());
+	if (Object::cast_to<StyleBox>(p_node)) {
+		stylebox_editor->edit(Object::cast_to<StyleBox>(p_node));
 		stylebox_editor->show();
 	} else
 		stylebox_editor->hide();

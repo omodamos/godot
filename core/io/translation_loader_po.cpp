@@ -3,7 +3,7 @@
 /*************************************************************************/
 /*                       This file is part of:                           */
 /*                           GODOT ENGINE                                */
-/*                    http://www.godotengine.org                         */
+/*                      https://godotengine.org                          */
 /*************************************************************************/
 /* Copyright (c) 2007-2017 Juan Linietsky, Ariel Manzur.                 */
 /* Copyright (c) 2014-2017 Godot Engine contributors (cf. AUTHORS.md)    */
@@ -51,8 +51,8 @@ RES TranslationLoaderPO::load_translation(FileAccess *f, Error *r_error, const S
 
 	Ref<Translation> translation = Ref<Translation>(memnew(Translation));
 	int line = 1;
-	bool skip_this;
-	bool skip_next;
+	bool skip_this = false;
+	bool skip_next = false;
 
 	while (true) {
 

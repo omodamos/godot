@@ -3,7 +3,7 @@
 /*************************************************************************/
 /*                       This file is part of:                           */
 /*                           GODOT ENGINE                                */
-/*                    http://www.godotengine.org                         */
+/*                      https://godotengine.org                          */
 /*************************************************************************/
 /* Copyright (c) 2007-2017 Juan Linietsky, Ariel Manzur.                 */
 /* Copyright (c) 2014-2017 Godot Engine contributors (cf. AUTHORS.md)    */
@@ -37,7 +37,6 @@
 
 static Image::Format _get_etc2_mode(Image::DetectChannels format) {
 	switch (format) {
-		case Image::DETECTED_L:
 		case Image::DETECTED_R:
 			return Image::FORMAT_ETC2_R11;
 
@@ -47,7 +46,7 @@ static Image::Format _get_etc2_mode(Image::DetectChannels format) {
 		case Image::DETECTED_RGB:
 			return Image::FORMAT_ETC2_RGB8;
 
-		case Image::DETECTED_RGBA:
+		default:
 			return Image::FORMAT_ETC2_RGBA8;
 
 			// TODO: would be nice if we could use FORMAT_ETC2_RGB8A1 for FORMAT_RGBA5551
@@ -117,7 +116,7 @@ static void _compress_etc(Image *p_img, float p_lossy_quality, bool force_etc1_f
 		return;
 	}
 
-	int imgw = p_img->get_width(), imgh = p_img->get_height();
+	uint32_t imgw = p_img->get_width(), imgh = p_img->get_height();
 	ERR_FAIL_COND(next_power_of_2(imgw) != imgw || next_power_of_2(imgh) != imgh);
 
 	Image::Format etc_format = force_etc1_format ? Image::FORMAT_ETC : _get_etc2_mode(detected_channels);

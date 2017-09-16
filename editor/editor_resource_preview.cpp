@@ -3,7 +3,7 @@
 /*************************************************************************/
 /*                       This file is part of:                           */
 /*                           GODOT ENGINE                                */
-/*                    http://www.godotengine.org                         */
+/*                      https://godotengine.org                          */
 /*************************************************************************/
 /* Copyright (c) 2007-2017 Juan Linietsky, Ariel Manzur.                 */
 /* Copyright (c) 2014-2017 Godot Engine contributors (cf. AUTHORS.md)    */
@@ -69,8 +69,8 @@ Ref<Texture> EditorResourcePreviewGenerator::generate_from_path(const String &p_
 void EditorResourcePreviewGenerator::_bind_methods() {
 
 	ClassDB::add_virtual_method(get_class_static(), MethodInfo(Variant::BOOL, "handles", PropertyInfo(Variant::STRING, "type")));
-	ClassDB::add_virtual_method(get_class_static(), MethodInfo(Variant::OBJECT, "generate:Texture", PropertyInfo(Variant::OBJECT, "from", PROPERTY_HINT_RESOURCE_TYPE, "Resource")));
-	ClassDB::add_virtual_method(get_class_static(), MethodInfo(Variant::OBJECT, "generate_from_path:Texture", PropertyInfo(Variant::STRING, "path", PROPERTY_HINT_FILE)));
+	ClassDB::add_virtual_method(get_class_static(), MethodInfo(CLASS_INFO(Texture), "generate", PropertyInfo(Variant::OBJECT, "from", PROPERTY_HINT_RESOURCE_TYPE, "Resource")));
+	ClassDB::add_virtual_method(get_class_static(), MethodInfo(CLASS_INFO(Texture), "generate_from_path", PropertyInfo(Variant::STRING, "path", PROPERTY_HINT_FILE)));
 }
 
 EditorResourcePreviewGenerator::EditorResourcePreviewGenerator() {
@@ -180,11 +180,13 @@ void EditorResourcePreview::_thread() {
 
 			if (cache.has(item.path)) {
 				//already has it because someone loaded it, just let it know it's ready
+				String path = item.path;
 				if (item.resource.is_valid()) {
-					item.path += ":" + itos(cache[item.path].last_hash); //keep last hash (see description of what this is in condition below)
+					path += ":" + itos(cache[item.path].last_hash); //keep last hash (see description of what this is in condition below)
 				}
 
-				_preview_ready(item.path, cache[item.path].preview, item.id, item.function, item.userdata);
+				print_line("cached: " + item.path);
+				_preview_ready(path, cache[item.path].preview, item.id, item.function, item.userdata);
 
 				preview_mutex->unlock();
 			} else {
@@ -199,11 +201,15 @@ void EditorResourcePreview::_thread() {
 
 				if (item.resource.is_valid()) {
 
+					print_line("generated: " + item.path);
+
 					texture = _generate_preview(item, String());
 					//adding hash to the end of path (should be ID:<objid>:<hash>) because of 5 argument limit to call_deferred
 					_preview_ready(item.path + ":" + itos(item.resource->hash_edited_version()), texture, item.id, item.function, item.userdata);
 
 				} else {
+
+					print_line("from file: " + item.path);
 
 					String temp_path = EditorSettings::get_singleton()->get_settings_path().plus_file("tmp");
 					String cache_base = ProjectSettings::get_singleton()->globalize_path(item.path).md5_text();

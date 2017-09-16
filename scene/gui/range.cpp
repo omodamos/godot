@@ -3,7 +3,7 @@
 /*************************************************************************/
 /*                       This file is part of:                           */
 /*                           GODOT ENGINE                                */
-/*                    http://www.godotengine.org                         */
+/*                      https://godotengine.org                          */
 /*************************************************************************/
 /* Copyright (c) 2007-2017 Juan Linietsky, Ariel Manzur.                 */
 /* Copyright (c) 2014-2017 Godot Engine contributors (cf. AUTHORS.md)    */
@@ -170,7 +170,7 @@ double Range::get_as_ratio() const {
 
 void Range::_share(Node *p_range) {
 
-	Range *r = p_range->cast_to<Range>();
+	Range *r = Object::cast_to<Range>(p_range);
 	ERR_FAIL_COND(!r);
 	share(r);
 }

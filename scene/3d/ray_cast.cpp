@@ -3,7 +3,7 @@
 /*************************************************************************/
 /*                       This file is part of:                           */
 /*                           GODOT ENGINE                                */
-/*                    http://www.godotengine.org                         */
+/*                      https://godotengine.org                          */
 /*************************************************************************/
 /* Copyright (c) 2007-2017 Juan Linietsky, Ariel Manzur.                 */
 /* Copyright (c) 2014-2017 Godot Engine contributors (cf. AUTHORS.md)    */
@@ -196,7 +196,7 @@ void RayCast::add_exception_rid(const RID &p_rid) {
 void RayCast::add_exception(const Object *p_object) {
 
 	ERR_FAIL_NULL(p_object);
-	CollisionObject *co = ((Object *)p_object)->cast_to<CollisionObject>();
+	const CollisionObject *co = Object::cast_to<CollisionObject>(p_object);
 	if (!co)
 		return;
 	add_exception_rid(co->get_rid());
@@ -210,7 +210,7 @@ void RayCast::remove_exception_rid(const RID &p_rid) {
 void RayCast::remove_exception(const Object *p_object) {
 
 	ERR_FAIL_NULL(p_object);
-	CollisionObject *co = ((Object *)p_object)->cast_to<CollisionObject>();
+	const CollisionObject *co = Object::cast_to<CollisionObject>(p_object);
 	if (!co)
 		return;
 	remove_exception_rid(co->get_rid());

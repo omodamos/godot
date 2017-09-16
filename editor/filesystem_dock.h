@@ -3,7 +3,7 @@
 /*************************************************************************/
 /*                       This file is part of:                           */
 /*                           GODOT ENGINE                                */
-/*                    http://www.godotengine.org                         */
+/*                      https://godotengine.org                          */
 /*************************************************************************/
 /* Copyright (c) 2007-2017 Juan Linietsky, Ariel Manzur.                 */
 /* Copyright (c) 2014-2017 Godot Engine contributors (cf. AUTHORS.md)    */
@@ -144,6 +144,7 @@ private:
 	void _file_option(int p_option);
 	void _folder_option(int p_option);
 	void _update_files(bool p_keep_selection);
+	void _update_file_display_toggle_button();
 	void _change_file_display();
 
 	void _fs_changed();
@@ -169,6 +170,7 @@ private:
 		StringName type;
 		int import_status; //0 not imported, 1 - ok, 2- must reimport, 3- broken
 		Vector<String> sources;
+		bool import_broken;
 
 		bool operator<(const FileInfo &fi) const {
 			return name < fi.name;

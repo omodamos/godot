@@ -3,7 +3,7 @@
 /*************************************************************************/
 /*                       This file is part of:                           */
 /*                           GODOT ENGINE                                */
-/*                    http://www.godotengine.org                         */
+/*                      https://godotengine.org                          */
 /*************************************************************************/
 /* Copyright (c) 2007-2017 Juan Linietsky, Ariel Manzur.                 */
 /* Copyright (c) 2014-2017 Godot Engine contributors (cf. AUTHORS.md)    */
@@ -28,6 +28,7 @@
 /* SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                */
 /*************************************************************************/
 #include "animation.h"
+
 #include "geometry.h"
 
 bool Animation::_set(const StringName &p_name, const Variant &p_value) {
@@ -83,44 +84,6 @@ bool Animation::_set(const StringName &p_name, const Variant &p_value) {
 				TransformTrack *tt = static_cast<TransformTrack *>(tracks[track]);
 				PoolVector<float> values = p_value;
 				int vcount = values.size();
-
-#if 0 // old compatibility hack
-				if ((vcount%11) == 0) {
-
-
-					PoolVector<float>::Read r = values.read();
-
-					tt->transforms.resize(vcount/11);
-
-
-					for(int i=0;i<(vcount/11);i++) {
-
-
-						TKey<TransformKey> &tk=tt->transforms[i];
-						const float *ofs=&r[i*11];
-						tk.time=ofs[0];
-
-						tk.value.loc.x=ofs[1];
-						tk.value.loc.y=ofs[2];
-						tk.value.loc.z=ofs[3];
-
-						tk.value.rot.x=ofs[4];
-						tk.value.rot.y=ofs[5];
-						tk.value.rot.z=ofs[6];
-						tk.value.rot.w=ofs[7];
-
-						tk.value.scale.x=ofs[8];
-						tk.value.scale.y=ofs[9];
-						tk.value.scale.z=ofs[10];
-
-
-					}
-					return true;
-
-
-
-				}
-#endif
 				ERR_FAIL_COND_V(vcount % 12, false); // shuld be multiple of 11
 
 				PoolVector<float>::Read r = values.read();
@@ -1007,7 +970,12 @@ int Animation::_find(const Vector<K> &p_keys, float p_time) const {
 
 	int low = 0;
 	int high = len - 1;
-	int middle;
+	int middle = 0;
+
+#if DEBUG_ENABLED
+	if (low > high)
+		ERR_PRINT("low > high, this may be a bug");
+#endif
 
 	const K *keys = &p_keys[0];
 
@@ -1326,7 +1294,7 @@ Error Animation::transform_track_interpolate(int p_track, float p_time, Vector3 
 
 	TransformTrack *tt = static_cast<TransformTrack *>(t);
 
-	bool ok;
+	bool ok = false;
 
 	TransformKey tk = _interpolate(tt->transforms, p_time, tt->interpolation, tt->loop_wrap, &ok);
 
@@ -1352,7 +1320,7 @@ Variant Animation::value_track_interpolate(int p_track, float p_time) const {
 	ERR_FAIL_COND_V(t->type != TYPE_VALUE, Variant());
 	ValueTrack *vt = static_cast<ValueTrack *>(t);
 
-	bool ok;
+	bool ok = false;
 
 	Variant res = _interpolate(vt->values, p_time, vt->update_mode == UPDATE_CONTINUOUS ? vt->interpolation : INTERPOLATION_NEAREST, vt->loop_wrap, &ok);
 

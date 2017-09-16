@@ -3,7 +3,7 @@
 /*************************************************************************/
 /*                       This file is part of:                           */
 /*                           GODOT ENGINE                                */
-/*                    http://www.godotengine.org                         */
+/*                      https://godotengine.org                          */
 /*************************************************************************/
 /* Copyright (c) 2007-2017 Juan Linietsky, Ariel Manzur.                 */
 /* Copyright (c) 2014-2017 Godot Engine contributors (cf. AUTHORS.md)    */
@@ -69,12 +69,11 @@ void Resource::set_path(const String &p_path, bool p_take_over) {
 			ResourceCache::resources.get(p_path)->set_name("");
 			ResourceCache::lock->write_unlock();
 		} else {
-			ERR_EXPLAIN("Another resource is loaded from path: " + p_path);
-
 			ResourceCache::lock->read_lock();
 			bool exists = ResourceCache::resources.has(p_path);
 			ResourceCache::lock->read_unlock();
 
+			ERR_EXPLAIN("Another resource is loaded from path: " + p_path);
 			ERR_FAIL_COND(exists);
 		}
 	}

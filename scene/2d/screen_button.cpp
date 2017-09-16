@@ -3,7 +3,7 @@
 /*************************************************************************/
 /*                       This file is part of:                           */
 /*                           GODOT ENGINE                                */
-/*                    http://www.godotengine.org                         */
+/*                      https://godotengine.org                          */
 /*************************************************************************/
 /* Copyright (c) 2007-2017 Juan Linietsky, Ariel Manzur.                 */
 /* Copyright (c) 2014-2017 Godot Engine contributors (cf. AUTHORS.md)    */
@@ -196,11 +196,11 @@ void TouchScreenButton::_input(const Ref<InputEvent> &p_event) {
 
 	ERR_FAIL_COND(!is_visible_in_tree());
 
-	const InputEventScreenTouch *st = p_event->cast_to<InputEventScreenTouch>();
+	const InputEventScreenTouch *st = Object::cast_to<InputEventScreenTouch>(*p_event);
 
 	if (passby_press) {
 
-		const InputEventScreenDrag *sd = p_event->cast_to<InputEventScreenDrag>();
+		const InputEventScreenDrag *sd = Object::cast_to<InputEventScreenDrag>(*p_event);
 
 		if (st && !st->is_pressed() && finger_pressed == st->get_index()) {
 
@@ -399,6 +399,9 @@ void TouchScreenButton::_bind_methods() {
 
 	ADD_SIGNAL(MethodInfo("pressed"));
 	ADD_SIGNAL(MethodInfo("released"));
+
+	BIND_ENUM_CONSTANT(VISIBILITY_ALWAYS);
+	BIND_ENUM_CONSTANT(VISIBILITY_TOUCHSCREEN_ONLY);
 }
 
 TouchScreenButton::TouchScreenButton() {

@@ -3,7 +3,7 @@
 /*************************************************************************/
 /*                       This file is part of:                           */
 /*                           GODOT ENGINE                                */
-/*                    http://www.godotengine.org                         */
+/*                      https://godotengine.org                          */
 /*************************************************************************/
 /* Copyright (c) 2007-2017 Juan Linietsky, Ariel Manzur.                 */
 /* Copyright (c) 2014-2017 Godot Engine contributors (cf. AUTHORS.md)    */
@@ -149,6 +149,20 @@ Color ItemList::get_item_custom_bg_color(int p_idx) const {
 	ERR_FAIL_INDEX_V(p_idx, items.size(), Color());
 
 	return items[p_idx].custom_bg;
+}
+
+void ItemList::set_item_custom_fg_color(int p_idx, const Color &p_custom_fg_color) {
+
+	ERR_FAIL_INDEX(p_idx, items.size());
+
+	items[p_idx].custom_fg = p_custom_fg_color;
+}
+
+Color ItemList::get_item_custom_fg_color(int p_idx) const {
+
+	ERR_FAIL_INDEX_V(p_idx, items.size(), Color());
+
+	return items[p_idx].custom_fg;
 }
 
 void ItemList::set_item_tag_icon(int p_idx, const Ref<Texture> &p_tag_icon) {
@@ -534,7 +548,7 @@ void ItemList::_gui_input(const Ref<InputEvent> &p_event) {
 				uint64_t now = OS::get_singleton()->get_ticks_msec();
 				uint64_t diff = now - search_time_msec;
 
-				if (diff < int(ProjectSettings::get_singleton()->get("gui/timers/incremental_search_max_interval_msec")) * 2) {
+				if (diff < uint64_t(ProjectSettings::get_singleton()->get("gui/timers/incremental_search_max_interval_msec")) * 2) {
 
 					for (int i = current - 1; i >= 0; i--) {
 
@@ -569,7 +583,7 @@ void ItemList::_gui_input(const Ref<InputEvent> &p_event) {
 				uint64_t now = OS::get_singleton()->get_ticks_msec();
 				uint64_t diff = now - search_time_msec;
 
-				if (diff < int(ProjectSettings::get_singleton()->get("gui/timers/incremental_search_max_interval_msec")) * 2) {
+				if (diff < uint64_t(ProjectSettings::get_singleton()->get("gui/timers/incremental_search_max_interval_msec")) * 2) {
 
 					for (int i = current + 1; i < items.size(); i++) {
 
@@ -1021,7 +1035,7 @@ void ItemList::_notification(int p_what) {
 				else
 					max_len = size.x;
 
-				Color modulate = items[i].selected ? font_color_selected : font_color;
+				Color modulate = items[i].selected ? font_color_selected : (items[i].custom_fg != Color() ? items[i].custom_fg : font_color);
 				if (items[i].disabled)
 					modulate.a *= 0.5;
 

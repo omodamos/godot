@@ -3,7 +3,7 @@
 /*************************************************************************/
 /*                       This file is part of:                           */
 /*                           GODOT ENGINE                                */
-/*                    http://www.godotengine.org                         */
+/*                      https://godotengine.org                          */
 /*************************************************************************/
 /* Copyright (c) 2007-2017 Juan Linietsky, Ariel Manzur.                 */
 /* Copyright (c) 2014-2017 Godot Engine contributors (cf. AUTHORS.md)    */
@@ -296,7 +296,7 @@ void Face3::get_support(const Vector3 &p_normal, const Transform &p_transform, V
 	/** FIND SUPPORT VERTEX **/
 
 	int vert_support_idx = -1;
-	real_t support_max;
+	real_t support_max = 0;
 
 	for (int i = 0; i < 3; i++) {
 

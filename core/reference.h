@@ -3,7 +3,7 @@
 /*************************************************************************/
 /*                       This file is part of:                           */
 /*                           GODOT ENGINE                                */
-/*                    http://www.godotengine.org                         */
+/*                      https://godotengine.org                          */
 /*************************************************************************/
 /* Copyright (c) 2007-2017 Juan Linietsky, Ariel Manzur.                 */
 /* Copyright (c) 2014-2017 Godot Engine contributors (cf. AUTHORS.md)    */
@@ -51,7 +51,7 @@ protected:
 public:
 	_FORCE_INLINE_ bool is_referenced() const { return refcount_init.get() < 1; }
 	bool init_ref();
-	void reference();
+	bool reference(); // returns false if refcount is at zero and didn't get increased
 	bool unreference();
 	int reference_get_count() const;
 
@@ -59,25 +59,10 @@ public:
 	~Reference();
 };
 
-#if 0
-class RefBase {
-protected:
-	void ref_inc(Reference *p_reference);
-	bool ref_dec(Reference *p_reference);
-	Reference *first_ref(Reference *p_reference);
-	Reference * get_reference_from_ref(const RefBase &p_base);
-	virtual Reference * get_reference() const=0;
-	char * get_refptr_data(const RefPtr &p_refptr) const;
-public:
-
-	virtual ~RefBase() {}
-};
-#endif
-
 template <class T>
 class Ref {
 
-	T *reference;
+	T *reference = NULL;
 
 	void ref(const Ref &p_from) {
 
@@ -151,20 +136,10 @@ public:
 		return refptr;
 	};
 
-#if 0
-	// go to RefPtr
-	operator RefPtr() const {
-
-		return get_ref_ptr();
-	}
-#endif
-
-#if 1
 	operator Variant() const {
 
 		return Variant(get_ref_ptr());
 	}
-#endif
 
 	void operator=(const Ref &p_from) {
 
@@ -180,7 +155,7 @@ public:
 			return;
 		}
 		Ref r;
-		r.reference = refb->cast_to<T>();
+		r.reference = Object::cast_to<T>(refb);
 		ref(r);
 		r.reference = NULL;
 	}
@@ -194,7 +169,7 @@ public:
 			return;
 		}
 		Ref r;
-		r.reference = refb->cast_to<T>();
+		r.reference = Object::cast_to<T>(refb);
 		ref(r);
 		r.reference = NULL;
 	}
@@ -209,7 +184,7 @@ public:
 			return;
 		}
 		Ref r;
-		r.reference = refb->cast_to<T>();
+		r.reference = Object::cast_to<T>(refb);
 		ref(r);
 		r.reference = NULL;
 	}
@@ -230,7 +205,7 @@ public:
 			return;
 		}
 		Ref r;
-		r.reference = refb->cast_to<T>();
+		r.reference = Object::cast_to<T>(refb);
 		ref(r);
 		r.reference = NULL;
 	}
@@ -254,7 +229,7 @@ public:
 			return;
 		}
 		Ref r;
-		r.reference = refb->cast_to<T>();
+		r.reference = Object::cast_to<T>(refb);
 		ref(r);
 		r.reference = NULL;
 	}
@@ -269,7 +244,7 @@ public:
 			return;
 		}
 		Ref r;
-		r.reference = refb->cast_to<T>();
+		r.reference = Object::cast_to<T>(refb);
 		ref(r);
 		r.reference = NULL;
 	}

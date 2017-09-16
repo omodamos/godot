@@ -3,7 +3,7 @@
 /*************************************************************************/
 /*                       This file is part of:                           */
 /*                           GODOT ENGINE                                */
-/*                    http://www.godotengine.org                         */
+/*                      https://godotengine.org                          */
 /*************************************************************************/
 /* Copyright (c) 2007-2017 Juan Linietsky, Ariel Manzur.                 */
 /* Copyright (c) 2014-2017 Godot Engine contributors (cf. AUTHORS.md)    */
@@ -165,7 +165,7 @@ Ref<StreamPeerTCP> TCPServerPosix::take_connection() {
 	Ref<StreamPeerTCPPosix> conn = memnew(StreamPeerTCPPosix);
 	IP_Address ip;
 
-	int port;
+	int port = 0;
 	_set_ip_addr_port(ip, port, &their_addr);
 
 	conn->set_socket(fd, ip, port, sock_type);

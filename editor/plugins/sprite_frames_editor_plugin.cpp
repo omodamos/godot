@@ -3,7 +3,7 @@
 /*************************************************************************/
 /*                       This file is part of:                           */
 /*                           GODOT ENGINE                                */
-/*                    http://www.godotengine.org                         */
+/*                      https://godotengine.org                          */
 /*************************************************************************/
 /* Copyright (c) 2007-2017 Juan Linietsky, Ariel Manzur.                 */
 /* Copyright (c) 2014-2017 Godot Engine contributors (cf. AUTHORS.md)    */
@@ -118,63 +118,6 @@ void SpriteFramesEditor::_load_pressed() {
 	file->set_mode(EditorFileDialog::MODE_OPEN_FILES);
 
 	file->popup_centered_ratio();
-}
-
-void SpriteFramesEditor::_item_edited() {
-
-#if 0
-	if (!tree->get_selected())
-		return;
-
-	TreeItem *s = tree->get_selected();
-
-	if (tree->get_selected_column()==0) {
-		// renamed
-		String old_name=s->get_metadata(0);
-		String new_name=s->get_text(0);
-		if (old_name==new_name)
-			return;
-
-		if (new_name=="" || new_name.find("\\")!=-1 || new_name.find("/")!=-1 || frames->has_resource(new_name)) {
-
-			s->set_text(0,old_name);
-			return;
-		}
-
-		RES samp = frames->get_resource(old_name);
-		undo_redo->create_action("Rename Resource");
-		undo_redo->add_do_method(frames,"remove_resource",old_name);
-		undo_redo->add_do_method(frames,"add_resource",new_name,samp);
-		undo_redo->add_undo_method(frames,"remove_resource",new_name);
-		undo_redo->add_undo_method(frames,"add_resource",old_name,samp);
-		undo_redo->add_do_method(this,"_update_library");
-		undo_redo->add_undo_method(this,"_update_library");
-		undo_redo->commit_action();
-
-	}
-#endif
-}
-
-void SpriteFramesEditor::_delete_confirm_pressed() {
-
-	ERR_FAIL_COND(!frames->has_animation(edited_anim));
-
-	if (tree->get_current() < 0)
-		return;
-
-	sel -= 1;
-	if (sel < 0 && frames->get_frame_count(edited_anim))
-		sel = 0;
-
-	int to_remove = tree->get_current();
-	sel = to_remove;
-	Ref<Texture> r = frames->get_frame(edited_anim, to_remove);
-	undo_redo->create_action(TTR("Delete Resource"));
-	undo_redo->add_do_method(frames, "remove_frame", edited_anim, to_remove);
-	undo_redo->add_undo_method(frames, "add_frame", edited_anim, r, to_remove);
-	undo_redo->add_do_method(this, "_update_library");
-	undo_redo->add_undo_method(this, "_update_library");
-	undo_redo->commit_action();
 }
 
 void SpriteFramesEditor::_paste_pressed() {
@@ -301,17 +244,22 @@ void SpriteFramesEditor::_down_pressed() {
 
 void SpriteFramesEditor::_delete_pressed() {
 
+	ERR_FAIL_COND(!frames->has_animation(edited_anim));
+
 	if (tree->get_current() < 0)
 		return;
 
-	_delete_confirm_pressed(); //it has undo.. why bother with a dialog..
-	/*
-	dialog->set_title("Confirm...");
-	dialog->set_text("Remove Resource '"+tree->get_selected()->get_text(0)+"' ?");
-	//dialog->get_cancel()->set_text("Cancel");
-	//dialog->get_ok()->show();
-	dialog->get_ok()->set_text("Remove");
-	dialog->popup_centered(Size2(300,60));*/
+	int to_delete = tree->get_current();
+	if (to_delete < 0 || to_delete >= frames->get_frame_count(edited_anim)) {
+		return;
+	}
+
+	undo_redo->create_action(TTR("Delete Resource"));
+	undo_redo->add_do_method(frames, "remove_frame", edited_anim, to_delete);
+	undo_redo->add_undo_method(frames, "add_frame", edited_anim, frames->get_frame(edited_anim, to_delete), to_delete);
+	undo_redo->add_do_method(this, "_update_library");
+	undo_redo->add_undo_method(this, "_update_library");
+	undo_redo->commit_action();
 }
 
 void SpriteFramesEditor::_animation_select() {
@@ -334,14 +282,14 @@ static void _find_anim_sprites(Node *p_node, List<Node *> *r_nodes, Ref<SpriteFr
 		return;
 
 	{
-		AnimatedSprite *as = p_node->cast_to<AnimatedSprite>();
+		AnimatedSprite *as = Object::cast_to<AnimatedSprite>(p_node);
 		if (as && as->get_sprite_frames() == p_sfames) {
 			r_nodes->push_back(p_node);
 		}
 	}
 
 	{
-		AnimatedSprite3D *as = p_node->cast_to<AnimatedSprite3D>();
+		AnimatedSprite3D *as = Object::cast_to<AnimatedSprite3D>(p_node);
 		if (as && as->get_sprite_frames() == p_sfames) {
 			r_nodes->push_back(p_node);
 		}
@@ -693,10 +641,8 @@ void SpriteFramesEditor::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("_load_pressed"), &SpriteFramesEditor::_load_pressed);
 	ClassDB::bind_method(D_METHOD("_empty_pressed"), &SpriteFramesEditor::_empty_pressed);
 	ClassDB::bind_method(D_METHOD("_empty2_pressed"), &SpriteFramesEditor::_empty2_pressed);
-	ClassDB::bind_method(D_METHOD("_item_edited"), &SpriteFramesEditor::_item_edited);
 	ClassDB::bind_method(D_METHOD("_delete_pressed"), &SpriteFramesEditor::_delete_pressed);
 	ClassDB::bind_method(D_METHOD("_paste_pressed"), &SpriteFramesEditor::_paste_pressed);
-	ClassDB::bind_method(D_METHOD("_delete_confirm_pressed"), &SpriteFramesEditor::_delete_confirm_pressed);
 	ClassDB::bind_method(D_METHOD("_file_load_request", "files", "atpos"), &SpriteFramesEditor::_file_load_request, DEFVAL(-1));
 	ClassDB::bind_method(D_METHOD("_update_library", "skipsel"), &SpriteFramesEditor::_update_library, DEFVAL(false));
 	ClassDB::bind_method(D_METHOD("_up_pressed"), &SpriteFramesEditor::_up_pressed);
@@ -829,8 +775,6 @@ SpriteFramesEditor::SpriteFramesEditor() {
 	move_up->connect("pressed", this, "_up_pressed");
 	move_down->connect("pressed", this, "_down_pressed");
 	file->connect("files_selected", this, "_file_load_request");
-	//dialog->connect("confirmed", this,"_delete_confirm_pressed");
-	//tree->connect("item_selected", this,"_item_edited");
 	loading_scene = false;
 	sel = -1;
 
@@ -842,7 +786,7 @@ SpriteFramesEditor::SpriteFramesEditor() {
 void SpriteFramesEditorPlugin::edit(Object *p_object) {
 
 	frames_editor->set_undo_redo(&get_undo_redo());
-	SpriteFrames *s = p_object->cast_to<SpriteFrames>();
+	SpriteFrames *s = Object::cast_to<SpriteFrames>(p_object);
 	if (!s)
 		return;
 

@@ -3,7 +3,7 @@
 /*************************************************************************/
 /*                       This file is part of:                           */
 /*                           GODOT ENGINE                                */
-/*                    http://www.godotengine.org                         */
+/*                      https://godotengine.org                          */
 /*************************************************************************/
 /* Copyright (c) 2007-2017 Juan Linietsky, Ariel Manzur.                 */
 /* Copyright (c) 2014-2017 Godot Engine contributors (cf. AUTHORS.md)    */
@@ -408,6 +408,7 @@ void fill_default_theme(Ref<Theme> &theme, const Ref<Font> &default_font, const 
 
 	// Label
 
+	theme->set_stylebox("normal", "Label", memnew(StyleBoxEmpty));
 	theme->set_font("font", "Label", default_font);
 
 	theme->set_color("font_color", "Label", Color(1, 1, 1));
@@ -525,7 +526,7 @@ void fill_default_theme(Ref<Theme> &theme, const Ref<Font> &default_font, const 
 	theme->set_stylebox("slider", "VSlider", make_stylebox(vslider_bg_png, 4, 4, 4, 4));
 	theme->set_stylebox("grabber_highlight", "VSlider", make_stylebox(vslider_grabber_hl_png, 6, 6, 6, 6));
 	theme->set_stylebox("grabber_disabled", "VSlider", make_stylebox(vslider_grabber_disabled_png, 6, 6, 6, 6));
-	theme->set_stylebox("focus", "HSlider", focus);
+	theme->set_stylebox("focus", "VSlider", focus);
 
 	theme->set_icon("grabber", "VSlider", make_icon(vslider_grabber_png));
 	theme->set_icon("grabber_highlight", "VSlider", make_icon(vslider_grabber_hl_png));
@@ -793,6 +794,7 @@ void fill_default_theme(Ref<Theme> &theme, const Ref<Font> &default_font, const 
 	// RichTextLabel
 
 	theme->set_stylebox("focus", "RichTextLabel", focus);
+	theme->set_stylebox("normal", "RichTextLabel", make_empty_stylebox(0, 0, 0, 0));
 
 	theme->set_font("normal_font", "RichTextLabel", default_font);
 	theme->set_font("bold_font", "RichTextLabel", default_font);

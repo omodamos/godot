@@ -3,7 +3,7 @@
 /*************************************************************************/
 /*                       This file is part of:                           */
 /*                           GODOT ENGINE                                */
-/*                    http://www.godotengine.org                         */
+/*                      https://godotengine.org                          */
 /*************************************************************************/
 /* Copyright (c) 2007-2017 Juan Linietsky, Ariel Manzur.                 */
 /* Copyright (c) 2014-2017 Godot Engine contributors (cf. AUTHORS.md)    */
@@ -215,7 +215,7 @@ void ScriptEditorDebugger::_scene_tree_folded(Object *obj) {
 
 		return;
 	}
-	TreeItem *item = obj->cast_to<TreeItem>();
+	TreeItem *item = Object::cast_to<TreeItem>(obj);
 
 	if (!item)
 		return;
@@ -789,14 +789,17 @@ void ScriptEditorDebugger::_performance_draw() {
 			which.push_back(i);
 	}
 
-	if (which.empty())
-		return;
-
-	Ref<StyleBox> graph_sb = get_stylebox("normal", "TextEdit");
 	Ref<Font> graph_font = get_font("font", "TextEdit");
 
+	if (which.empty()) {
+		perf_draw->draw_string(graph_font, Point2(0, graph_font->get_ascent()), TTR("Pick one or more items from the list to display the graph."), get_color("font_color", "Label"), perf_draw->get_size().x);
+		return;
+	}
+
+	Ref<StyleBox> graph_sb = get_stylebox("normal", "TextEdit");
+
 	int cols = Math::ceil(Math::sqrt((float)which.size()));
-	int rows = (which.size() + 1) / cols;
+	int rows = Math::ceil((float)which.size() / cols);
 	if (which.size() == 1)
 		rows = 1;
 
@@ -1221,7 +1224,7 @@ void ScriptEditorDebugger::_method_changed(Object *p_base, const StringName &p_n
 	if (!p_base || !live_debug || !connection.is_valid() || !editor->get_edited_scene())
 		return;
 
-	Node *node = p_base->cast_to<Node>();
+	Node *node = Object::cast_to<Node>(p_base);
 
 	VARIANT_ARGPTRS
 
@@ -1249,7 +1252,7 @@ void ScriptEditorDebugger::_method_changed(Object *p_base, const StringName &p_n
 		return;
 	}
 
-	Resource *res = p_base->cast_to<Resource>();
+	Resource *res = Object::cast_to<Resource>(p_base);
 
 	if (res && res->get_path() != String()) {
 
@@ -1277,7 +1280,7 @@ void ScriptEditorDebugger::_property_changed(Object *p_base, const StringName &p
 	if (!p_base || !live_debug || !connection.is_valid() || !editor->get_edited_scene())
 		return;
 
-	Node *node = p_base->cast_to<Node>();
+	Node *node = Object::cast_to<Node>(p_base);
 
 	if (node) {
 
@@ -1308,7 +1311,7 @@ void ScriptEditorDebugger::_property_changed(Object *p_base, const StringName &p
 		return;
 	}
 
-	Resource *res = p_base->cast_to<Resource>();
+	Resource *res = Object::cast_to<Resource>(p_base);
 
 	if (res && res->get_path() != String()) {
 

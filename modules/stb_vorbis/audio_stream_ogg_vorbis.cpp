@@ -3,7 +3,7 @@
 /*************************************************************************/
 /*                       This file is part of:                           */
 /*                           GODOT ENGINE                                */
-/*                    http://www.godotengine.org                         */
+/*                      https://godotengine.org                          */
 /*************************************************************************/
 /* Copyright (c) 2007-2017 Juan Linietsky, Ariel Manzur.                 */
 /* Copyright (c) 2014-2017 Godot Engine contributors (cf. AUTHORS.md)    */
@@ -31,7 +31,10 @@
 
 #include "os/file_access.h"
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wmaybe-uninitialized"
 #include "thirdparty/misc/stb_vorbis.c"
+#pragma GCC diagnostic pop
 
 void AudioStreamPlaybackOGGVorbis::_mix_internal(AudioFrame *p_buffer, int p_frames) {
 
@@ -42,6 +45,12 @@ void AudioStreamPlaybackOGGVorbis::_mix_internal(AudioFrame *p_buffer, int p_fra
 	while (todo && active) {
 
 		int mixed = stb_vorbis_get_samples_float_interleaved(ogg_stream, 2, (float *)p_buffer, todo * 2);
+		if (vorbis_stream->channels == 1 && mixed > 0) {
+			//mix mono to stereo
+			for (int i = 0; i < mixed; i++) {
+				p_buffer[i].r = p_buffer[i].l;
+			}
+		}
 		todo -= mixed;
 		frames_mixed += mixed;
 
@@ -112,8 +121,8 @@ float AudioStreamPlaybackOGGVorbis::get_length() const {
 
 AudioStreamPlaybackOGGVorbis::~AudioStreamPlaybackOGGVorbis() {
 	if (ogg_alloc.alloc_buffer) {
-		AudioServer::get_singleton()->audio_data_free(ogg_alloc.alloc_buffer);
 		stb_vorbis_close(ogg_stream);
+		AudioServer::get_singleton()->audio_data_free(ogg_alloc.alloc_buffer);
 	}
 }
 

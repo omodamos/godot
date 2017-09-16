@@ -3,7 +3,7 @@
 /*************************************************************************/
 /*                       This file is part of:                           */
 /*                           GODOT ENGINE                                */
-/*                    http://www.godotengine.org                         */
+/*                      https://godotengine.org                          */
 /*************************************************************************/
 /* Copyright (c) 2007-2017 Juan Linietsky, Ariel Manzur.                 */
 /* Copyright (c) 2014-2017 Godot Engine contributors (cf. AUTHORS.md)    */
@@ -28,6 +28,7 @@
 /* SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                */
 /*************************************************************************/
 #include "import_dock.h"
+#include "editor_node.h"
 
 class ImportDockParameters : public Object {
 	GDCLASS(ImportDockParameters, Object)
@@ -264,16 +265,14 @@ void ImportDock::set_edit_multiple_paths(const Vector<String> &p_paths) {
 
 void ImportDock::_preset_selected(int p_idx) {
 
-	switch (p_idx) {
+	int item_id = preset->get_popup()->get_item_id(p_idx);
+
+	switch (item_id) {
 		case ITEM_SET_AS_DEFAULT: {
-			List<ResourceImporter::ImportOption> options;
-
-			params->importer->get_import_options(&options, p_idx);
-
 			Dictionary d;
-			for (List<ResourceImporter::ImportOption>::Element *E = options.front(); E; E = E->next()) {
 
-				d[E->get().option.name] = E->get().default_value;
+			for (const List<PropertyInfo>::Element *E = params->properties.front(); E; E = E->next()) {
+				d[E->get().name] = params->values[E->get().name];
 			}
 
 			ProjectSettings::get_singleton()->set("importer_defaults/" + params->importer->get_importer_name(), d);
@@ -350,6 +349,15 @@ void ImportDock::_reimport() {
 	EditorFileSystem::get_singleton()->emit_signal("filesystem_changed"); //it changed, so force emitting the signal
 }
 
+void ImportDock::_notification(int p_what) {
+	switch (p_what) {
+
+		case EditorSettings::NOTIFICATION_EDITOR_SETTINGS_CHANGED: {
+
+			imported->add_style_override("normal", get_stylebox("normal", "LineEdit"));
+		} break;
+	}
+}
 void ImportDock::_bind_methods() {
 
 	ClassDB::bind_method(D_METHOD("_reimport"), &ImportDock::_reimport);
@@ -365,8 +373,8 @@ void ImportDock::initialize_import_options() const {
 
 ImportDock::ImportDock() {
 
-	imported = memnew(LineEdit);
-	imported->set_editable(false);
+	imported = memnew(Label);
+	imported->add_style_override("normal", EditorNode::get_singleton()->get_gui_base()->get_stylebox("normal", "LineEdit"));
 	add_child(imported);
 	HBoxContainer *hb = memnew(HBoxContainer);
 	add_margin_child(TTR("Import As:"), hb);

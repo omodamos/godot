@@ -3,7 +3,7 @@
 /*************************************************************************/
 /*                       This file is part of:                           */
 /*                           GODOT ENGINE                                */
-/*                    http://www.godotengine.org                         */
+/*                      https://godotengine.org                          */
 /*************************************************************************/
 /* Copyright (c) 2007-2017 Juan Linietsky, Ariel Manzur.                 */
 /* Copyright (c) 2014-2017 Godot Engine contributors (cf. AUTHORS.md)    */
@@ -273,11 +273,7 @@ void ArrayPropertyEdit::edit(Object *p_obj, const StringName &p_prop, const Stri
 
 Node *ArrayPropertyEdit::get_node() {
 
-	Object *o = ObjectDB::get_instance(obj);
-	if (!o)
-		return NULL;
-
-	return o->cast_to<Node>();
+	return Object::cast_to<Node>(ObjectDB::get_instance(obj));
 }
 
 void ArrayPropertyEdit::_bind_methods() {

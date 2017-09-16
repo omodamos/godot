@@ -3,7 +3,7 @@
 /*************************************************************************/
 /*                       This file is part of:                           */
 /*                           GODOT ENGINE                                */
-/*                    http://www.godotengine.org                         */
+/*                      https://godotengine.org                          */
 /*************************************************************************/
 /* Copyright (c) 2007-2017 Juan Linietsky, Ariel Manzur.                 */
 /* Copyright (c) 2014-2017 Godot Engine contributors (cf. AUTHORS.md)    */
@@ -52,21 +52,28 @@ class EditorAudioBus : public PanelContainer {
 
 	GDCLASS(EditorAudioBus, PanelContainer)
 
-	bool prev_active;
-	float peak_l;
-	float peak_r;
-
 	Ref<Texture> disabled_vu;
 	LineEdit *track_name;
 	MenuButton *bus_options;
 	VSlider *slider;
-	TextureProgress *vu_l;
-	TextureProgress *vu_r;
+
+	int cc;
+
+	struct {
+		bool prev_active;
+
+		float peak_l;
+		float peak_r;
+
+		TextureProgress *vu_l;
+		TextureProgress *vu_r;
+	} channel[4];
+
 	TextureRect *scale;
 	OptionButton *send;
 
 	PopupMenu *effect_options;
-	PopupMenu *delete_popup;
+	PopupMenu *bus_popup;
 	PopupMenu *delete_effect_popup;
 
 	Button *solo;
@@ -78,7 +85,7 @@ class EditorAudioBus : public PanelContainer {
 	bool updating_bus;
 
 	void _gui_input(const Ref<InputEvent> &p_event);
-	void _delete_pressed(int p_option);
+	void _bus_popup_pressed(int p_option);
 
 	void _name_changed(const String &p_new_name);
 	void _name_focus_exit() { _name_changed(track_name->get_text()); }
@@ -158,6 +165,7 @@ class EditorAudioBuses : public VBoxContainer {
 
 	void _delete_bus(Object *p_which);
 	void _duplicate_bus(int p_which);
+	void _reset_bus_volume(Object *p_which);
 
 	void _request_drop_end();
 	void _drop_at_index(int p_bus, int p_index);

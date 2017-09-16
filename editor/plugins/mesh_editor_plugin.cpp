@@ -3,7 +3,7 @@
 /*************************************************************************/
 /*                       This file is part of:                           */
 /*                           GODOT ENGINE                                */
-/*                    http://www.godotengine.org                         */
+/*                      https://godotengine.org                          */
 /*************************************************************************/
 /* Copyright (c) 2007-2017 Juan Linietsky, Ariel Manzur.                 */
 /* Copyright (c) 2014-2017 Godot Engine contributors (cf. AUTHORS.md)    */
@@ -187,7 +187,7 @@ MeshEditor::MeshEditor() {
 
 void MeshEditorPlugin::edit(Object *p_object) {
 
-	Mesh *s = p_object->cast_to<Mesh>();
+	Mesh *s = Object::cast_to<Mesh>(p_object);
 	if (!s)
 		return;
 

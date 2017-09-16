@@ -39,28 +39,27 @@ struct TypeInherits {
 
 template <class T, typename = void>
 struct GetTypeInfo {
-	enum { VARIANT_TYPE = Variant::NIL };
-
+	static const Variant::Type VARIANT_TYPE = Variant::NIL;
 	static inline PropertyInfo get_class_info() {
 		ERR_PRINT("GetTypeInfo fallback. Bug!");
 		return PropertyInfo(); // Not "Nil", this is an error
 	}
 };
 
-#define MAKE_TYPE_INFO(m_type, m_var_type)                              \
-	template <>                                                         \
-	struct GetTypeInfo<m_type> {                                        \
-		enum { VARIANT_TYPE = m_var_type };                             \
-		static inline PropertyInfo get_class_info() {                     \
-			return PropertyInfo((Variant::Type)VARIANT_TYPE,String()); \
-		}                                                               \
-	};                                                                  \
-	template <>                                                         \
-	struct GetTypeInfo<const m_type &> {                                \
-		enum { VARIANT_TYPE = m_var_type };                             \
-		static inline PropertyInfo get_class_info() {                     \
-			return PropertyInfo((Variant::Type)VARIANT_TYPE,String()); \
-		}                                                               \
+#define MAKE_TYPE_INFO(m_type, m_var_type)                    \
+	template <>                                               \
+	struct GetTypeInfo<m_type> {                              \
+		static const Variant::Type VARIANT_TYPE = m_var_type; \
+		static inline PropertyInfo get_class_info() {         \
+			return PropertyInfo(VARIANT_TYPE, String());      \
+		}                                                     \
+	};                                                        \
+	template <>                                               \
+	struct GetTypeInfo<const m_type &> {                      \
+		static const Variant::Type VARIANT_TYPE = m_var_type; \
+		static inline PropertyInfo get_class_info() {         \
+			return PropertyInfo(VARIANT_TYPE, String());      \
+		}                                                     \
 	};
 
 MAKE_TYPE_INFO(bool, Variant::BOOL)
@@ -108,52 +107,50 @@ MAKE_TYPE_INFO(BSP_Tree, Variant::DICTIONARY)
 //for RefPtr
 template <>
 struct GetTypeInfo<RefPtr> {
-	enum { VARIANT_TYPE = Variant::OBJECT };
+	static const Variant::Type VARIANT_TYPE = Variant::OBJECT;
 	static inline PropertyInfo get_class_info() {
-		return PropertyInfo(Variant::OBJECT,String(),PROPERTY_HINT_RESOURCE_TYPE,"Reference");
+		return PropertyInfo(Variant::OBJECT, String(), PROPERTY_HINT_RESOURCE_TYPE, "Reference");
 	}
 };
 template <>
 struct GetTypeInfo<const RefPtr &> {
-	enum { VARIANT_TYPE = Variant::OBJECT };
+	static const Variant::Type VARIANT_TYPE = Variant::OBJECT;
 	static inline PropertyInfo get_class_info() {
-		return PropertyInfo(Variant::OBJECT,String(),PROPERTY_HINT_RESOURCE_TYPE,"Reference");
+		return PropertyInfo(Variant::OBJECT, String(), PROPERTY_HINT_RESOURCE_TYPE, "Reference");
 	}
 };
-
 
 //for variant
-template<>
+template <>
 struct GetTypeInfo<Variant> {
-	enum { VARIANT_TYPE = Variant::NIL };
+	static const Variant::Type VARIANT_TYPE = Variant::NIL;
 	static inline PropertyInfo get_class_info() {
-		return PropertyInfo(Variant::NIL,String(),PROPERTY_HINT_NONE,String(),PROPERTY_USAGE_DEFAULT|PROPERTY_USAGE_NIL_IS_VARIANT);
+		return PropertyInfo(Variant::NIL, String(), PROPERTY_HINT_NONE, String(), PROPERTY_USAGE_DEFAULT | PROPERTY_USAGE_NIL_IS_VARIANT);
 	}
 };
 
-template<>
-struct GetTypeInfo<const Variant&> {
-	enum { VARIANT_TYPE = Variant::NIL };
+template <>
+struct GetTypeInfo<const Variant &> {
+	static const Variant::Type VARIANT_TYPE = Variant::NIL;
 	static inline PropertyInfo get_class_info() {
-		return PropertyInfo(Variant::NIL,String(),PROPERTY_HINT_NONE,String(),PROPERTY_USAGE_DEFAULT|PROPERTY_USAGE_NIL_IS_VARIANT);
+		return PropertyInfo(Variant::NIL, String(), PROPERTY_HINT_NONE, String(), PROPERTY_USAGE_DEFAULT | PROPERTY_USAGE_NIL_IS_VARIANT);
 	}
 };
 
-
-#define MAKE_TEMPLATE_TYPE_INFO(m_template, m_type, m_var_type)         \
-	template <>                                                         \
-	struct GetTypeInfo<m_template<m_type> > {                           \
-		enum { VARIANT_TYPE = m_var_type };                             \
-		static inline PropertyInfo get_class_info() {                     \
-			return PropertyInfo((Variant::Type)VARIANT_TYPE,String()); \
-		}                                                               \
-	};                                                                  \
-	template <>                                                         \
-	struct GetTypeInfo<const m_template<m_type> &> {                    \
-		enum { VARIANT_TYPE = m_var_type };                             \
-		static inline PropertyInfo get_class_info() {                     \
-			return PropertyInfo((Variant::Type)VARIANT_TYPE,String()); \
-		}                                                               \
+#define MAKE_TEMPLATE_TYPE_INFO(m_template, m_type, m_var_type) \
+	template <>                                                 \
+	struct GetTypeInfo<m_template<m_type> > {                   \
+		static const Variant::Type VARIANT_TYPE = m_var_type;   \
+		static inline PropertyInfo get_class_info() {           \
+			return PropertyInfo(VARIANT_TYPE, String());        \
+		}                                                       \
+	};                                                          \
+	template <>                                                 \
+	struct GetTypeInfo<const m_template<m_type> &> {            \
+		static const Variant::Type VARIANT_TYPE = m_var_type;   \
+		static inline PropertyInfo get_class_info() {           \
+			return PropertyInfo(VARIANT_TYPE, String());        \
+		}                                                       \
 	};
 
 MAKE_TEMPLATE_TYPE_INFO(Vector, uint8_t, Variant::POOL_BYTE_ARRAY)
@@ -173,30 +170,27 @@ MAKE_TEMPLATE_TYPE_INFO(PoolVector, Face3, Variant::POOL_VECTOR3_ARRAY)
 
 template <typename T>
 struct GetTypeInfo<T *, typename EnableIf<TypeInherits<Object, T>::value>::type> {
-	enum { VARIANT_TYPE = Variant::OBJECT };
-
+	static const Variant::Type VARIANT_TYPE = Variant::OBJECT;
 	static inline PropertyInfo get_class_info() {
 		return PropertyInfo(StringName(T::get_class_static()));
 	}
-
 };
 
 template <typename T>
 struct GetTypeInfo<const T *, typename EnableIf<TypeInherits<Object, T>::value>::type> {
-	enum { VARIANT_TYPE = Variant::OBJECT };
-
+	static const Variant::Type VARIANT_TYPE = Variant::OBJECT;
 	static inline PropertyInfo get_class_info() {
 		return PropertyInfo(StringName(T::get_class_static()));
 	}
 };
 
-#define TEMPL_MAKE_ENUM_TYPE_INFO(m_enum, m_impl)                             \
-	template <>                                                               \
-	struct GetTypeInfo<m_impl> {                                              \
-		enum { VARIANT_TYPE = Variant::INT };                                 \
-		static inline PropertyInfo get_class_info() { \
-			return PropertyInfo(Variant::INT,String(),PROPERTY_HINT_NONE,String(),PROPERTY_USAGE_DEFAULT|PROPERTY_USAGE_CLASS_IS_ENUM,String(#m_enum).replace("::","."));  \
-		}  	\
+#define TEMPL_MAKE_ENUM_TYPE_INFO(m_enum, m_impl)                                                                                                                                 \
+	template <>                                                                                                                                                                   \
+	struct GetTypeInfo<m_impl> {                                                                                                                                                  \
+		static const Variant::Type VARIANT_TYPE = Variant::INT;                                                                                                                   \
+		static inline PropertyInfo get_class_info() {                                                                                                                             \
+			return PropertyInfo(Variant::INT, String(), PROPERTY_HINT_NONE, String(), PROPERTY_USAGE_DEFAULT | PROPERTY_USAGE_CLASS_IS_ENUM, String(#m_enum).replace("::", ".")); \
+		}                                                                                                                                                                         \
 	};
 
 #define MAKE_ENUM_TYPE_INFO(m_enum)                 \
@@ -212,9 +206,15 @@ inline StringName __constant_get_enum_name(T param, const String &p_constant) {
 	return GetTypeInfo<T>::get_class_info().class_name;
 }
 
+#define CLASS_INFO(m_type)                                    \
+	(GetTypeInfo<m_type *>::VARIANT_TYPE != Variant::NIL ?    \
+					GetTypeInfo<m_type *>::get_class_info() : \
+					GetTypeInfo<m_type>::get_class_info())
+
 #else
 
 #define MAKE_ENUM_TYPE_INFO(m_enum)
+#define CLASS_INFO(m_type)
 
 #endif // DEBUG_METHODS_ENABLED
 

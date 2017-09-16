@@ -3,7 +3,7 @@
 /*************************************************************************/
 /*                       This file is part of:                           */
 /*                           GODOT ENGINE                                */
-/*                    http://www.godotengine.org                         */
+/*                      https://godotengine.org                          */
 /*************************************************************************/
 /* Copyright (c) 2007-2017 Juan Linietsky, Ariel Manzur.                 */
 /* Copyright (c) 2014-2017 Godot Engine contributors (cf. AUTHORS.md)    */
@@ -343,7 +343,11 @@ void CollisionPolygon2DEditor::edit(Node *p_collision_polygon) {
 
 	if (p_collision_polygon) {
 
-		node = p_collision_polygon->cast_to<CollisionPolygon2D>();
+		node = Object::cast_to<CollisionPolygon2D>(p_collision_polygon);
+		//Enable the pencil tool if the polygon is empty
+		if (node->get_polygon().size() == 0) {
+			_menu_option(MODE_CREATE);
+		}
 		if (!canvas_item_editor->get_viewport_control()->is_connected("draw", this, "_canvas_draw"))
 			canvas_item_editor->get_viewport_control()->connect("draw", this, "_canvas_draw");
 		wip.clear();
@@ -384,18 +388,7 @@ CollisionPolygon2DEditor::CollisionPolygon2DEditor(EditorNode *p_editor) {
 	add_child(button_edit);
 	button_edit->connect("pressed", this, "_menu_option", varray(MODE_EDIT));
 	button_edit->set_toggle_mode(true);
-	button_edit->set_tooltip("Edit existing polygon:\nLMB: Move Point.\nCtrl+LMB: Split Segment.\nRMB: Erase Point.");
-
-//add_constant_override("separation",0);
-
-#if 0
-	options = memnew( MenuButton );
-	add_child(options);
-	options->set_area_as_parent_rect();
-	options->set_text("Polygon");
-	//options->get_popup()->add_item("Parse BBCode",PARSE_BBCODE);
-	options->get_popup()->connect("id_pressed", this,"_menu_option");
-#endif
+	button_edit->set_tooltip(TTR("Edit existing polygon:\nLMB: Move Point.\nCtrl+LMB: Split Segment.\nRMB: Erase Point."));
 
 	mode = MODE_EDIT;
 	wip_active = false;
@@ -403,7 +396,7 @@ CollisionPolygon2DEditor::CollisionPolygon2DEditor(EditorNode *p_editor) {
 
 void CollisionPolygon2DEditorPlugin::edit(Object *p_object) {
 
-	collision_polygon_editor->edit(p_object->cast_to<Node>());
+	collision_polygon_editor->edit(Object::cast_to<Node>(p_object));
 }
 
 bool CollisionPolygon2DEditorPlugin::handles(Object *p_object) const {

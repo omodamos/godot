@@ -3,7 +3,7 @@
 /*************************************************************************/
 /*                       This file is part of:                           */
 /*                           GODOT ENGINE                                */
-/*                    http://www.godotengine.org                         */
+/*                      https://godotengine.org                          */
 /*************************************************************************/
 /* Copyright (c) 2007-2017 Juan Linietsky, Ariel Manzur.                 */
 /* Copyright (c) 2014-2017 Godot Engine contributors (cf. AUTHORS.md)    */
@@ -130,9 +130,12 @@ void Physics2DServerSW::_shape_col_cbk(const Vector2 &p_point_A, const Vector2 &
 
 	if (cbk->valid_dir != Vector2()) {
 		if (p_point_A.distance_squared_to(p_point_B) > cbk->valid_depth * cbk->valid_depth) {
+			cbk->invalid_by_dir++;
 			return;
 		}
 		if (cbk->valid_dir.dot((p_point_A - p_point_B).normalized()) < 0.7071) {
+			cbk->invalid_by_dir++;
+			;
 			/*			print_line("A: "+p_point_A);
 			print_line("B: "+p_point_B);
 			print_line("discard too angled "+rtos(cbk->valid_dir.dot((p_point_A-p_point_B))));

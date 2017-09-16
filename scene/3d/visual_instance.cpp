@@ -3,7 +3,7 @@
 /*************************************************************************/
 /*                       This file is part of:                           */
 /*                           GODOT ENGINE                                */
-/*                    http://www.godotengine.org                         */
+/*                      https://godotengine.org                          */
 /*************************************************************************/
 /* Copyright (c) 2007-2017 Juan Linietsky, Ariel Manzur.                 */
 /* Copyright (c) 2014-2017 Godot Engine contributors (cf. AUTHORS.md)    */
@@ -29,7 +29,6 @@
 /*************************************************************************/
 #include "visual_instance.h"
 
-#include "room_instance.h"
 #include "scene/scene_string_names.h"
 #include "servers/visual_server.h"
 #include "skeleton.h"
@@ -54,32 +53,9 @@ void VisualInstance::_notification(int p_what) {
 
 		case NOTIFICATION_ENTER_WORLD: {
 
-			// CHECK ROOM
-			Spatial *parent = get_parent_spatial();
-			Room *room = NULL;
-			bool is_geom = cast_to<GeometryInstance>();
-
-			/*	while(parent) {
-
-				room = parent->cast_to<Room>();
-				if (room)
-					break;
-
-				if (is_geom && parent->cast_to<BakedLightSampler>()) {
-					VS::get_singleton()->instance_geometry_set_baked_light_sampler(get_instance(),parent->cast_to<BakedLightSampler>()->get_instance());
-					break;
-				}
-
-				parent=parent->get_parent_spatial();
-			}*/
-
-			if (room) {
-
-				VisualServer::get_singleton()->instance_set_room(instance, room->get_instance());
-			}
 			// CHECK SKELETON => moving skeleton attaching logic to MeshInstance
 			/*
-			Skeleton *skeleton=get_parent()?get_parent()->cast_to<Skeleton>():NULL;
+			Skeleton *skeleton=Object::cast_to<Skeleton>(get_parent());
 			if (skeleton)
 				VisualServer::get_singleton()->instance_attach_skeleton( instance, skeleton->get_skeleton() );
 			*/
@@ -96,7 +72,6 @@ void VisualInstance::_notification(int p_what) {
 		case NOTIFICATION_EXIT_WORLD: {
 
 			VisualServer::get_singleton()->instance_set_scenario(instance, RID());
-			VisualServer::get_singleton()->instance_set_room(instance, RID());
 			VisualServer::get_singleton()->instance_attach_skeleton(instance, RID());
 			//VS::get_singleton()->instance_geometry_set_baked_light_sampler(instance, RID() );
 
@@ -303,7 +278,6 @@ void GeometryInstance::_bind_methods() {
 	ADD_PROPERTY(PropertyInfo(Variant::OBJECT, "material_override", PROPERTY_HINT_RESOURCE_TYPE, "ShaderMaterial,SpatialMaterial"), "set_material_override", "get_material_override");
 	ADD_PROPERTY(PropertyInfo(Variant::INT, "cast_shadow", PROPERTY_HINT_ENUM, "Off,On,Double-Sided,Shadows Only"), "set_cast_shadows_setting", "get_cast_shadows_setting");
 	ADD_PROPERTY(PropertyInfo(Variant::REAL, "extra_cull_margin", PROPERTY_HINT_RANGE, "0,16384,0"), "set_extra_cull_margin", "get_extra_cull_margin");
-	ADD_PROPERTYI(PropertyInfo(Variant::BOOL, "visible_in_all_rooms"), "set_flag", "get_flag", FLAG_VISIBLE_IN_ALL_ROOMS);
 	ADD_PROPERTYI(PropertyInfo(Variant::BOOL, "use_in_baked_light"), "set_flag", "get_flag", FLAG_USE_BAKED_LIGHT);
 
 	ADD_GROUP("LOD", "lod_");
@@ -314,13 +288,13 @@ void GeometryInstance::_bind_methods() {
 
 	//ADD_SIGNAL( MethodInfo("visibility_changed"));
 
-	BIND_CONSTANT(FLAG_VISIBLE_IN_ALL_ROOMS);
-	BIND_CONSTANT(FLAG_MAX);
+	BIND_ENUM_CONSTANT(SHADOW_CASTING_SETTING_OFF);
+	BIND_ENUM_CONSTANT(SHADOW_CASTING_SETTING_ON);
+	BIND_ENUM_CONSTANT(SHADOW_CASTING_SETTING_DOUBLE_SIDED);
+	BIND_ENUM_CONSTANT(SHADOW_CASTING_SETTING_SHADOWS_ONLY);
 
-	BIND_CONSTANT(SHADOW_CASTING_SETTING_OFF);
-	BIND_CONSTANT(SHADOW_CASTING_SETTING_ON);
-	BIND_CONSTANT(SHADOW_CASTING_SETTING_DOUBLE_SIDED);
-	BIND_CONSTANT(SHADOW_CASTING_SETTING_SHADOWS_ONLY);
+	BIND_ENUM_CONSTANT(FLAG_USE_BAKED_LIGHT);
+	BIND_ENUM_CONSTANT(FLAG_MAX);
 }
 
 GeometryInstance::GeometryInstance() {

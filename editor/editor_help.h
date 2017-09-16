@@ -3,7 +3,7 @@
 /*************************************************************************/
 /*                       This file is part of:                           */
 /*                           GODOT ENGINE                                */
-/*                    http://www.godotengine.org                         */
+/*                      https://godotengine.org                          */
 /*************************************************************************/
 /* Copyright (c) 2007-2017 Juan Linietsky, Ariel Manzur.                 */
 /* Copyright (c) 2014-2017 Godot Engine contributors (cf. AUTHORS.md)    */
@@ -118,6 +118,7 @@ class EditorHelp : public VBoxContainer {
 
 	String edited_class;
 
+	Vector<Pair<String, int> > section_line;
 	Map<String, int> method_line;
 	Map<String, int> signal_line;
 	Map<String, int> property_line;
@@ -130,7 +131,6 @@ class EditorHelp : public VBoxContainer {
 	HSplitContainer *h_split;
 	static DocData *doc;
 
-	Panel *background_panel;
 	ConfirmationDialog *search_dialog;
 	LineEdit *search;
 
@@ -168,6 +168,9 @@ public:
 
 	void go_to_help(const String &p_help);
 	void go_to_class(const String &p_class, int p_scroll = 0);
+
+	Vector<Pair<String, int> > get_sections();
+	void scroll_to_section(int p_section_index);
 
 	void popup_search();
 	void search_again();

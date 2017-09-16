@@ -3,7 +3,7 @@
 /*************************************************************************/
 /*                       This file is part of:                           */
 /*                           GODOT ENGINE                                */
-/*                    http://www.godotengine.org                         */
+/*                      https://godotengine.org                          */
 /*************************************************************************/
 /* Copyright (c) 2007-2017 Juan Linietsky, Ariel Manzur.                 */
 /* Copyright (c) 2014-2017 Godot Engine contributors (cf. AUTHORS.md)    */
@@ -128,7 +128,7 @@ void Spatial::_notification(int p_what) {
 
 			Node *p = get_parent();
 			if (p)
-				data.parent = p->cast_to<Spatial>();
+				data.parent = Object::cast_to<Spatial>(p);
 
 			if (data.parent)
 				data.C = data.parent->data.children.push_back(this);
@@ -167,7 +167,7 @@ void Spatial::_notification(int p_what) {
 			data.viewport = NULL;
 			Node *parent = get_parent();
 			while (parent && !data.viewport) {
-				data.viewport = parent->cast_to<Viewport>();
+				data.viewport = Object::cast_to<Viewport>(parent);
 				parent = parent->get_parent();
 			}
 
@@ -175,7 +175,6 @@ void Spatial::_notification(int p_what) {
 
 			if (get_script_instance()) {
 
-				Variant::CallError err;
 				get_script_instance()->call_multilevel(SceneStringNames::get_singleton()->_enter_world, NULL, 0);
 			}
 #ifdef TOOLS_ENABLED
@@ -185,8 +184,13 @@ void Spatial::_notification(int p_what) {
 				get_tree()->call_group_flags(0, SceneStringNames::get_singleton()->_spatial_editor_group, SceneStringNames::get_singleton()->_request_gizmo, this);
 				if (!data.gizmo_disabled) {
 
-					if (data.gizmo.is_valid())
+					if (data.gizmo.is_valid()) {
 						data.gizmo->create();
+						if (data.gizmo->can_draw()) {
+							data.gizmo->redraw();
+						}
+						data.gizmo->transform();
+					}
 				}
 			}
 #endif
@@ -202,7 +206,6 @@ void Spatial::_notification(int p_what) {
 
 			if (get_script_instance()) {
 
-				Variant::CallError err;
 				get_script_instance()->call_multilevel(SceneStringNames::get_singleton()->_exit_world, NULL, 0);
 			}
 
@@ -281,37 +284,6 @@ Transform Spatial::get_global_transform() const {
 
 	return data.global_transform;
 }
-#if 0
-void Spatial::add_child_notify(Node *p_child) {
-/*
-	Spatial *s=p_child->cast_to<Spatial>();
-	if (!s)
-		return;
-
-	ERR_FAIL_COND(data.children_lock>0);
-
-	s->data.dirty=DIRTY_GLOBAL; // don't allow global transform to be valid
-	s->data.parent=this;
-	data.children.push_back(s);
-	s->data.C=data.children.back();
-*/
-}
-
-void Spatial::remove_child_notify(Node *p_child) {
-/*
-	Spatial *s=p_child->cast_to<Spatial>();
-	if (!s)
-		return;
-
-	ERR_FAIL_COND(data.children_lock>0);
-
-	if (s->data.C)
-		data.children.erase(s->data.C);
-	s->data.parent=NULL;
-	s->data.C=NULL;
-*/
-}
-#endif
 
 Spatial *Spatial::get_parent_spatial() const {
 
@@ -449,7 +421,9 @@ void Spatial::set_gizmo(const Ref<SpatialGizmo> &p_gizmo) {
 	if (data.gizmo.is_valid() && is_inside_world()) {
 
 		data.gizmo->create();
-		data.gizmo->redraw();
+		if (data.gizmo->can_draw()) {
+			data.gizmo->redraw();
+		}
 		data.gizmo->transform();
 	}
 
@@ -471,12 +445,16 @@ Ref<SpatialGizmo> Spatial::get_gizmo() const {
 
 void Spatial::_update_gizmo() {
 
+	if (!is_inside_world())
+		return;
 	data.gizmo_dirty = false;
 	if (data.gizmo.is_valid()) {
-		if (is_visible_in_tree())
-			data.gizmo->redraw();
-		else
-			data.gizmo->clear();
+		if (data.gizmo->can_draw()) {
+			if (is_visible_in_tree())
+				data.gizmo->redraw();
+			else
+				data.gizmo->clear();
+		}
 	}
 }
 

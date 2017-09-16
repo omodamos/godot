@@ -3,7 +3,7 @@
 /*************************************************************************/
 /*                       This file is part of:                           */
 /*                           GODOT ENGINE                                */
-/*                    http://www.godotengine.org                         */
+/*                      https://godotengine.org                          */
 /*************************************************************************/
 /* Copyright (c) 2007-2017 Juan Linietsky, Ariel Manzur.                 */
 /* Copyright (c) 2014-2017 Godot Engine contributors (cf. AUTHORS.md)    */
@@ -49,7 +49,6 @@ class VisualServer : public Object {
 
 	int mm_policy;
 
-	PoolVector<String> _shader_get_param_list(RID p_shader) const;
 	void _camera_set_orthogonal(RID p_camera, float p_size, float p_z_near, float p_z_far);
 	void _canvas_item_add_style_box(RID p_item, const Rect2 &p_rect, const Rect2 &p_source, RID p_texture, const Vector<float> &p_margins, const Color &p_modulate = Color(1, 1, 1));
 	Array _get_array_from_surface(uint32_t p_format, PoolVector<uint8_t> p_vertex_data, int p_vertex_len, PoolVector<uint8_t> p_index_data, int p_index_len) const;
@@ -167,6 +166,11 @@ public:
 
 	/* COMMON MATERIAL API */
 
+	enum {
+		MATERIAL_RENDER_PRIORITY_MIN = -128,
+		MATERIAL_RENDER_PRIORITY_MAX = 127,
+
+	};
 	virtual RID material_create() = 0;
 
 	virtual void material_set_shader(RID p_shader_material, RID p_shader) = 0;
@@ -174,6 +178,8 @@ public:
 
 	virtual void material_set_param(RID p_material, const StringName &p_param, const Variant &p_value) = 0;
 	virtual Variant material_get_param(RID p_material, const StringName &p_param) const = 0;
+
+	virtual void material_set_render_priority(RID p_material, int priority) = 0;
 
 	virtual void material_set_line_width(RID p_material, float p_width) = 0;
 	virtual void material_set_next_pass(RID p_material, RID p_next_material) = 0;
@@ -261,6 +267,7 @@ public:
 	virtual PoolVector<uint8_t> mesh_surface_get_index_array(RID p_mesh, int p_surface) const = 0;
 
 	virtual Array mesh_surface_get_arrays(RID p_mesh, int p_surface) const;
+	virtual Array mesh_surface_get_blend_shape_arrays(RID p_mesh, int p_surface) const;
 
 	virtual uint32_t mesh_surface_get_format(RID p_mesh, int p_surface) const = 0;
 	virtual PrimitiveType mesh_surface_get_primitive_type(RID p_mesh, int p_surface) const = 0;
@@ -359,6 +366,7 @@ public:
 		LIGHT_PARAM_SHADOW_SPLIT_3_OFFSET,
 		LIGHT_PARAM_SHADOW_NORMAL_BIAS,
 		LIGHT_PARAM_SHADOW_BIAS,
+		LIGHT_PARAM_SHADOW_BIAS_SPLIT_SCALE,
 		LIGHT_PARAM_MAX
 	};
 
@@ -399,6 +407,14 @@ public:
 	virtual void light_directional_set_shadow_mode(RID p_light, LightDirectionalShadowMode p_mode) = 0;
 	virtual void light_directional_set_blend_splits(RID p_light, bool p_enable) = 0;
 
+	enum LightDirectionalShadowDepthRangeMode {
+		LIGHT_DIRECTIONAL_SHADOW_DEPTH_RANGE_STABLE,
+		LIGHT_DIRECTIONAL_SHADOW_DEPTH_RANGE_OPTIMIZED,
+
+	};
+
+	virtual void light_directional_set_shadow_depth_range_mode(RID p_light, LightDirectionalShadowDepthRangeMode p_range_mode) = 0;
+
 	/* PROBE API */
 
 	virtual RID reflection_probe_create() = 0;
@@ -420,23 +436,6 @@ public:
 	virtual void reflection_probe_set_enable_box_projection(RID p_probe, bool p_enable) = 0;
 	virtual void reflection_probe_set_enable_shadows(RID p_probe, bool p_enable) = 0;
 	virtual void reflection_probe_set_cull_mask(RID p_probe, uint32_t p_layers) = 0;
-
-	/* ROOM API */
-
-	virtual RID room_create() = 0;
-	virtual void room_add_bounds(RID p_room, const PoolVector<Vector2> &p_convex_polygon, float p_height, const Transform &p_transform) = 0;
-	virtual void room_clear_bounds(RID p_room) = 0;
-
-	/* PORTAL API */
-
-	// portals are only (x/y) points, forming a convex shape, which its clockwise
-	// order points outside. (z is 0);
-
-	virtual RID portal_create() = 0;
-	virtual void portal_set_shape(RID p_portal, const Vector<Point2> &p_shape) = 0;
-	virtual void portal_set_enabled(RID p_portal, bool p_enabled) = 0;
-	virtual void portal_set_disable_distance(RID p_portal, float p_distance) = 0;
-	virtual void portal_set_disabled_color(RID p_portal, const Color &p_color) = 0;
 
 	/* GI PROBE API */
 
@@ -630,6 +629,7 @@ public:
 		ENV_BG_CLEAR_COLOR,
 		ENV_BG_COLOR,
 		ENV_BG_SKY,
+		ENV_BG_COLOR_SKY,
 		ENV_BG_CANVAS,
 		ENV_BG_KEEP,
 		ENV_BG_MAX
@@ -709,8 +709,6 @@ public:
 		INSTANCE_PARTICLES,
 		INSTANCE_LIGHT,
 		INSTANCE_REFLECTION_PROBE,
-		INSTANCE_ROOM,
-		INSTANCE_PORTAL,
 		INSTANCE_GI_PROBE,
 		INSTANCE_MAX,
 		/*INSTANCE_BAKED_LIGHT_SAMPLER,*/
@@ -734,7 +732,6 @@ public:
 
 	virtual void instance_attach_skeleton(RID p_instance, RID p_skeleton) = 0;
 	virtual void instance_set_exterior(RID p_instance, bool p_enabled) = 0;
-	virtual void instance_set_room(RID p_instance, RID p_room) = 0;
 
 	virtual void instance_set_extra_visibility_margin(RID p_instance, real_t p_margin) = 0;
 
@@ -744,7 +741,6 @@ public:
 	virtual Vector<ObjectID> instances_cull_convex(const Vector<Plane> &p_convex, RID p_scenario = RID()) const = 0;
 
 	enum InstanceFlags {
-		INSTANCE_FLAG_VISIBLE_IN_ALL_ROOMS,
 		INSTANCE_FLAG_USE_BAKED_LIGHT,
 		INSTANCE_FLAG_MAX
 	};
@@ -845,6 +841,7 @@ public:
 		CANVAS_LIGHT_FILTER_NONE,
 		CANVAS_LIGHT_FILTER_PCF3,
 		CANVAS_LIGHT_FILTER_PCF5,
+		CANVAS_LIGHT_FILTER_PCF7,
 		CANVAS_LIGHT_FILTER_PCF9,
 		CANVAS_LIGHT_FILTER_PCF13,
 	};

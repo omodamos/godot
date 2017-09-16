@@ -3,7 +3,7 @@
 /*************************************************************************/
 /*                       This file is part of:                           */
 /*                           GODOT ENGINE                                */
-/*                    http://www.godotengine.org                         */
+/*                      https://godotengine.org                          */
 /*************************************************************************/
 /* Copyright (c) 2007-2017 Juan Linietsky, Ariel Manzur.                 */
 /* Copyright (c) 2014-2017 Godot Engine contributors (cf. AUTHORS.md)    */
@@ -230,7 +230,7 @@ void TabContainer::_notification(int p_what) {
 				tab_style->draw(canvas, tab_rect);
 
 				// Draw the tab contents.
-				Control *control = tabs[i + first_tab_cache]->cast_to<Control>();
+				Control *control = Object::cast_to<Control>(tabs[i + first_tab_cache]);
 				String text = control->has_meta("_tab_name") ? String(tr(String(control->get_meta("_tab_name")))) : String(control->get_name());
 
 				int x_content = tab_rect.position.x + tab_style->get_margin(MARGIN_LEFT);
@@ -293,7 +293,7 @@ void TabContainer::_notification(int p_what) {
 }
 
 int TabContainer::_get_tab_width(int p_index) const {
-	Control *control = _get_tabs()[p_index]->cast_to<Control>();
+	Control *control = Object::cast_to<Control>(_get_tabs()[p_index]);
 	if (!control || control->is_set_as_toplevel())
 		return 0;
 
@@ -332,7 +332,7 @@ Vector<Control *> TabContainer::_get_tabs() const {
 	Vector<Control *> controls;
 	for (int i = 0; i < get_child_count(); i++) {
 
-		Control *control = get_child(i)->cast_to<Control>();
+		Control *control = Object::cast_to<Control>(get_child(i));
 		if (!control || control->is_toplevel_control())
 			continue;
 
@@ -350,7 +350,7 @@ void TabContainer::add_child_notify(Node *p_child) {
 
 	Control::add_child_notify(p_child);
 
-	Control *c = p_child->cast_to<Control>();
+	Control *c = Object::cast_to<Control>(p_child);
 	if (!c)
 		return;
 	if (c->is_set_as_toplevel())
@@ -616,7 +616,7 @@ Size2 TabContainer::get_minimum_size() const {
 
 void TabContainer::set_popup(Node *p_popup) {
 	ERR_FAIL_NULL(p_popup);
-	popup = p_popup->cast_to<Popup>();
+	popup = Object::cast_to<Popup>(p_popup);
 	update();
 }
 
@@ -655,6 +655,10 @@ void TabContainer::_bind_methods() {
 	ADD_PROPERTY(PropertyInfo(Variant::INT, "tab_align", PROPERTY_HINT_ENUM, "Left,Center,Right"), "set_tab_align", "get_tab_align");
 	ADD_PROPERTY(PropertyInfo(Variant::INT, "current_tab", PROPERTY_HINT_RANGE, "-1,4096,1", PROPERTY_USAGE_EDITOR), "set_current_tab", "get_current_tab");
 	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "tabs_visible"), "set_tabs_visible", "are_tabs_visible");
+
+	BIND_ENUM_CONSTANT(ALIGN_LEFT);
+	BIND_ENUM_CONSTANT(ALIGN_CENTER);
+	BIND_ENUM_CONSTANT(ALIGN_RIGHT);
 }
 
 TabContainer::TabContainer() {

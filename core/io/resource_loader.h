@@ -3,7 +3,7 @@
 /*************************************************************************/
 /*                       This file is part of:                           */
 /*                           GODOT ENGINE                                */
-/*                    http://www.godotengine.org                         */
+/*                      https://godotengine.org                          */
 /*************************************************************************/
 /* Copyright (c) 2007-2017 Juan Linietsky, Ariel Manzur.                 */
 /* Copyright (c) 2014-2017 Godot Engine contributors (cf. AUTHORS.md)    */
@@ -57,7 +57,7 @@ public:
 
 class ResourceFormatLoader {
 public:
-	virtual Ref<ResourceInteractiveLoader> load_interactive(const String &p_path, Error *r_error = NULL);
+	virtual Ref<ResourceInteractiveLoader> load_interactive(const String &p_path, const String &p_original_path = "", Error *r_error = NULL);
 	virtual RES load(const String &p_path, const String &p_original_path = "", Error *r_error = NULL);
 	virtual void get_recognized_extensions(List<String> *p_extensions) const = 0;
 	virtual void get_recognized_extensions_for_type(const String &p_type, List<String> *p_extensions) const;
@@ -66,6 +66,7 @@ public:
 	virtual String get_resource_type(const String &p_path) const = 0;
 	virtual void get_dependencies(const String &p_path, List<String> *p_dependencies, bool p_add_types = false);
 	virtual Error rename_dependencies(const String &p_path, const Map<String, String> &p_map) { return OK; }
+	virtual bool is_import_valid(const String &p_path) const { return true; }
 
 	virtual ~ResourceFormatLoader() {}
 };
@@ -95,6 +96,10 @@ class ResourceLoader {
 
 	static SelfList<Resource>::List remapped_list;
 
+	friend class ResourceFormatImporter;
+	//internal load function
+	static RES _load(const String &p_path, const String &p_original_path, const String &p_type_hint, bool p_no_cache, Error *r_error);
+
 public:
 	static Ref<ResourceInteractiveLoader> load_interactive(const String &p_path, const String &p_type_hint = "", bool p_no_cache = false, Error *r_error = NULL);
 	static RES load(const String &p_path, const String &p_type_hint = "", bool p_no_cache = false, Error *r_error = NULL);
@@ -104,6 +109,7 @@ public:
 	static String get_resource_type(const String &p_path);
 	static void get_dependencies(const String &p_path, List<String> *p_dependencies, bool p_add_types = false);
 	static Error rename_dependencies(const String &p_path, const Map<String, String> &p_map);
+	static bool is_import_valid(const String &p_path);
 
 	static void set_timestamp_on_load(bool p_timestamp) { timestamp_on_load = p_timestamp; }
 

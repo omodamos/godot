@@ -3,7 +3,7 @@
 /*************************************************************************/
 /*                       This file is part of:                           */
 /*                           GODOT ENGINE                                */
-/*                    http://www.godotengine.org                         */
+/*                      https://godotengine.org                          */
 /*************************************************************************/
 /* Copyright (c) 2007-2017 Juan Linietsky, Ariel Manzur.                 */
 /* Copyright (c) 2014-2017 Godot Engine contributors (cf. AUTHORS.md)    */
@@ -59,17 +59,10 @@ void Popup::_notification(int p_what) {
 
 void Popup::_fix_size() {
 
-#if 0
-	Point2 pos = get_position();
-	Size2 size = get_size();
-	Point2 window_size = window==this ? get_parent_area_size()  :window->get_size();
-#else
-
 	Point2 pos = get_global_position();
 	Size2 size = get_size();
 	Point2 window_size = get_viewport_rect().size;
 
-#endif
 	if (pos.x + size.width > window_size.width)
 		pos.x = window_size.width - size.width;
 	if (pos.x < 0)
@@ -79,14 +72,8 @@ void Popup::_fix_size() {
 		pos.y = window_size.height - size.height;
 	if (pos.y < 0)
 		pos.y = 0;
-#if 0
-	if (pos!=get_pos())
-		set_position(pos);
-#else
 	if (pos != get_position())
 		set_global_position(pos);
-
-#endif
 }
 
 void Popup::set_as_minsize() {
@@ -95,7 +82,7 @@ void Popup::set_as_minsize() {
 
 	for (int i = 0; i < get_child_count(); i++) {
 
-		Control *c = get_child(i)->cast_to<Control>();
+		Control *c = Object::cast_to<Control>(get_child(i));
 		if (!c)
 			continue;
 		if (!c->is_visible())
@@ -129,7 +116,7 @@ void Popup::popup_centered_minsize(const Size2 &p_minsize) {
 
 	for (int i = 0; i < get_child_count(); i++) {
 
-		Control *c = get_child(i)->cast_to<Control>();
+		Control *c = Object::cast_to<Control>(get_child(i));
 		if (!c)
 			continue;
 		if (!c->is_visible())

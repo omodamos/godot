@@ -3,7 +3,7 @@
 /*************************************************************************/
 /*                       This file is part of:                           */
 /*                           GODOT ENGINE                                */
-/*                    http://www.godotengine.org                         */
+/*                      https://godotengine.org                          */
 /*************************************************************************/
 /* Copyright (c) 2007-2017 Juan Linietsky, Ariel Manzur.                 */
 /* Copyright (c) 2014-2017 Godot Engine contributors (cf. AUTHORS.md)    */
@@ -1284,7 +1284,7 @@ GDParser::Node *GDParser::_parse_expression(Node *p_parent, bool p_static, bool 
 			if (expression[next_op + 1].is_op) {
 				// this is not invalid and can really appear
 				// but it becomes invalid anyway because no binary op
-				// can be followed by an unary op in a valid combination,
+				// can be followed by a unary op in a valid combination,
 				// due to how precedence works, unaries will always disappear first
 
 				_set_error("Unexpected two consecutive operators after ternary if.");
@@ -1294,7 +1294,7 @@ GDParser::Node *GDParser::_parse_expression(Node *p_parent, bool p_static, bool 
 			if (expression[next_op + 3].is_op) {
 				// this is not invalid and can really appear
 				// but it becomes invalid anyway because no binary op
-				// can be followed by an unary op in a valid combination,
+				// can be followed by a unary op in a valid combination,
 				// due to how precedence works, unaries will always disappear first
 
 				_set_error("Unexpected two consecutive operators after ternary else.");
@@ -1331,7 +1331,7 @@ GDParser::Node *GDParser::_parse_expression(Node *p_parent, bool p_static, bool 
 			if (expression[next_op + 1].is_op) {
 				// this is not invalid and can really appear
 				// but it becomes invalid anyway because no binary op
-				// can be followed by an unary op in a valid combination,
+				// can be followed by a unary op in a valid combination,
 				// due to how precedence works, unaries will always disappear first
 
 				_set_error("Unexpected two consecutive operators.");
@@ -1857,7 +1857,7 @@ GDParser::PatternNode *GDParser::_parse_pattern(bool p_static) {
 						tokenizer->advance(1);
 						break;
 					} else {
-						_set_error("'..' pattern only allowed at the end of an dictionary pattern");
+						_set_error("'..' pattern only allowed at the end of a dictionary pattern");
 						return NULL;
 					}
 				}
@@ -2470,6 +2470,8 @@ void GDParser::_parse_block(BlockNode *p_block, bool p_static) {
 
 				cf_if->body = alloc_node<BlockNode>();
 				cf_if->body->parent_block = p_block;
+				cf_if->body->if_condition = condition; //helps code completion
+
 				p_block->sub_blocks.push_back(cf_if->body);
 
 				if (!_enter_indent_block(cf_if->body)) {
@@ -3957,7 +3959,7 @@ void GDParser::_parse_class(ClassNode *p_class) {
 							member._export.usage |= PROPERTY_USAGE_SCRIPT_VARIABLE;
 							if (cn->value.get_type() == Variant::OBJECT) {
 								Object *obj = cn->value;
-								Resource *res = obj->cast_to<Resource>();
+								Resource *res = Object::cast_to<Resource>(obj);
 								if (res == NULL) {
 									_set_error("Exported constant not a type or resource.");
 									return;

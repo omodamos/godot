@@ -3,7 +3,7 @@
 /*************************************************************************/
 /*                       This file is part of:                           */
 /*                           GODOT ENGINE                                */
-/*                    http://www.godotengine.org                         */
+/*                      https://godotengine.org                          */
 /*************************************************************************/
 /* Copyright (c) 2007-2017 Juan Linietsky, Ariel Manzur.                 */
 /* Copyright (c) 2014-2017 Godot Engine contributors (cf. AUTHORS.md)    */
@@ -30,7 +30,7 @@
 #ifndef PROJECT_MANAGER_H
 #define PROJECT_MANAGER_H
 
-#include "editor/asset_library_editor_plugin.h"
+#include "editor/plugins/asset_library_editor_plugin.h"
 #include "scene/gui/dialogs.h"
 #include "scene/gui/file_dialog.h"
 #include "scene/gui/scroll_container.h"
@@ -45,6 +45,7 @@ class ProjectManager : public Control {
 
 	Button *erase_btn;
 	Button *open_btn;
+	Button *rename_btn;
 	Button *run_btn;
 
 	FileDialog *scan_dir;
@@ -58,6 +59,7 @@ class ProjectManager : public Control {
 	ConfirmationDialog *multi_run_ask;
 	ConfirmationDialog *multi_scan_ask;
 	AcceptDialog *run_error_diag;
+	AcceptDialog *dialog_error;
 	NewProjectDialog *npdialog;
 	ScrollContainer *scroll;
 	VBoxContainer *scroll_childs;
@@ -78,6 +80,7 @@ class ProjectManager : public Control {
 	void _open_project_confirm();
 	void _import_project();
 	void _new_project();
+	void _rename_project();
 	void _erase_project();
 	void _erase_project_confirm();
 	void _update_project_buttons();
@@ -86,6 +89,7 @@ class ProjectManager : public Control {
 
 	void _load_recent_projects();
 	void _on_project_created(const String &dir);
+	void _on_project_renamed();
 	void _update_scroll_pos(const String &dir);
 	void _scan_dir(DirAccess *da, float pos, float total, List<String> *r_projects);
 

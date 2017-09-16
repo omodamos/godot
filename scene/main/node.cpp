@@ -3,7 +3,7 @@
 /*************************************************************************/
 /*                       This file is part of:                           */
 /*                           GODOT ENGINE                                */
-/*                    http://www.godotengine.org                         */
+/*                      https://godotengine.org                          */
 /*************************************************************************/
 /* Copyright (c) 2007-2017 Juan Linietsky, Ariel Manzur.                 */
 /* Copyright (c) 2014-2017 Godot Engine contributors (cf. AUTHORS.md)    */
@@ -28,6 +28,7 @@
 /* SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                */
 /*************************************************************************/
 #include "node.h"
+
 #include "instance_placeholder.h"
 #include "io/resource_loader.h"
 #include "message_queue.h"
@@ -49,7 +50,6 @@ void Node::_notification(int p_notification) {
 
 				Variant time = get_process_delta_time();
 				const Variant *ptr[1] = { &time };
-				Variant::CallError err;
 				get_script_instance()->call_multilevel(SceneStringNames::get_singleton()->_process, ptr, 1);
 			}
 		} break;
@@ -59,7 +59,6 @@ void Node::_notification(int p_notification) {
 
 				Variant time = get_fixed_process_delta_time();
 				const Variant *ptr[1] = { &time };
-				Variant::CallError err;
 				get_script_instance()->call_multilevel(SceneStringNames::get_singleton()->_fixed_process, ptr, 1);
 			}
 
@@ -133,7 +132,6 @@ void Node::_notification(int p_notification) {
 					set_fixed_process(true);
 				}
 
-				Variant::CallError err;
 				get_script_instance()->call_multilevel_reversed(SceneStringNames::get_singleton()->_ready, NULL, 0);
 			}
 			//emit_signal(SceneStringNames::get_singleton()->enter_tree);
@@ -194,7 +192,7 @@ void Node::_propagate_enter_tree() {
 		data.depth = 1;
 	}
 
-	data.viewport = cast_to<Viewport>();
+	data.viewport = Object::cast_to<Viewport>(this);
 	if (!data.viewport)
 		data.viewport = data.parent->data.viewport;
 
@@ -208,7 +206,6 @@ void Node::_propagate_enter_tree() {
 
 	if (get_script_instance()) {
 
-		Variant::CallError err;
 		get_script_instance()->call_multilevel_reversed(SceneStringNames::get_singleton()->_enter_tree, NULL, 0);
 	}
 
@@ -272,7 +269,6 @@ void Node::_propagate_exit_tree() {
 
 	if (get_script_instance()) {
 
-		Variant::CallError err;
 		get_script_instance()->call_multilevel(SceneStringNames::get_singleton()->_exit_tree, NULL, 0);
 	}
 	emit_signal(SceneStringNames::get_singleton()->tree_exited);
@@ -359,18 +355,6 @@ void Node::add_child_notify(Node *p_child) {
 
 	// to be used when not wanted
 }
-
-/*
-void Node::remove_and_delete_child(Node *p_child) {
-
-	ERR_FAIL_NULL( p_child );
-	ERR_FAIL_COND( p_child->get_parent()!=this );
-
-	remove_child(p_child);
-	memdelete(p_child);
-
-}
-*/
 
 void Node::remove_child_notify(Node *p_child) {
 
@@ -675,31 +659,6 @@ Variant Node::_rpc_unreliable_id_bind(const Variant **p_args, int p_argcount, Va
 	return Variant();
 }
 
-#if 0
-Variant Node::_rpc_bind(const Variant** p_args, int p_argcount, Variant::CallError& r_error) {
-
-	if (p_argcount<1) {
-		r_error.error=Variant::CallError::CALL_ERROR_TOO_FEW_ARGUMENTS;
-		r_error.argument=1;
-		return Variant();
-	}
-
-	if (p_args[0]->get_type()!=Variant::STRING) {
-		r_error.error=Variant::CallError::CALL_ERROR_INVALID_ARGUMENT;
-		r_error.argument=0;
-		r_error.expected=Variant::STRING;
-		return Variant();
-	}
-
-	StringName method = *p_args[0];
-
-	rpcp(method,&p_args[1],p_argcount-1);
-
-	r_error.error=Variant::CallError::CALL_OK;
-	return Variant();
-}
-
-#endif
 void Node::rpcp(int p_peer_id, bool p_unreliable, const StringName &p_method, const Variant **p_arg, int p_argcount) {
 
 	ERR_FAIL_COND(!is_inside_tree());
@@ -1353,20 +1312,24 @@ void Node::_add_child_nocheck(Node *p_child, const StringName &p_name) {
 void Node::add_child(Node *p_child, bool p_legible_unique_name) {
 
 	ERR_FAIL_NULL(p_child);
-	/* Fail if node has a parent */
+
 	if (p_child == this) {
-		ERR_EXPLAIN("Can't add child " + p_child->get_name() + " to itself.")
+		ERR_EXPLAIN("Can't add child '" + p_child->get_name() + "' to itself.")
 		ERR_FAIL_COND(p_child == this); // adding to itself!
 	}
-	ERR_EXPLAIN("Can't add child, already has a parent");
-	ERR_FAIL_COND(p_child->data.parent);
+
+	/* Fail if node has a parent */
+	if (p_child->data.parent) {
+		ERR_EXPLAIN("Can't add child '" + p_child->get_name() + "' to '" + get_name() + "', already has a parent '" + p_child->data.parent->get_name() + "'.");
+		ERR_FAIL_COND(p_child->data.parent);
+	}
 
 	if (data.blocked > 0) {
-		ERR_EXPLAIN("Parent node is busy setting up children, add_node() failed. Consider using call_deferred(\"add_child\",child) instead.");
+		ERR_EXPLAIN("Parent node is busy setting up children, add_node() failed. Consider using call_deferred(\"add_child\", child) instead.");
 		ERR_FAIL_COND(data.blocked > 0);
 	}
 
-	ERR_EXPLAIN("Can't add child while a notification is happening");
+	ERR_EXPLAIN("Can't add child while a notification is happening.");
 	ERR_FAIL_COND(data.blocked > 0);
 
 	/* Validate name */
@@ -1381,7 +1344,7 @@ void Node::add_child_below_node(Node *p_node, Node *p_child, bool p_legible_uniq
 	if (is_a_parent_of(p_node)) {
 		move_child(p_child, p_node->get_position_in_parent() + 1);
 	} else {
-		WARN_PRINTS("Cannot move under node " + p_node->get_name() + " as " + p_child->get_name() + " does not share a parent")
+		WARN_PRINTS("Cannot move under node " + p_node->get_name() + " as " + p_child->get_name() + " does not share a parent.")
 	}
 }
 
@@ -2066,59 +2029,6 @@ HashMap<NodePath, int> Node::get_editable_instances() const {
 	return data.editable_instances;
 }
 
-#if 0
-
-void Node::generate_instance_state() {
-
-	List<PropertyInfo> properties;
-	get_property_list(&properties);
-
-	data.instance_state.clear();
-
-	for( List<PropertyInfo>::Element *E=properties.front();E;E=E->next() ) {
-
-		PropertyInfo &pi=E->get();
-		if ((pi.usage&PROPERTY_USAGE_NO_INSTANCE_STATE) || !(pi.usage&PROPERTY_USAGE_EDITOR) || !(pi.usage&PROPERTY_USAGE_STORAGE))
-			continue;
-
-		data.instance_state[pi.name]=get(pi.name);
-	}
-
-	List<GroupInfo> groups;
-	get_groups(&groups);
-	for(List<GroupInfo>::Element *E=groups.front();E;E=E->next()) {
-
-		if (!E->get().persistent)
-			continue;
-		data.instance_groups.push_back(E->get().name);
-	}
-
-	List<MethodInfo> signal_list;
-
-	get_signal_list(&signal_list);
-
-	for(List<MethodInfo>::Element *E=signal_list.front();E;E=E->next()) {
-
-		StringName name = E->get().name;
-		List<Connection> connections;
-		get_signal_connection_list(name,&connections);
-
-		for(List<Connection>::Element *F=connections.front();F;F=F->next()) {
-
-			if (F->get().flags&CONNECT_PERSIST)
-				data.instance_connections.push_back(F->get());
-		}
-
-	}
-}
-
-Dictionary Node::get_instance_state() const {
-
-	return data.instance_state;
-}
-
-#endif
-
 void Node::set_scene_instance_state(const Ref<SceneState> &p_state) {
 
 	data.instance_state = p_state;
@@ -2160,9 +2070,9 @@ Node *Node::_duplicate(int p_flags) const {
 
 	bool instanced = false;
 
-	if (cast_to<InstancePlaceholder>()) {
+	if (Object::cast_to<InstancePlaceholder>(this)) {
 
-		const InstancePlaceholder *ip = cast_to<const InstancePlaceholder>();
+		const InstancePlaceholder *ip = Object::cast_to<const InstancePlaceholder>(this);
 		InstancePlaceholder *nip = memnew(InstancePlaceholder);
 		nip->set_instance_path(ip->get_instance_path());
 		node = nip;
@@ -2180,7 +2090,7 @@ Node *Node::_duplicate(int p_flags) const {
 
 		Object *obj = ClassDB::instance(get_class());
 		ERR_FAIL_COND_V(!obj, NULL);
-		node = obj->cast_to<Node>();
+		node = Object::cast_to<Node>(obj);
 		if (!node)
 			memdelete(obj);
 		ERR_FAIL_COND_V(!node, NULL);
@@ -2202,7 +2112,15 @@ Node *Node::_duplicate(int p_flags) const {
 		if (!(p_flags & DUPLICATE_SCRIPTS) && name == "script/script")
 			continue;
 
-		node->set(name, get(name));
+		Variant value = get(name);
+		// Duplicate dictionaries and arrays, mainly needed for __meta__
+		if (value.get_type() == Variant::DICTIONARY) {
+			value = Dictionary(value).copy();
+		} else if (value.get_type() == Variant::ARRAY) {
+			value = Array(value).duplicate();
+		}
+
+		node->set(name, value);
 	}
 
 	node->set_name(get_name());
@@ -2270,7 +2188,7 @@ void Node::_duplicate_and_reown(Node *p_new_parent, const Map<Node *, Node *> &p
 			print_line("could not duplicate: " + String(get_class()));
 		}
 		ERR_FAIL_COND(!obj);
-		node = obj->cast_to<Node>();
+		node = Object::cast_to<Node>(obj);
 		if (!node)
 			memdelete(obj);
 	}
@@ -2284,7 +2202,16 @@ void Node::_duplicate_and_reown(Node *p_new_parent, const Map<Node *, Node *> &p
 		if (!(E->get().usage & PROPERTY_USAGE_STORAGE))
 			continue;
 		String name = E->get().name;
-		node->set(name, get(name));
+
+		Variant value = get(name);
+		// Duplicate dictionaries and arrays, mainly needed for __meta__
+		if (value.get_type() == Variant::DICTIONARY) {
+			value = Dictionary(value).copy();
+		} else if (value.get_type() == Variant::ARRAY) {
+			value = Array(value).duplicate();
+		}
+
+		node->set(name, value);
 	}
 
 	node->set_name(get_name());
@@ -2326,7 +2253,7 @@ void Node::_duplicate_signals(const Node *p_original, Node *p_copy) const {
 			NodePath p = p_original->get_path_to(this);
 			Node *copy = p_copy->get_node(p);
 
-			Node *target = E->get().target->cast_to<Node>();
+			Node *target = Object::cast_to<Node>(E->get().target);
 			if (!target) {
 				continue;
 			}
@@ -2355,7 +2282,7 @@ Node *Node::duplicate_and_reown(const Map<Node *, Node *> &p_reown_map) const {
 		print_line("could not duplicate: " + String(get_class()));
 	}
 	ERR_FAIL_COND_V(!obj, NULL);
-	node = obj->cast_to<Node>();
+	node = Object::cast_to<Node>(obj);
 	if (!node)
 		memdelete(obj);
 	ERR_FAIL_COND_V(!node, NULL);
@@ -2610,7 +2537,7 @@ void Node::_set_tree(SceneTree *p_tree) {
 
 static void _Node_debug_sn(Object *p_obj) {
 
-	Node *n = p_obj->cast_to<Node>();
+	Node *n = Object::cast_to<Node>(p_obj);
 	if (!n)
 		return;
 
@@ -2742,13 +2669,12 @@ void Node::_bind_methods() {
 	GLOBAL_DEF("node/name_casing", NAME_CASING_PASCAL_CASE);
 	ProjectSettings::get_singleton()->set_custom_property_info("node/name_casing", PropertyInfo(Variant::INT, "node/name_casing", PROPERTY_HINT_ENUM, "PascalCase,camelCase,snake_case"));
 
-	ClassDB::bind_method(D_METHOD("_add_child_below_node", "node", "child_node", "legible_unique_name"), &Node::add_child_below_node, DEFVAL(false));
+	ClassDB::bind_method(D_METHOD("add_child_below_node", "node", "child_node", "legible_unique_name"), &Node::add_child_below_node, DEFVAL(false));
 
 	ClassDB::bind_method(D_METHOD("set_name", "name"), &Node::set_name);
 	ClassDB::bind_method(D_METHOD("get_name"), &Node::get_name);
 	ClassDB::bind_method(D_METHOD("add_child", "node", "legible_unique_name"), &Node::add_child, DEFVAL(false));
 	ClassDB::bind_method(D_METHOD("remove_child", "node"), &Node::remove_child);
-	//ClassDB::bind_method(D_METHOD("remove_and_delete_child","node"),&Node::remove_and_delete_child);
 	ClassDB::bind_method(D_METHOD("get_child_count"), &Node::get_child_count);
 	ClassDB::bind_method(D_METHOD("get_children"), &Node::_get_children);
 	ClassDB::bind_method(D_METHOD("get_child", "idx"), &Node::get_child);
@@ -2860,7 +2786,6 @@ void Node::_bind_methods() {
 	BIND_CONSTANT(NOTIFICATION_ENTER_TREE);
 	BIND_CONSTANT(NOTIFICATION_EXIT_TREE);
 	BIND_CONSTANT(NOTIFICATION_MOVED_IN_PARENT);
-	//BIND_CONSTANT( NOTIFICATION_PARENT_DECONFIGURED );
 	BIND_CONSTANT(NOTIFICATION_READY);
 	BIND_CONSTANT(NOTIFICATION_FIXED_PROCESS);
 	BIND_CONSTANT(NOTIFICATION_PROCESS);

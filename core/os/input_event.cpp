@@ -3,7 +3,7 @@
 /*************************************************************************/
 /*                       This file is part of:                           */
 /*                           GODOT ENGINE                                */
-/*                    http://www.godotengine.org                         */
+/*                      https://godotengine.org                          */
 /*************************************************************************/
 /* Copyright (c) 2007-2017 Juan Linietsky, Ariel Manzur.                 */
 /* Copyright (c) 2014-2017 Godot Engine contributors (cf. AUTHORS.md)    */
@@ -28,11 +28,9 @@
 /* SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                */
 /*************************************************************************/
 #include "input_event.h"
+
 #include "input_map.h"
 #include "os/keyboard.h"
-/**
- *
- */
 
 void InputEvent::set_id(uint32_t p_id) {
 	id = p_id;
@@ -98,25 +96,6 @@ bool InputEvent::is_action_type() const {
 
 	return false;
 }
-
-#if 0
-if (String(p_method) == "is_action" && p_argidx == 0) {
-
-	List<PropertyInfo> pinfo;
-	ProjectSettings::get_singleton()->get_property_list(&pinfo);
-
-	for (List<PropertyInfo>::Element *E = pinfo.front(); E; E = E->next()) {
-		const PropertyInfo &pi = E->get();
-
-		if (!pi.name.begins_with("input/"))
-			continue;
-
-		String name = pi.name.substr(pi.name.find("/") + 1, pi.name.length());
-		result.insert("\"" + name + "\"");
-	}
-
-} else
-#endif
 
 void InputEvent::_bind_methods() {
 
@@ -483,6 +462,38 @@ bool InputEventMouseButton::action_match(const Ref<InputEvent> &p_event) const {
 	return mb->button_index == button_index;
 }
 
+String InputEventMouseButton::as_text() const {
+
+	String button_index_string = "";
+	switch (get_button_index()) {
+		case BUTTON_LEFT:
+			button_index_string = "BUTTON_LEFT";
+			break;
+		case BUTTON_RIGHT:
+			button_index_string = "BUTTON_RIGHT";
+			break;
+		case BUTTON_MIDDLE:
+			button_index_string = "BUTTON_MIDDLE";
+			break;
+		case BUTTON_WHEEL_UP:
+			button_index_string = "BUTTON_WHEEL_UP";
+			break;
+		case BUTTON_WHEEL_DOWN:
+			button_index_string = "BUTTON_WHEEL_DOWN";
+			break;
+		case BUTTON_WHEEL_LEFT:
+			button_index_string = "BUTTON_WHEEL_LEFT";
+			break;
+		case BUTTON_WHEEL_RIGHT:
+			button_index_string = "BUTTON_WHEEL_RIGHT";
+			break;
+		default:
+			button_index_string = itos(get_button_index());
+			break;
+	}
+	return "InputEventMouseButton : button_index=" + button_index_string + ", pressed=" + (pressed ? "true" : "false") + ", position=(" + String(get_position()) + "), button_mask=" + itos(get_button_mask()) + ", doubleclick=" + (doubleclick ? "true" : "false");
+}
+
 void InputEventMouseButton::_bind_methods() {
 
 	ClassDB::bind_method(D_METHOD("set_factor", "factor"), &InputEventMouseButton::set_factor);
@@ -559,6 +570,26 @@ Ref<InputEvent> InputEventMouseMotion::xformed_by(const Transform2D &p_xform, co
 	return mm;
 }
 
+String InputEventMouseMotion::as_text() const {
+
+	String button_mask_string = "";
+	switch (get_button_mask()) {
+		case BUTTON_MASK_LEFT:
+			button_mask_string = "BUTTON_MASK_LEFT";
+			break;
+		case BUTTON_MASK_MIDDLE:
+			button_mask_string = "BUTTON_MASK_MIDDLE";
+			break;
+		case BUTTON_MASK_RIGHT:
+			button_mask_string = "BUTTON_MASK_RIGHT";
+			break;
+		default:
+			button_mask_string = itos(get_button_mask());
+			break;
+	}
+	return "InputEventMouseMotion : button_mask=" + button_mask_string + ", position=(" + String(get_position()) + "), relative=(" + String(get_relative()) + "), speed=(" + String(get_speed()) + ")";
+}
+
 void InputEventMouseMotion::_bind_methods() {
 
 	ClassDB::bind_method(D_METHOD("set_relative", "relative"), &InputEventMouseMotion::set_relative);
@@ -607,6 +638,11 @@ bool InputEventJoypadMotion::action_match(const Ref<InputEvent> &p_event) const 
 		return false;
 
 	return (axis == jm->axis && (axis_value < 0) == (jm->axis_value < 0));
+}
+
+String InputEventJoypadMotion::as_text() const {
+
+	return "InputEventJoypadMotion : axis=" + itos(axis) + ", axis_value=" + String(Variant(axis_value));
 }
 
 void InputEventJoypadMotion::_bind_methods() {
@@ -663,6 +699,11 @@ bool InputEventJoypadButton::action_match(const Ref<InputEvent> &p_event) const 
 		return false;
 
 	return button_index == jb->button_index;
+}
+
+String InputEventJoypadButton::as_text() const {
+
+	return "InputEventJoypadButton : button_index=" + itos(button_index) + ", pressed=" + (pressed ? "true" : "false") + ", pressure=" + String(Variant(pressure));
 }
 
 void InputEventJoypadButton::_bind_methods() {
@@ -728,6 +769,11 @@ Ref<InputEvent> InputEventScreenTouch::xformed_by(const Transform2D &p_xform, co
 	st->set_pressed(pressed);
 
 	return st;
+}
+
+String InputEventScreenTouch::as_text() const {
+
+	return "InputEventScreenTouch : index=" + itos(index) + ", pressed=" + (pressed ? "true" : "false") + ", position=(" + String(get_position()) + ")";
 }
 
 void InputEventScreenTouch::_bind_methods() {
@@ -808,6 +854,11 @@ Ref<InputEvent> InputEventScreenDrag::xformed_by(const Transform2D &p_xform, con
 	return sd;
 }
 
+String InputEventScreenDrag::as_text() const {
+
+	return "InputEventScreenDrag : index=" + itos(index) + ", position=(" + String(get_position()) + "), relative=(" + String(get_relative()) + "), speed=(" + String(get_speed()) + ")";
+}
+
 void InputEventScreenDrag::_bind_methods() {
 
 	ClassDB::bind_method(D_METHOD("set_index", "index"), &InputEventScreenDrag::set_index);
@@ -855,6 +906,11 @@ bool InputEventAction::is_pressed() const {
 bool InputEventAction::is_action(const StringName &p_action) const {
 
 	return action == p_action;
+}
+
+String InputEventAction::as_text() const {
+
+	return "InputEventAction : action=" + action + ", pressed=(" + (pressed ? "true" : "false");
 }
 
 void InputEventAction::_bind_methods() {

@@ -1,9 +1,9 @@
 /*************************************************************************/
-/*  project_settings.h                                                   */
+/*  project_settings_editor.h                                            */
 /*************************************************************************/
 /*                       This file is part of:                           */
 /*                           GODOT ENGINE                                */
-/*                    http://www.godotengine.org                         */
+/*                      https://godotengine.org                          */
 /*************************************************************************/
 /* Copyright (c) 2007-2017 Juan Linietsky, Ariel Manzur.                 */
 /* Copyright (c) 2014-2017 Godot Engine contributors (cf. AUTHORS.md)    */
@@ -30,17 +30,16 @@
 #ifndef PROJECT_SETTINGS_H
 #define PROJECT_SETTINGS_H
 
-#include "editor_autoload_settings.h"
-#include "editor_data.h"
-#include "editor_plugin_settings.h"
-#include "property_editor.h"
+#include "core/undo_redo.h"
+#include "editor/editor_autoload_settings.h"
+#include "editor/editor_data.h"
+#include "editor/editor_plugin_settings.h"
+#include "editor/property_editor.h"
 #include "scene/gui/dialogs.h"
 #include "scene/gui/tab_container.h"
-#include "undo_redo.h"
-
-//#include "project_export_settings.h"
 
 class ProjectSettingsEditor : public AcceptDialog {
+
 	GDCLASS(ProjectSettingsEditor, AcceptDialog);
 
 	enum InputType {
@@ -67,7 +66,7 @@ class ProjectSettingsEditor : public AcceptDialog {
 	ToolButton *clear_button;
 
 	HBoxContainer *add_prop_bar;
-	ConfirmationDialog *message;
+	AcceptDialog *message;
 	LineEdit *category;
 	LineEdit *property;
 	OptionButton *type;
@@ -81,6 +80,7 @@ class ProjectSettingsEditor : public AcceptDialog {
 	MenuButton *popup_copy_to_feature;
 
 	LineEdit *action_name;
+	Button *action_add;
 	Tree *input_editor;
 	bool setting;
 	bool updating_translations;
@@ -109,6 +109,7 @@ class ProjectSettingsEditor : public AcceptDialog {
 	void _add_item(int p_item, Ref<InputEvent> p_exiting_event = NULL);
 	void _edit_item(Ref<InputEvent> p_exiting_event);
 
+	void _action_check(String p_action);
 	void _action_adds(String);
 	void _action_add();
 	void _device_input_add();
@@ -125,7 +126,6 @@ class ProjectSettingsEditor : public AcceptDialog {
 	void _settings_prop_edited(const String &p_name);
 	void _settings_changed();
 
-	//ProjectExportSettings *export_settings;
 	void _copy_to_platform(int p_which);
 
 	void _translation_file_open();
@@ -160,6 +160,8 @@ public:
 	static ProjectSettingsEditor *get_singleton() { return singleton; }
 	void popup_project_settings();
 	void set_plugins_page();
+
+	TabContainer *get_tabs();
 
 	void queue_save();
 

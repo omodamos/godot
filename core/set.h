@@ -3,7 +3,7 @@
 /*************************************************************************/
 /*                       This file is part of:                           */
 /*                           GODOT ENGINE                                */
-/*                    http://www.godotengine.org                         */
+/*                      https://godotengine.org                          */
 /*************************************************************************/
 /* Copyright (c) 2007-2017 Juan Linietsky, Ariel Manzur.                 */
 /* Copyright (c) 2014-2017 Godot Engine contributors (cf. AUTHORS.md)    */
@@ -438,8 +438,9 @@ private:
 		if (!rp)
 			rp = _data._nil;
 		Element *node = (rp->left == _data._nil) ? rp->right : rp->left;
+		node->parent = rp->parent;
 
-		if (_data._root == (node->parent = rp->parent)) {
+		if (_data._root == node->parent) {
 			_data._root->left = node;
 		} else {
 			if (rp == rp->parent->left) {

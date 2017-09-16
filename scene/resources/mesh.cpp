@@ -3,7 +3,7 @@
 /*************************************************************************/
 /*                       This file is part of:                           */
 /*                           GODOT ENGINE                                */
-/*                    http://www.godotengine.org                         */
+/*                      https://godotengine.org                          */
 /*************************************************************************/
 /* Copyright (c) 2007-2017 Juan Linietsky, Ariel Manzur.                 */
 /* Copyright (c) 2014-2017 Godot Engine contributors (cf. AUTHORS.md)    */
@@ -422,6 +422,46 @@ void Mesh::_bind_methods() {
 	BIND_ENUM_CONSTANT(PRIMITIVE_TRIANGLES);
 	BIND_ENUM_CONSTANT(PRIMITIVE_TRIANGLE_STRIP);
 	BIND_ENUM_CONSTANT(PRIMITIVE_TRIANGLE_FAN);
+
+	BIND_ENUM_CONSTANT(BLEND_SHAPE_MODE_NORMALIZED);
+	BIND_ENUM_CONSTANT(BLEND_SHAPE_MODE_RELATIVE);
+
+	BIND_ENUM_CONSTANT(ARRAY_FORMAT_VERTEX);
+	BIND_ENUM_CONSTANT(ARRAY_FORMAT_NORMAL);
+	BIND_ENUM_CONSTANT(ARRAY_FORMAT_TANGENT);
+	BIND_ENUM_CONSTANT(ARRAY_FORMAT_COLOR);
+	BIND_ENUM_CONSTANT(ARRAY_FORMAT_TEX_UV);
+	BIND_ENUM_CONSTANT(ARRAY_FORMAT_TEX_UV2);
+	BIND_ENUM_CONSTANT(ARRAY_FORMAT_BONES);
+	BIND_ENUM_CONSTANT(ARRAY_FORMAT_WEIGHTS);
+	BIND_ENUM_CONSTANT(ARRAY_FORMAT_INDEX);
+
+	BIND_ENUM_CONSTANT(ARRAY_COMPRESS_BASE);
+	BIND_ENUM_CONSTANT(ARRAY_COMPRESS_VERTEX);
+	BIND_ENUM_CONSTANT(ARRAY_COMPRESS_NORMAL);
+	BIND_ENUM_CONSTANT(ARRAY_COMPRESS_TANGENT);
+	BIND_ENUM_CONSTANT(ARRAY_COMPRESS_COLOR);
+	BIND_ENUM_CONSTANT(ARRAY_COMPRESS_TEX_UV);
+	BIND_ENUM_CONSTANT(ARRAY_COMPRESS_TEX_UV2);
+	BIND_ENUM_CONSTANT(ARRAY_COMPRESS_BONES);
+	BIND_ENUM_CONSTANT(ARRAY_COMPRESS_WEIGHTS);
+	BIND_ENUM_CONSTANT(ARRAY_COMPRESS_INDEX);
+
+	BIND_ENUM_CONSTANT(ARRAY_FLAG_USE_2D_VERTICES);
+	BIND_ENUM_CONSTANT(ARRAY_FLAG_USE_16_BIT_BONES);
+
+	BIND_ENUM_CONSTANT(ARRAY_COMPRESS_DEFAULT);
+
+	BIND_ENUM_CONSTANT(ARRAY_VERTEX);
+	BIND_ENUM_CONSTANT(ARRAY_NORMAL);
+	BIND_ENUM_CONSTANT(ARRAY_TANGENT);
+	BIND_ENUM_CONSTANT(ARRAY_COLOR);
+	BIND_ENUM_CONSTANT(ARRAY_TEX_UV);
+	BIND_ENUM_CONSTANT(ARRAY_TEX_UV2);
+	BIND_ENUM_CONSTANT(ARRAY_BONES);
+	BIND_ENUM_CONSTANT(ARRAY_WEIGHTS);
+	BIND_ENUM_CONSTANT(ARRAY_INDEX);
+	BIND_ENUM_CONSTANT(ARRAY_MAX);
 }
 
 Mesh::Mesh() {
@@ -761,7 +801,7 @@ Array ArrayMesh::surface_get_arrays(int p_surface) const {
 Array ArrayMesh::surface_get_blend_shape_arrays(int p_surface) const {
 
 	ERR_FAIL_INDEX_V(p_surface, surfaces.size(), Array());
-	return Array();
+	return VisualServer::get_singleton()->mesh_surface_get_blend_shape_arrays(mesh, p_surface);
 }
 
 int ArrayMesh::get_surface_count() const {
@@ -1010,6 +1050,8 @@ void ArrayMesh::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("surface_get_material", "surf_idx"), &ArrayMesh::surface_get_material);
 	ClassDB::bind_method(D_METHOD("surface_set_name", "surf_idx", "name"), &ArrayMesh::surface_set_name);
 	ClassDB::bind_method(D_METHOD("surface_get_name", "surf_idx"), &ArrayMesh::surface_get_name);
+	ClassDB::bind_method(D_METHOD("surface_get_arrays", "surf_idx"), &ArrayMesh::surface_get_arrays);
+	ClassDB::bind_method(D_METHOD("surface_get_blend_shape_arrays", "surf_idx"), &ArrayMesh::surface_get_blend_shape_arrays);
 	ClassDB::bind_method(D_METHOD("create_trimesh_shape"), &ArrayMesh::create_trimesh_shape);
 	ClassDB::bind_method(D_METHOD("create_convex_shape"), &ArrayMesh::create_convex_shape);
 	ClassDB::bind_method(D_METHOD("create_outline", "margin"), &ArrayMesh::create_outline);
@@ -1035,6 +1077,7 @@ void ArrayMesh::_bind_methods() {
 	BIND_ENUM_CONSTANT(ARRAY_BONES);
 	BIND_ENUM_CONSTANT(ARRAY_WEIGHTS);
 	BIND_ENUM_CONSTANT(ARRAY_INDEX);
+	BIND_ENUM_CONSTANT(ARRAY_MAX);
 
 	BIND_ENUM_CONSTANT(ARRAY_FORMAT_VERTEX);
 	BIND_ENUM_CONSTANT(ARRAY_FORMAT_NORMAL);

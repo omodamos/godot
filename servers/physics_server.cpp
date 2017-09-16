@@ -3,7 +3,7 @@
 /*************************************************************************/
 /*                       This file is part of:                           */
 /*                           GODOT ENGINE                                */
-/*                    http://www.godotengine.org                         */
+/*                      https://godotengine.org                          */
 /*************************************************************************/
 /* Copyright (c) 2007-2017 Juan Linietsky, Ariel Manzur.                 */
 /* Copyright (c) 2014-2017 Godot Engine contributors (cf. AUTHORS.md)    */
@@ -75,7 +75,7 @@ void PhysicsDirectBodyState::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("get_total_angular_damp"), &PhysicsDirectBodyState::get_total_angular_damp);
 
 	ClassDB::bind_method(D_METHOD("get_center_of_mass"), &PhysicsDirectBodyState::get_center_of_mass);
-	ClassDB::bind_method(D_METHOD("get_principal_inetria_axes"), &PhysicsDirectBodyState::get_principal_inertia_axes);
+	ClassDB::bind_method(D_METHOD("get_principal_inertia_axes"), &PhysicsDirectBodyState::get_principal_inertia_axes);
 
 	ClassDB::bind_method(D_METHOD("get_inverse_mass"), &PhysicsDirectBodyState::get_inverse_mass);
 	ClassDB::bind_method(D_METHOD("get_inverse_inertia"), &PhysicsDirectBodyState::get_inverse_inertia);
@@ -704,6 +704,20 @@ void PhysicsServer::_bind_methods() {
 	BIND_ENUM_CONSTANT(INFO_ACTIVE_OBJECTS);
 	BIND_ENUM_CONSTANT(INFO_COLLISION_PAIRS);
 	BIND_ENUM_CONSTANT(INFO_ISLAND_COUNT);
+
+	BIND_ENUM_CONSTANT(SPACE_PARAM_CONTACT_RECYCLE_RADIUS);
+	BIND_ENUM_CONSTANT(SPACE_PARAM_CONTACT_MAX_SEPARATION);
+	BIND_ENUM_CONSTANT(SPACE_PARAM_BODY_MAX_ALLOWED_PENETRATION);
+	BIND_ENUM_CONSTANT(SPACE_PARAM_BODY_LINEAR_VELOCITY_SLEEP_THRESHOLD);
+	BIND_ENUM_CONSTANT(SPACE_PARAM_BODY_ANGULAR_VELOCITY_SLEEP_THRESHOLD);
+	BIND_ENUM_CONSTANT(SPACE_PARAM_BODY_TIME_TO_SLEEP);
+	BIND_ENUM_CONSTANT(SPACE_PARAM_BODY_ANGULAR_VELOCITY_DAMP_RATIO);
+	BIND_ENUM_CONSTANT(SPACE_PARAM_CONSTRAINT_DEFAULT_BIAS);
+
+	BIND_ENUM_CONSTANT(BODY_AXIS_LOCK_DISABLED);
+	BIND_ENUM_CONSTANT(BODY_AXIS_LOCK_X);
+	BIND_ENUM_CONSTANT(BODY_AXIS_LOCK_Y);
+	BIND_ENUM_CONSTANT(BODY_AXIS_LOCK_Z);
 }
 
 PhysicsServer::PhysicsServer() {

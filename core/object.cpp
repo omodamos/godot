@@ -3,7 +3,7 @@
 /*************************************************************************/
 /*                       This file is part of:                           */
 /*                           GODOT ENGINE                                */
-/*                    http://www.godotengine.org                         */
+/*                      https://godotengine.org                          */
 /*************************************************************************/
 /* Copyright (c) 2007-2017 Juan Linietsky, Ariel Manzur.                 */
 /* Copyright (c) 2014-2017 Godot Engine contributors (cf. AUTHORS.md)    */
@@ -274,6 +274,63 @@ MethodInfo::MethodInfo(Variant::Type ret, const String &p_name, const PropertyIn
 	arguments.push_back(p_param5);
 }
 
+MethodInfo::MethodInfo(const PropertyInfo &p_ret, const String &p_name)
+	: name(p_name),
+	  flags(METHOD_FLAG_NORMAL),
+	  id(0) {
+	return_val = p_ret;
+}
+
+MethodInfo::MethodInfo(const PropertyInfo &p_ret, const String &p_name, const PropertyInfo &p_param1)
+	: name(p_name),
+	  flags(METHOD_FLAG_NORMAL),
+	  id(0) {
+	return_val = p_ret;
+	arguments.push_back(p_param1);
+}
+
+MethodInfo::MethodInfo(const PropertyInfo &p_ret, const String &p_name, const PropertyInfo &p_param1, const PropertyInfo &p_param2)
+	: name(p_name),
+	  flags(METHOD_FLAG_NORMAL),
+	  id(0) {
+	return_val = p_ret;
+	arguments.push_back(p_param1);
+	arguments.push_back(p_param2);
+}
+
+MethodInfo::MethodInfo(const PropertyInfo &p_ret, const String &p_name, const PropertyInfo &p_param1, const PropertyInfo &p_param2, const PropertyInfo &p_param3)
+	: name(p_name),
+	  flags(METHOD_FLAG_NORMAL),
+	  id(0) {
+	return_val = p_ret;
+	arguments.push_back(p_param1);
+	arguments.push_back(p_param2);
+	arguments.push_back(p_param3);
+}
+
+MethodInfo::MethodInfo(const PropertyInfo &p_ret, const String &p_name, const PropertyInfo &p_param1, const PropertyInfo &p_param2, const PropertyInfo &p_param3, const PropertyInfo &p_param4)
+	: name(p_name),
+	  flags(METHOD_FLAG_NORMAL),
+	  id(0) {
+	return_val = p_ret;
+	arguments.push_back(p_param1);
+	arguments.push_back(p_param2);
+	arguments.push_back(p_param3);
+	arguments.push_back(p_param4);
+}
+
+MethodInfo::MethodInfo(const PropertyInfo &p_ret, const String &p_name, const PropertyInfo &p_param1, const PropertyInfo &p_param2, const PropertyInfo &p_param3, const PropertyInfo &p_param4, const PropertyInfo &p_param5)
+	: name(p_name),
+	  flags(METHOD_FLAG_NORMAL),
+	  id(0) {
+	return_val = p_ret;
+	arguments.push_back(p_param1);
+	arguments.push_back(p_param2);
+	arguments.push_back(p_param3);
+	arguments.push_back(p_param4);
+	arguments.push_back(p_param5);
+}
+
 Object::Connection::operator Variant() const {
 
 	Dictionary d;
@@ -342,35 +399,6 @@ void Object::get_valid_parents_static(List<String> *p_parents) {
 }
 void Object::_get_valid_parents_static(List<String> *p_parents) {
 }
-#if 0
-//old style set, deprecated
-
-void Object::set(const String& p_name, const Variant& p_value) {
-
-	_setv(p_name,p_value);
-
-	/*
-	if (!_use_builtin_script())
-		return;
-	*/
-
-	bool success;
-	ClassDB::set_property(this,p_name,p_value,success);
-	if (success) {
-		return;
-	}
-
-	if (p_name=="__meta__") {
-		metadata=p_value;
-	} else if (p_name=="script") {
-		set_script(p_value);
-	} else if (script_instance) {
-		script_instance->set(p_name,p_value);
-	}
-
-
-}
-#endif
 
 void Object::set(const StringName &p_name, const Variant &p_value, bool *r_valid) {
 
@@ -489,34 +517,6 @@ Variant Object::get(const StringName &p_name, bool *r_valid) const {
 	}
 }
 
-#if 0
-//old style get, deprecated
-Variant Object::get(const String& p_name) const {
-
-	Variant ret=_getv(p_name);
-	if (ret.get_type()!=Variant::NIL)
-		return ret;
-
-	bool success;
-	ClassDB::get_property(const_cast<Object*>(this),p_name,ret,success);
-	if (success) {
-		return ret;
-	}
-
-	if (p_name=="__meta__")
-		return metadata;
-	else if (p_name=="script")
-		return script;
-
-	if (script_instance) {
-		return script_instance->get(p_name);
-	}
-
-	return Variant();
-
-}
-#endif
-
 void Object::get_property_list(List<PropertyInfo> *p_list, bool p_reversed) const {
 
 	if (script_instance && p_reversed) {
@@ -596,22 +596,6 @@ Variant Object::_call_deferred_bind(const Variant **p_args, int p_argcount, Vari
 	return Variant();
 }
 
-#if 0
-Variant Object::_call_bind(const StringName& p_name, const Variant& p_arg1, const Variant& p_arg2, const Variant& p_arg3, const Variant& p_arg4) {
-
-	ERR_FAIL_COND_V(p_argcount<1,Variant());
-
-	return call(p_name, p_arg1, p_arg2, p_arg3, p_arg4);
-};
-
-
-
-
-void Object::_call_deferred_bind(const StringName& p_name, const Variant& p_arg1, const Variant& p_arg2, const Variant& p_arg3, const Variant& p_arg4) {
-
-	call_deferred(p_name, p_arg1, p_arg2, p_arg3, p_arg4);
-};
-#endif
 #ifdef DEBUG_ENABLED
 static bool _test_call_error(const StringName &p_func, const Variant::CallError &error) {
 
@@ -654,7 +638,7 @@ void Object::call_multilevel(const StringName &p_method, const Variant **p_args,
 
 	if (p_method == CoreStringNames::get_singleton()->_free) {
 #ifdef DEBUG_ENABLED
-		if (cast_to<Reference>()) {
+		if (Object::cast_to<Reference>(this)) {
 			ERR_EXPLAIN("Can't 'free' a reference.");
 			ERR_FAIL();
 			return;
@@ -764,54 +748,6 @@ Variant Object::callv(const StringName &p_method, const Array &p_args) {
 }
 
 Variant Object::call(const StringName &p_name, VARIANT_ARG_DECLARE) {
-#if 0
-	if (p_name==CoreStringNames::get_singleton()->_free) {
-#ifdef DEBUG_ENABLED
-		if (cast_to<Reference>()) {
-			ERR_EXPLAIN("Can't 'free' a reference.");
-			ERR_FAIL_V(Variant());
-		}
-#endif
-		//must be here, must be before everything,
-		memdelete(this);
-		return Variant();
-	}
-
-	VARIANT_ARGPTRS;
-
-	int argc=0;
-	for(int i=0;i<VARIANT_ARG_MAX;i++) {
-		if (argptr[i]->get_type()==Variant::NIL)
-			break;
-		argc++;
-	}
-
-	Variant::CallError error;
-
-	Variant ret;
-
-	if (script_instance) {
-		ret = script_instance->call(p_name,argptr,argc,error);
-		if (_test_call_error(p_name,error))
-			return ret;
-	}
-
-	MethodBind *method=ClassDB::get_method(get_type_name(),p_name);
-
-	if (method) {
-
-
-		Variant ret = method->call(this,argptr,argc,error);
-		if (_test_call_error(p_name,error))
-			return ret;
-
-		return ret;
-	} else {
-
-	}
-
-	return Variant();
-#else
 
 	VARIANT_ARGPTRS;
 
@@ -826,52 +762,9 @@ Variant Object::call(const StringName &p_name, VARIANT_ARG_DECLARE) {
 
 	Variant ret = call(p_name, argptr, argc, error);
 	return ret;
-
-#endif
 }
 
 void Object::call_multilevel(const StringName &p_name, VARIANT_ARG_DECLARE) {
-#if 0
-	if (p_name==CoreStringNames::get_singleton()->_free) {
-#ifdef DEBUG_ENABLED
-		if (cast_to<Reference>()) {
-			ERR_EXPLAIN("Can't 'free' a reference.");
-			ERR_FAIL();
-			return;
-		}
-#endif
-		//must be here, must be before everything,
-		memdelete(this);
-		return;
-	}
-
-	VARIANT_ARGPTRS;
-
-	int argc=0;
-	for(int i=0;i<VARIANT_ARG_MAX;i++) {
-		if (argptr[i]->get_type()==Variant::NIL)
-			break;
-		argc++;
-	}
-
-	Variant::CallError error;
-
-	if (script_instance) {
-		script_instance->call(p_name,argptr,argc,error);
-		_test_call_error(p_name,error);
-
-	}
-
-	MethodBind *method=ClassDB::get_method(get_type_name(),p_name);
-
-	if (method) {
-
-		method->call(this,argptr,argc,error);
-		_test_call_error(p_name,error);
-
-	}
-
-#else
 
 	VARIANT_ARGPTRS;
 
@@ -884,8 +777,6 @@ void Object::call_multilevel(const StringName &p_name, VARIANT_ARG_DECLARE) {
 
 	//Variant::CallError error;
 	call_multilevel(p_name, argptr, argc);
-
-#endif
 }
 
 Variant Object::call(const StringName &p_method, const Variant **p_args, int p_argcount, Variant::CallError &r_error) {
@@ -900,7 +791,7 @@ Variant Object::call(const StringName &p_method, const Variant **p_args, int p_a
 			r_error.error = Variant::CallError::CALL_ERROR_TOO_MANY_ARGUMENTS;
 			return Variant();
 		}
-		if (cast_to<Reference>()) {
+		if (Object::cast_to<Reference>(this)) {
 			r_error.argument = 0;
 			r_error.error = Variant::CallError::CALL_ERROR_INVALID_METHOD;
 			ERR_EXPLAIN("Can't 'free' a reference.");
@@ -1130,22 +1021,6 @@ struct _ObjectSignalDisconnectData {
 	StringName method;
 };
 
-#if 0
-void Object::_emit_signal(const StringName& p_name,const Array& p_pargs){
-
-	Variant args[VARIANT_ARG_MAX];
-
-	int count = p_pargs.size();
-
-	for(int i=0;i<count;i++) {
-		args[i]=p_pargs[i];
-	}
-
-	emit_signal(p_name,VARIANT_ARGS_FROM_ARRAY(args));
-}
-
-#endif
-
 Variant Object::_emit_signal(const Variant **p_args, int p_argcount, Variant::CallError &r_error) {
 
 	r_error.error = Variant::CallError::CALL_ERROR_TOO_FEW_ARGUMENTS;
@@ -1314,21 +1189,7 @@ void Object::_add_user_signal(const String &p_name, const Array &p_args) {
 
 	add_user_signal(mi);
 }
-#if 0
-void Object::_emit_signal(const StringName& p_name,const Array& p_pargs){
 
-	Variant args[VARIANT_ARG_MAX];
-
-	int count = p_pargs.size();
-
-	for(int i=0;i<count;i++) {
-		args[i]=p_pargs[i];
-	}
-
-	emit_signal(p_name,VARIANT_ARGS_FROM_ARRAY(args));
-}
-
-#endif
 Array Object::_get_signal_list() const {
 
 	List<MethodInfo> signal_list;
@@ -1342,6 +1203,7 @@ Array Object::_get_signal_list() const {
 
 	return ret;
 }
+
 Array Object::_get_signal_connection_list(const String &p_signal) const {
 
 	List<Connection> conns;
@@ -1472,7 +1334,7 @@ Error Object::connect(const StringName &p_signal, Object *p_to_object, const Str
 
 	Signal::Target target(p_to_object->get_instance_id(), p_to_method);
 	if (s->slot_map.has(target)) {
-		ERR_EXPLAIN("Signal '" + p_signal + "'' already connected to given method '" + p_to_method + "' in that object.");
+		ERR_EXPLAIN("Signal '" + p_signal + "' is already connected to given method '" + p_to_method + "' in that object.");
 		ERR_FAIL_COND_V(s->slot_map.has(target), ERR_INVALID_PARAMETER);
 	}
 
@@ -1724,7 +1586,7 @@ void Object::_bind_methods() {
 	ADD_SIGNAL(MethodInfo("script_changed"));
 
 	BIND_VMETHOD(MethodInfo("_notification", PropertyInfo(Variant::INT, "what")));
-	BIND_VMETHOD(MethodInfo("_set:bool", PropertyInfo(Variant::STRING, "property"), PropertyInfo(Variant::NIL, "value")));
+	BIND_VMETHOD(MethodInfo(Variant::BOOL, "_set", PropertyInfo(Variant::STRING, "property"), PropertyInfo(Variant::NIL, "value")));
 #ifdef TOOLS_ENABLED
 	MethodInfo miget("_get", PropertyInfo(Variant::STRING, "property"));
 	miget.return_val.name = "Variant";

@@ -3,7 +3,7 @@
 /*************************************************************************/
 /*                       This file is part of:                           */
 /*                           GODOT ENGINE                                */
-/*                    http://www.godotengine.org                         */
+/*                      https://godotengine.org                          */
 /*************************************************************************/
 /* Copyright (c) 2007-2017 Juan Linietsky, Ariel Manzur.                 */
 /* Copyright (c) 2014-2017 Godot Engine contributors (cf. AUTHORS.md)    */
@@ -271,7 +271,7 @@ bool CollisionSolverSW::solve_distance_plane(const ShapeSW *p_shape_A, const Tra
 
 	bool collided = false;
 	Vector3 closest;
-	real_t closest_d;
+	real_t closest_d = 0;
 
 	for (int i = 0; i < support_count; i++) {
 

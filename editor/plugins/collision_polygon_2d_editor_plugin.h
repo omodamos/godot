@@ -3,7 +3,7 @@
 /*************************************************************************/
 /*                       This file is part of:                           */
 /*                           GODOT ENGINE                                */
-/*                    http://www.godotengine.org                         */
+/*                      https://godotengine.org                          */
 /*************************************************************************/
 /* Copyright (c) 2007-2017 Juan Linietsky, Ariel Manzur.                 */
 /* Copyright (c) 2014-2017 Godot Engine contributors (cf. AUTHORS.md)    */
@@ -33,7 +33,6 @@
 #include "editor/editor_node.h"
 #include "editor/editor_plugin.h"
 #include "scene/2d/collision_polygon_2d.h"
-#include "scene/gui/button_group.h"
 #include "scene/gui/tool_button.h"
 
 /**

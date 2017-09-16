@@ -3,7 +3,7 @@
 /*************************************************************************/
 /*                       This file is part of:                           */
 /*                           GODOT ENGINE                                */
-/*                    http://www.godotengine.org                         */
+/*                      https://godotengine.org                          */
 /*************************************************************************/
 /* Copyright (c) 2007-2017 Juan Linietsky, Ariel Manzur.                 */
 /* Copyright (c) 2014-2017 Godot Engine contributors (cf. AUTHORS.md)    */
@@ -43,7 +43,6 @@
 #include "math_2d.h"
 #include "matrix3.h"
 #include "node_path.h"
-#include "os/power.h"
 #include "plane.h"
 #include "quat.h"
 #include "rect3.h"

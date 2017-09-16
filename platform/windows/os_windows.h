@@ -3,7 +3,7 @@
 /*************************************************************************/
 /*                       This file is part of:                           */
 /*                           GODOT ENGINE                                */
-/*                    http://www.godotengine.org                         */
+/*                      https://godotengine.org                          */
 /*************************************************************************/
 /* Copyright (c) 2007-2017 Juan Linietsky, Ariel Manzur.                 */
 /* Copyright (c) 2014-2017 Godot Engine contributors (cf. AUTHORS.md)    */
@@ -31,7 +31,9 @@
 #define OS_WINDOWS_H
 
 #include "context_gl_win.h"
+#include "crash_handler_win.h"
 #include "drivers/rtaudio/audio_driver_rtaudio.h"
+#include "drivers/wasapi/audio_driver_wasapi.h"
 #include "os/input.h"
 #include "os/os.h"
 #include "power_windows.h"
@@ -123,12 +125,17 @@ class OS_Windows : public OS {
 
 	PowerWindows *power_manager;
 
+#ifdef WASAPI_ENABLED
+	AudioDriverWASAPI driver_wasapi;
+#endif
 #ifdef RTAUDIO_ENABLED
 	AudioDriverRtAudio driver_rtaudio;
 #endif
 #ifdef XAUDIO2_ENABLED
 	AudioDriverXAudio2 driver_xaudio2;
 #endif
+
+	CrashHandler crash_handler;
 
 	void _drag_event(int p_x, int p_y, int idx);
 	void _touch_event(bool p_pressed, int p_x, int p_y, int idx);
@@ -274,11 +281,14 @@ public:
 	virtual void set_use_vsync(bool p_enable);
 	virtual bool is_vsync_enabled() const;
 
-	virtual PowerState get_power_state();
+	virtual OS::PowerState get_power_state();
 	virtual int get_power_seconds_left();
 	virtual int get_power_percent_left();
 
 	virtual bool _check_internal_feature_support(const String &p_feature);
+
+	void disable_crash_handler();
+	bool is_disable_crash_handler() const;
 
 	OS_Windows(HINSTANCE _hInstance);
 	~OS_Windows();

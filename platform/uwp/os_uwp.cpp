@@ -3,7 +3,7 @@
 /*************************************************************************/
 /*                       This file is part of:                           */
 /*                           GODOT ENGINE                                */
-/*                    http://www.godotengine.org                         */
+/*                      https://godotengine.org                          */
 /*************************************************************************/
 /* Copyright (c) 2007-2017 Juan Linietsky, Ariel Manzur.                 */
 /* Copyright (c) 2014-2017 Godot Engine contributors (cf. AUTHORS.md)    */
@@ -855,7 +855,7 @@ bool OSUWP::_check_internal_feature_support(const String &p_feature) {
 	return p_feature == "pc" || p_feature == "s3tc";
 }
 
-PowerState OSUWP::get_power_state() {
+OS::PowerState OSUWP::get_power_state() {
 	return power_manager->get_power_state();
 }
 

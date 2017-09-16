@@ -123,7 +123,7 @@ def configure(env):
             env.Append(LINKFLAGS=['/ENTRY:mainCRTStartup'])
 
         elif (env["target"] == "debug"):
-            env.Append(CCFLAGS=['/Z7', '/DDEBUG_ENABLED', '/DDEBUG_MEMORY_ENABLED', '/DD3D_DEBUG_INFO', '/Od'])
+            env.Append(CCFLAGS=['/Z7', '/DDEBUG_ENABLED', '/DDEBUG_MEMORY_ENABLED', '/DD3D_DEBUG_INFO', '/Od', '/EHsc'])
             env.Append(LINKFLAGS=['/SUBSYSTEM:CONSOLE'])
             env.Append(LINKFLAGS=['/DEBUG'])
 
@@ -171,6 +171,7 @@ def configure(env):
         env.Append(CCFLAGS=['/DWINDOWS_ENABLED'])
         env.Append(CCFLAGS=['/DOPENGL_ENABLED'])
         env.Append(CCFLAGS=['/DRTAUDIO_ENABLED'])
+        env.Append(CCFLAGS=['/DWASAPI_ENABLED'])
         env.Append(CCFLAGS=['/DTYPED_METHOD_BIND'])
         env.Append(CCFLAGS=['/DWIN32'])
         env.Append(CCFLAGS=['/DWINVER=%s' % winver, '/D_WIN32_WINNT=%s' % winver])
@@ -225,10 +226,13 @@ def configure(env):
         else:
             env["PROGSUFFIX"] = env["PROGSUFFIX"] + ".exe"  # for linux cross-compilation
 
-        mingw_prefix = ""
-
         if (env["bits"] == "default"):
-            env["bits"] = "64" if "PROGRAMFILES(X86)" in os.environ else "32"
+            if (os.name == "nt"):
+                env["bits"] = "64" if "PROGRAMFILES(X86)" in os.environ else "32"
+            else: # default to 64-bit on Linux
+                env["bits"] = "64"
+
+        mingw_prefix = ""
 
         if (env["bits"] == "32"):
             env.Append(LINKFLAGS=['-static'])
@@ -252,8 +256,9 @@ def configure(env):
         env.Append(CCFLAGS=['-DWINDOWS_ENABLED', '-mwindows'])
         env.Append(CCFLAGS=['-DOPENGL_ENABLED'])
         env.Append(CCFLAGS=['-DRTAUDIO_ENABLED'])
+        env.Append(CCFLAGS=['-DWASAPI_ENABLED'])
         env.Append(CCFLAGS=['-DWINVER=%s' % winver, '-D_WIN32_WINNT=%s' % winver])
-        env.Append(LIBS=['mingw32', 'opengl32', 'dsound', 'ole32', 'd3d9', 'winmm', 'gdi32', 'iphlpapi', 'shlwapi', 'wsock32', 'ws2_32', 'kernel32', 'oleaut32', 'dinput8', 'dxguid'])
+        env.Append(LIBS=['mingw32', 'opengl32', 'dsound', 'ole32', 'd3d9', 'winmm', 'gdi32', 'iphlpapi', 'shlwapi', 'wsock32', 'ws2_32', 'kernel32', 'oleaut32', 'dinput8', 'dxguid', 'ksuser'])
 
         env.Append(CPPFLAGS=['-DMINGW_ENABLED'])
 

@@ -3,7 +3,7 @@
 /*************************************************************************/
 /*                       This file is part of:                           */
 /*                           GODOT ENGINE                                */
-/*                    http://www.godotengine.org                         */
+/*                      https://godotengine.org                          */
 /*************************************************************************/
 /* Copyright (c) 2007-2017 Juan Linietsky, Ariel Manzur.                 */
 /* Copyright (c) 2014-2017 Godot Engine contributors (cf. AUTHORS.md)    */
@@ -70,6 +70,10 @@ Error EditorRun::run(const String &p_scene, const String p_custom_args, const Li
 		screen = OS::get_singleton()->get_current_screen();
 	} else {
 		screen--;
+	}
+
+	if (OS::get_singleton()->is_disable_crash_handler()) {
+		args.push_back("--disable-crash-handler");
 	}
 
 	Rect2 screen_rect;

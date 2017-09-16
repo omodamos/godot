@@ -3,7 +3,7 @@
 /*************************************************************************/
 /*                       This file is part of:                           */
 /*                           GODOT ENGINE                                */
-/*                    http://www.godotengine.org                         */
+/*                      https://godotengine.org                          */
 /*************************************************************************/
 /* Copyright (c) 2007-2017 Juan Linietsky, Ariel Manzur.                 */
 /* Copyright (c) 2014-2017 Godot Engine contributors (cf. AUTHORS.md)    */
@@ -97,7 +97,7 @@ class FileAccessNetwork : public FileAccess {
 	mutable int last_page;
 	mutable uint8_t *last_page_buff;
 
-	uint32_t page_size;
+	int page_size;
 	int read_ahead;
 	int max_pages;
 
@@ -121,7 +121,7 @@ class FileAccessNetwork : public FileAccess {
 	friend class FileAccessNetworkClient;
 	void _queue_page(int p_page) const;
 	void _respond(size_t p_len, Error p_status);
-	void _set_block(size_t p_offset, const Vector<uint8_t> &p_block);
+	void _set_block(int p_offset, const Vector<uint8_t> &p_block);
 
 public:
 	enum Command {

@@ -3,7 +3,7 @@
 /*************************************************************************/
 /*                       This file is part of:                           */
 /*                           GODOT ENGINE                                */
-/*                    http://www.godotengine.org                         */
+/*                      https://godotengine.org                          */
 /*************************************************************************/
 /* Copyright (c) 2007-2017 Juan Linietsky, Ariel Manzur.                 */
 /* Copyright (c) 2014-2017 Godot Engine contributors (cf. AUTHORS.md)    */
@@ -185,6 +185,7 @@ struct MethodInfo {
 	uint32_t flags;
 	int id;
 
+	inline bool operator==(const MethodInfo &p_method) const { return id == p_method.id; }
 	inline bool operator<(const MethodInfo &p_method) const { return id == p_method.id ? (name < p_method.name) : (id < p_method.id); }
 
 	operator Dictionary() const;
@@ -204,6 +205,12 @@ struct MethodInfo {
 	MethodInfo(Variant::Type ret, const String &p_name, const PropertyInfo &p_param1, const PropertyInfo &p_param2, const PropertyInfo &p_param3);
 	MethodInfo(Variant::Type ret, const String &p_name, const PropertyInfo &p_param1, const PropertyInfo &p_param2, const PropertyInfo &p_param3, const PropertyInfo &p_param4);
 	MethodInfo(Variant::Type ret, const String &p_name, const PropertyInfo &p_param1, const PropertyInfo &p_param2, const PropertyInfo &p_param3, const PropertyInfo &p_param4, const PropertyInfo &p_param5);
+	MethodInfo(const PropertyInfo &p_ret, const String &p_name);
+	MethodInfo(const PropertyInfo &p_ret, const String &p_name, const PropertyInfo &p_param1);
+	MethodInfo(const PropertyInfo &p_ret, const String &p_name, const PropertyInfo &p_param1, const PropertyInfo &p_param2);
+	MethodInfo(const PropertyInfo &p_ret, const String &p_name, const PropertyInfo &p_param1, const PropertyInfo &p_param2, const PropertyInfo &p_param3);
+	MethodInfo(const PropertyInfo &p_ret, const String &p_name, const PropertyInfo &p_param1, const PropertyInfo &p_param2, const PropertyInfo &p_param3, const PropertyInfo &p_param4);
+	MethodInfo(const PropertyInfo &p_ret, const String &p_name, const PropertyInfo &p_param1, const PropertyInfo &p_param2, const PropertyInfo &p_param3, const PropertyInfo &p_param4, const PropertyInfo &p_param5);
 };
 
 // old cast_to
@@ -558,45 +565,33 @@ public:
 	void add_change_receptor(Object *p_receptor);
 	void remove_change_receptor(Object *p_receptor);
 
-// TODO: ensure 'this' is never NULL since it's UB, but by now, avoid warning flood
-#ifdef __clang__
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wundefined-bool-conversion"
-#endif
-
 	template <class T>
-	T *cast_to() {
-
+	static T *cast_to(Object *p_object) {
 #ifndef NO_SAFE_CAST
-		return SAFE_CAST<T *>(this);
+		return dynamic_cast<T *>(p_object);
 #else
-		if (!this)
+		if (!p_object)
 			return NULL;
-		if (is_class_ptr(T::get_class_ptr_static()))
-			return static_cast<T *>(this);
+		if (p_object->is_class_ptr(T::get_class_ptr_static()))
+			return static_cast<T *>(p_object);
 		else
 			return NULL;
 #endif
 	}
 
 	template <class T>
-	const T *cast_to() const {
-
+	static const T *cast_to(const Object *p_object) {
 #ifndef NO_SAFE_CAST
-		return SAFE_CAST<const T *>(this);
+		return dynamic_cast<const T *>(p_object);
 #else
-		if (!this)
+		if (!p_object)
 			return NULL;
-		if (is_class_ptr(T::get_class_ptr_static()))
-			return static_cast<const T *>(this);
+		if (p_object->is_class_ptr(T::get_class_ptr_static()))
+			return static_cast<const T *>(p_object);
 		else
 			return NULL;
 #endif
 	}
-
-#ifdef __clang__
-#pragma clang diagnostic pop
-#endif
 
 	enum {
 

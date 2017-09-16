@@ -3,7 +3,7 @@
 /*************************************************************************/
 /*                       This file is part of:                           */
 /*                           GODOT ENGINE                                */
-/*                    http://www.godotengine.org                         */
+/*                      https://godotengine.org                          */
 /*************************************************************************/
 /* Copyright (c) 2007-2017 Juan Linietsky, Ariel Manzur.                 */
 /* Copyright (c) 2014-2017 Godot Engine contributors (cf. AUTHORS.md)    */
@@ -291,10 +291,10 @@ public:
 	RID get_canvas() const;
 	Ref<World2D> get_world_2d() const;
 
-	void set_material(const Ref<Material> &p_material);
+	virtual void set_material(const Ref<Material> &p_material);
 	Ref<Material> get_material() const;
 
-	void set_use_parent_material(bool p_use_parent_material);
+	virtual void set_use_parent_material(bool p_use_parent_material);
 	bool get_use_parent_material() const;
 
 	Ref<InputEvent> make_input_local(const Ref<InputEvent> &p_event) const;

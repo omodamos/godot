@@ -3,7 +3,7 @@
 /*************************************************************************/
 /*                       This file is part of:                           */
 /*                           GODOT ENGINE                                */
-/*                    http://www.godotengine.org                         */
+/*                      https://godotengine.org                          */
 /*************************************************************************/
 /* Copyright (c) 2007-2017 Juan Linietsky, Ariel Manzur.                 */
 /* Copyright (c) 2014-2017 Godot Engine contributors (cf. AUTHORS.md)    */
@@ -81,9 +81,7 @@ void VehicleWheel::_notification(int p_what) {
 
 	if (p_what == NOTIFICATION_ENTER_TREE) {
 
-		if (!get_parent())
-			return;
-		VehicleBody *cb = get_parent()->cast_to<VehicleBody>();
+		VehicleBody *cb = Object::cast_to<VehicleBody>(get_parent());
 		if (!cb)
 			return;
 		body = cb;
@@ -96,14 +94,20 @@ void VehicleWheel::_notification(int p_what) {
 	}
 	if (p_what == NOTIFICATION_EXIT_TREE) {
 
-		if (!get_parent())
-			return;
-		VehicleBody *cb = get_parent()->cast_to<VehicleBody>();
+		VehicleBody *cb = Object::cast_to<VehicleBody>(get_parent());
 		if (!cb)
 			return;
 		cb->wheels.erase(this);
 		body = NULL;
 	}
+}
+
+String VehicleWheel::get_configuration_warning() const {
+	if (!Object::cast_to<VehicleBody>(get_parent())) {
+		return TTR("VehicleWheel serves to provide a wheel system to a VehicleBody. Please use it as a child of a VehicleBody.");
+	}
+
+	return String();
 }
 
 void VehicleWheel::_update(PhysicsDirectBodyState *s) {
@@ -416,7 +420,7 @@ real_t VehicleBody::_ray_cast(int p_idx, PhysicsDirectBodyState *s) {
 
 		wheel.m_raycastInfo.m_isInContact = true;
 		if (rr.collider)
-			wheel.m_raycastInfo.m_groundObject = rr.collider->cast_to<PhysicsBody>();
+			wheel.m_raycastInfo.m_groundObject = Object::cast_to<PhysicsBody>(rr.collider);
 
 		real_t hitDistance = param * raylen;
 		wheel.m_raycastInfo.m_suspensionLength = hitDistance - wheel.m_wheelRadius;
@@ -804,7 +808,7 @@ void VehicleBody::_update_friction(PhysicsDirectBodyState *s) {
 
 void VehicleBody::_direct_state_changed(Object *p_state) {
 
-	PhysicsDirectBodyState *s = p_state->cast_to<PhysicsDirectBodyState>();
+	PhysicsDirectBodyState *s = Object::cast_to<PhysicsDirectBodyState>(p_state);
 
 	set_ignore_transform_notification(true);
 	set_global_transform(s->get_transform());

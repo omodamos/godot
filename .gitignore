@@ -34,6 +34,9 @@ platform/android/java/assets
 .deps/*
 .dirstamp
 
+# Gprof output
+gmon.out
+
 # Vim temp files
 *.swo
 *.swp
@@ -44,10 +47,15 @@ platform/android/java/assets
 *.files
 *.includes
 
+# Eclipse CDT files
+.cproject
+.settings/
+
 # Misc
 .DS_Store
 
 # for projects that use SCons for building: http://http://www.scons.org/
+.sconf_temp
 .sconsign.dblite
 *.pyc
 

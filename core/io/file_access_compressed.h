@@ -3,7 +3,7 @@
 /*************************************************************************/
 /*                       This file is part of:                           */
 /*                           GODOT ENGINE                                */
-/*                    http://www.godotengine.org                         */
+/*                      https://godotengine.org                          */
 /*************************************************************************/
 /* Copyright (c) 2007-2017 Juan Linietsky, Ariel Manzur.                 */
 /* Copyright (c) 2014-2017 Godot Engine contributors (cf. AUTHORS.md)    */
@@ -37,11 +37,11 @@ class FileAccessCompressed : public FileAccess {
 
 	Compression::Mode cmode;
 	bool writing;
-	int write_pos;
+	uint32_t write_pos;
 	uint8_t *write_ptr;
-	int write_buffer_size;
-	int write_max;
-	int block_size;
+	uint32_t write_buffer_size;
+	uint32_t write_max;
+	uint32_t block_size;
 	mutable bool read_eof;
 	mutable bool at_end;
 
@@ -57,7 +57,7 @@ class FileAccessCompressed : public FileAccess {
 	mutable int read_block_size;
 	mutable int read_pos;
 	Vector<ReadBlock> read_blocks;
-	int read_total;
+	uint32_t read_total;
 
 	String magic;
 	mutable Vector<uint8_t> buffer;

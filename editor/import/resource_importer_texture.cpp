@@ -3,7 +3,7 @@
 /*************************************************************************/
 /*                       This file is part of:                           */
 /*                           GODOT ENGINE                                */
-/*                    http://www.godotengine.org                         */
+/*                      https://godotengine.org                          */
 /*************************************************************************/
 /* Copyright (c) 2007-2017 Juan Linietsky, Ariel Manzur.                 */
 /* Copyright (c) 2014-2017 Godot Engine contributors (cf. AUTHORS.md)    */
@@ -30,6 +30,7 @@
 #include "resource_importer_texture.h"
 
 #include "editor/editor_file_system.h"
+#include "editor/editor_node.h"
 #include "io/config_file.h"
 #include "io/image_loader.h"
 #include "scene/resources/texture.h"
@@ -199,7 +200,7 @@ void ResourceImporterTexture::get_import_options(List<ImportOption> *r_options, 
 	r_options->push_back(ImportOption(PropertyInfo(Variant::INT, "stream"), false));
 	r_options->push_back(ImportOption(PropertyInfo(Variant::INT, "size_limit", PROPERTY_HINT_RANGE, "0,4096,1"), 0));
 	r_options->push_back(ImportOption(PropertyInfo(Variant::BOOL, "detect_3d"), p_preset == PRESET_DETECT));
-	r_options->push_back(ImportOption(PropertyInfo(Variant::REAL, "scale", PROPERTY_HINT_RANGE, "0.001,100,0.1"), 1.0));
+	r_options->push_back(ImportOption(PropertyInfo(Variant::REAL, "svg/scale", PROPERTY_HINT_RANGE, "0.001,100,0.1"), 1.0));
 }
 
 void ResourceImporterTexture::_save_stex(const Ref<Image> &p_image, const String &p_to_path, int p_compress_mode, float p_lossy_quality, Image::CompressMode p_vram_compression, bool p_mipmaps, int p_texture_flags, bool p_streamable, bool p_detect_3d, bool p_detect_srgb, bool p_force_rgbe, bool p_detect_normal, bool p_force_normal) {
@@ -357,7 +358,7 @@ Error ResourceImporterTexture::import(const String &p_source_file, const String 
 	bool force_rgbe = int(p_options["compress/hdr_mode"]) == 1;
 	bool hdr_as_srgb = p_options["process/HDR_as_SRGB"];
 	int normal = p_options["compress/normal_map"];
-	float scale = p_options["scale"];
+	float scale = p_options["svg/scale"];
 
 	Ref<Image> image;
 	image.instance();
@@ -411,10 +412,14 @@ Error ResourceImporterTexture::import(const String &p_source_file, const String 
 	if (compress_mode == COMPRESS_VIDEO_RAM) {
 		//must import in all formats, in order of priority (so platform choses the best supported one. IE, etc2 over etc).
 		//Android, GLES 2.x
+
+		bool ok_on_pc = false;
+
 		if (ProjectSettings::get_singleton()->get("rendering/vram_compression/import_s3tc")) {
 
 			_save_stex(image, p_save_path + ".s3tc.stex", compress_mode, lossy, Image::COMPRESS_S3TC, mipmaps, tex_flags, stream, detect_3d, detect_srgb, force_rgbe, detect_normal, force_normal);
 			r_platform_variants->push_back("s3tc");
+			ok_on_pc = true;
 		}
 
 		if (ProjectSettings::get_singleton()->get("rendering/vram_compression/import_etc2")) {
@@ -434,6 +439,9 @@ Error ResourceImporterTexture::import(const String &p_source_file, const String 
 			r_platform_variants->push_back("pvrtc");
 		}
 
+		if (!ok_on_pc) {
+			EditorNode::add_io_error("Warning, no suitable PC VRAM compression enabled in Project Settings. This texture will not display correcly on PC.");
+		}
 	} else {
 		//import normally
 		_save_stex(image, p_save_path + ".stex", compress_mode, lossy, Image::COMPRESS_S3TC /*this is ignored */, mipmaps, tex_flags, stream, detect_3d, detect_srgb, force_rgbe, detect_normal, force_normal);

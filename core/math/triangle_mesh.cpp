@@ -3,7 +3,7 @@
 /*************************************************************************/
 /*                       This file is part of:                           */
 /*                           GODOT ENGINE                                */
-/*                    http://www.godotengine.org                         */
+/*                      https://godotengine.org                          */
 /*************************************************************************/
 /* Copyright (c) 2007-2017 Juan Linietsky, Ariel Manzur.                 */
 /* Copyright (c) 2014-2017 Godot Engine contributors (cf. AUTHORS.md)    */
@@ -158,7 +158,7 @@ void TriangleMesh::create(const PoolVector<Vector3> &p_faces) {
 
 	max_depth = 0;
 	int max_alloc = fc;
-	int max = _create_bvh(bw.ptr(), bwp.ptr(), 0, fc, 1, max_depth, max_alloc);
+	_create_bvh(bw.ptr(), bwp.ptr(), 0, fc, 1, max_depth, max_alloc);
 
 	bw = PoolVector<BVH>::Write(); //clearup
 	bvh.resize(max_alloc); //resize back

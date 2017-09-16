@@ -3,7 +3,7 @@
 /*************************************************************************/
 /*                       This file is part of:                           */
 /*                           GODOT ENGINE                                */
-/*                    http://www.godotengine.org                         */
+/*                      https://godotengine.org                          */
 /*************************************************************************/
 /* Copyright (c) 2007-2017 Juan Linietsky, Ariel Manzur.                 */
 /* Copyright (c) 2014-2017 Godot Engine contributors (cf. AUTHORS.md)    */
@@ -251,9 +251,9 @@ void AnimationPlayer::_generate_node_caches(AnimationData *p_anim) {
 		uint32_t id = resource.is_valid() ? resource->get_instance_id() : child->get_instance_id();
 		int bone_idx = -1;
 
-		if (a->track_get_path(i).get_property() && child->cast_to<Skeleton>()) {
+		if (a->track_get_path(i).get_property() && Object::cast_to<Skeleton>(child)) {
 
-			bone_idx = child->cast_to<Skeleton>()->find_bone(a->track_get_path(i).get_property());
+			bone_idx = Object::cast_to<Skeleton>(child)->find_bone(a->track_get_path(i).get_property());
 			if (bone_idx == -1) {
 
 				continue;
@@ -280,14 +280,14 @@ void AnimationPlayer::_generate_node_caches(AnimationData *p_anim) {
 			p_anim->node_cache[i]->path = a->track_get_path(i);
 			p_anim->node_cache[i]->node = child;
 			p_anim->node_cache[i]->resource = resource;
-			p_anim->node_cache[i]->node_2d = child->cast_to<Node2D>();
+			p_anim->node_cache[i]->node_2d = Object::cast_to<Node2D>(child);
 			if (a->track_get_type(i) == Animation::TYPE_TRANSFORM) {
 				// special cases and caches for transform tracks
 
 				// cache spatial
-				p_anim->node_cache[i]->spatial = child->cast_to<Spatial>();
+				p_anim->node_cache[i]->spatial = Object::cast_to<Spatial>(child);
 				// cache skeleton
-				p_anim->node_cache[i]->skeleton = child->cast_to<Skeleton>();
+				p_anim->node_cache[i]->skeleton = Object::cast_to<Skeleton>(child);
 				if (p_anim->node_cache[i]->skeleton) {
 
 					StringName bone_name = a->track_get_path(i).get_property();
@@ -608,16 +608,6 @@ void AnimationPlayer::_animation_update_transforms() {
 
 		ERR_CONTINUE(pa->accum_pass != accum_pass);
 
-#if 1
-		/*		switch(pa->special) {
-
-
-			case SP_NONE: pa->object->set(pa->prop,pa->value_accum); break; //you are not speshul
-			case SP_NODE2D_POS: static_cast<Node2D*>(pa->object)->set_position(pa->value_accum); break;
-			case SP_NODE2D_ROT: static_cast<Node2D*>(pa->object)->set_rot(Math::deg2rad(pa->value_accum)); break;
-			case SP_NODE2D_SCALE: static_cast<Node2D*>(pa->object)->set_scale(pa->value_accum); break;
-		}*/
-
 		switch (pa->special) {
 
 			case SP_NONE: {
@@ -657,18 +647,12 @@ void AnimationPlayer::_animation_update_transforms() {
 				static_cast<Node2D *>(pa->object)->set_scale(pa->value_accum);
 			} break;
 		}
-#else
-
-		pa->object->set(pa->prop, pa->value_accum);
-#endif
 	}
 
 	cache_update_prop_size = 0;
 }
 
 void AnimationPlayer::_animation_process(float p_delta) {
-
-	//bool any_active=false;
 
 	if (playback.current.from) {
 

@@ -3,7 +3,7 @@
 /*************************************************************************/
 /*                       This file is part of:                           */
 /*                           GODOT ENGINE                                */
-/*                    http://www.godotengine.org                         */
+/*                      https://godotengine.org                          */
 /*************************************************************************/
 /* Copyright (c) 2007-2017 Juan Linietsky, Ariel Manzur.                 */
 /* Copyright (c) 2014-2017 Godot Engine contributors (cf. AUTHORS.md)    */
@@ -87,6 +87,8 @@ void FileAccessNetworkClient::_thread_func() {
 
 		DEBUG_PRINT("SEM WAIT - " + itos(sem->get()));
 		Error err = sem->wait();
+		if (err != OK)
+			ERR_PRINT("sem->wait() failed");
 		DEBUG_TIME("sem_unlock");
 		//DEBUG_PRINT("semwait returned "+itos(werr));
 		DEBUG_PRINT("MUTEX LOCK " + itos(lockcount));
@@ -244,14 +246,14 @@ FileAccessNetworkClient::~FileAccessNetworkClient() {
 	memdelete(sem);
 }
 
-void FileAccessNetwork::_set_block(size_t p_offset, const Vector<uint8_t> &p_block) {
+void FileAccessNetwork::_set_block(int p_offset, const Vector<uint8_t> &p_block) {
 
 	int page = p_offset / page_size;
 	ERR_FAIL_INDEX(page, pages.size());
 	if (page < pages.size() - 1) {
 		ERR_FAIL_COND(p_block.size() != page_size);
 	} else {
-		ERR_FAIL_COND((p_block.size() != (total_size % page_size)));
+		ERR_FAIL_COND((p_block.size() != (int)(total_size % page_size)));
 	}
 
 	buffer_mutex->lock();

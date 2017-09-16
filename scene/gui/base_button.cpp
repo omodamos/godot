@@ -3,7 +3,7 @@
 /*************************************************************************/
 /*                       This file is part of:                           */
 /*                           GODOT ENGINE                                */
-/*                    http://www.godotengine.org                         */
+/*                      https://godotengine.org                          */
 /*************************************************************************/
 /* Copyright (c) 2007-2017 Juan Linietsky, Ariel Manzur.                 */
 /* Copyright (c) 2014-2017 Godot Engine contributors (cf. AUTHORS.md)    */
@@ -28,6 +28,7 @@
 /* SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                */
 /*************************************************************************/
 #include "base_button.h"
+
 #include "os/keyboard.h"
 #include "print_string.h"
 #include "scene/main/viewport.h"
@@ -86,14 +87,14 @@ void BaseButton::_gui_input(Ref<InputEvent> p_event) {
 
 					status.pressed = !status.pressed;
 					pressed();
-					if (get_script_instance()) {
-						Variant::CallError ce;
-						get_script_instance()->call(SceneStringNames::get_singleton()->_pressed, NULL, 0, ce);
-					}
+
 					emit_signal("pressed");
 					_unpress_group();
 
 					toggled(status.pressed);
+					if (get_script_instance()) {
+						get_script_instance()->call(SceneStringNames::get_singleton()->_toggled, status.pressed);
+					}
 					emit_signal("toggled", status.pressed);
 				}
 
@@ -142,10 +143,10 @@ void BaseButton::_gui_input(Ref<InputEvent> p_event) {
 					emit_signal("pressed");
 
 					toggled(status.pressed);
-					emit_signal("toggled", status.pressed);
 					if (get_script_instance()) {
 						get_script_instance()->call(SceneStringNames::get_singleton()->_toggled, status.pressed);
 					}
+					emit_signal("toggled", status.pressed);
 				}
 
 				_unpress_group();

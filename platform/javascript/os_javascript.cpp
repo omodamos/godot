@@ -3,7 +3,7 @@
 /*************************************************************************/
 /*                       This file is part of:                           */
 /*                           GODOT ENGINE                                */
-/*                    http://www.godotengine.org                         */
+/*                      https://godotengine.org                          */
 /*************************************************************************/
 /* Copyright (c) 2007-2017 Juan Linietsky, Ariel Manzur.                 */
 /* Copyright (c) 2014-2017 Godot Engine contributors (cf. AUTHORS.md)    */
@@ -521,21 +521,6 @@ void OS_JavaScript::initialize(const VideoMode &p_desired, int p_video_driver, i
 #undef SET_EM_CALLBACK
 #undef EM_CHECK
 
-	/* clang-format off */
-	EM_ASM_ARGS({
-		const send_notification = Module.cwrap('send_notification', null, ['number']);
-		const notifs = arguments;
-		(['mouseover', 'mouseleave', 'focus', 'blur']).forEach(function(event, i) {
-			Module.canvas.addEventListener(event, send_notification.bind(this, notifs[i]));
-		});
-	},
-		MainLoop::NOTIFICATION_WM_MOUSE_ENTER,
-		MainLoop::NOTIFICATION_WM_MOUSE_EXIT,
-		MainLoop::NOTIFICATION_WM_FOCUS_IN,
-		MainLoop::NOTIFICATION_WM_FOCUS_OUT
-	);
-/* clang-format on */
-
 #ifdef JAVASCRIPT_EVAL_ENABLED
 	javascript_eval = memnew(JavaScript);
 	ProjectSettings::get_singleton()->add_singleton(ProjectSettings::Singleton("JavaScript", javascript_eval));
@@ -818,7 +803,23 @@ void OS_JavaScript::main_loop_begin() {
 
 	if (main_loop)
 		main_loop->init();
+
+	/* clang-format off */
+	EM_ASM_ARGS({
+		const send_notification = Module.cwrap('send_notification', null, ['number']);
+		const notifs = arguments;
+		(['mouseover', 'mouseleave', 'focus', 'blur']).forEach(function(event, i) {
+			Module.canvas.addEventListener(event, send_notification.bind(null, notifs[i]));
+		});
+	},
+		MainLoop::NOTIFICATION_WM_MOUSE_ENTER,
+		MainLoop::NOTIFICATION_WM_MOUSE_EXIT,
+		MainLoop::NOTIFICATION_WM_FOCUS_IN,
+		MainLoop::NOTIFICATION_WM_FOCUS_OUT
+	);
+	/* clang-format on */
 }
+
 bool OS_JavaScript::main_loop_iterate() {
 
 	if (!main_loop)
@@ -975,7 +976,7 @@ String OS_JavaScript::get_joy_guid(int p_device) const {
 	return input->get_joy_guid_remapped(p_device);
 }
 
-PowerState OS_JavaScript::get_power_state() {
+OS::PowerState OS_JavaScript::get_power_state() {
 	return power_manager->get_power_state();
 }
 

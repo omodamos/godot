@@ -3,7 +3,7 @@
 /*************************************************************************/
 /*                       This file is part of:                           */
 /*                           GODOT ENGINE                                */
-/*                    http://www.godotengine.org                         */
+/*                      https://godotengine.org                          */
 /*************************************************************************/
 /* Copyright (c) 2007-2017 Juan Linietsky, Ariel Manzur.                 */
 /* Copyright (c) 2014-2017 Godot Engine contributors (cf. AUTHORS.md)    */
@@ -29,20 +29,17 @@
 /*************************************************************************/
 #include "shader_editor_plugin.h"
 
+#include "core/io/resource_loader.h"
+#include "core/io/resource_saver.h"
+#include "core/os/keyboard.h"
+#include "core/os/os.h"
 #include "editor/editor_node.h"
 #include "editor/editor_settings.h"
 #include "editor/property_editor.h"
-#include "io/resource_loader.h"
-#include "io/resource_saver.h"
-#include "os/keyboard.h"
-#include "os/os.h"
 #include "scene/resources/shader_graph.h"
 #include "servers/visual/shader_types.h"
-#include "spatial_editor_plugin.h"
 
-/*** SETTINGS EDITOR ****/
-
-/*** SCRIPT EDITOR ****/
+/*** SHADER SCRIPT EDITOR ****/
 
 Ref<Shader> ShaderTextEditor::get_edited_shader() const {
 
@@ -96,9 +93,9 @@ void ShaderTextEditor::_load_theme_settings() {
 
 	if (shader.is_valid()) {
 
-		for (const Map<StringName, Map<StringName, ShaderLanguage::DataType> >::Element *E = ShaderTypes::get_singleton()->get_functions(VisualServer::ShaderMode(shader->get_mode())).front(); E; E = E->next()) {
+		for (const Map<StringName, ShaderLanguage::FunctionInfo>::Element *E = ShaderTypes::get_singleton()->get_functions(VisualServer::ShaderMode(shader->get_mode())).front(); E; E = E->next()) {
 
-			for (const Map<StringName, ShaderLanguage::DataType>::Element *F = E->get().front(); F; F = F->next()) {
+			for (const Map<StringName, ShaderLanguage::DataType>::Element *F = E->get().built_ins.front(); F; F = F->next()) {
 				keywords.push_back(F->key());
 			}
 		}
@@ -167,6 +164,8 @@ void ShaderTextEditor::_code_complete_script(const String &p_code, List<String> 
 	String calltip;
 
 	Error err = sl.complete(p_code, ShaderTypes::get_singleton()->get_functions(VisualServer::ShaderMode(shader->get_mode())), ShaderTypes::get_singleton()->get_modes(VisualServer::ShaderMode(shader->get_mode())), ShaderTypes::get_singleton()->get_types(), r_options, calltip);
+	if (err != OK)
+		ERR_PRINT("Shaderlang complete failed");
 
 	if (calltip != "") {
 		get_text_edit()->set_code_hint(calltip);
@@ -200,8 +199,6 @@ void ShaderTextEditor::_validate_script() {
 }
 
 void ShaderTextEditor::_bind_methods() {
-
-	//ADD_SIGNAL( MethodInfo("script_changed") );
 }
 
 ShaderTextEditor::ShaderTextEditor() {
@@ -255,9 +252,6 @@ void ShaderEditor::_menu_option(int p_option) {
 
 			current->get_find_replace_bar()->popup_replace();
 		} break;
-		//case SEARCH_LOCATE_SYMBOL: {
-
-		//} break;
 		case SEARCH_GOTO_LINE: {
 
 			goto_line_dialog->popup_find_line(current->get_text_edit());
@@ -277,90 +271,6 @@ void ShaderEditor::_notification(int p_what) {
 	}
 }
 
-Dictionary ShaderEditor::get_state() const {
-#if 0
-	apply_shaders();
-
-	Dictionary state;
-
-	Array paths;
-	int open=-1;
-
-	for(int i=0;i<tab_container->get_child_count();i++) {
-
-		ShaderTextEditor *ste = tab_container->get_child(i)->cast_to<ShaderTextEditor>();
-		if (!ste)
-			continue;
-
-
-		Ref<Shader> shader = ste->get_edited_shader();
-		if (shader->get_path()!="" && shader->get_path().find("local://")==-1 && shader->get_path().find("::")==-1) {
-
-			paths.push_back(shader->get_path());
-		} else {
-
-
-			const Node *owner = _find_node_with_shader(get_root_node(),shader.get_ref_ptr());
-			if (owner)
-				paths.push_back(owner->get_path());
-
-		}
-
-		if (i==tab_container->get_current_tab())
-			open=i;
-	}
-
-	if (paths.size())
-		state["sources"]=paths;
-	if (open!=-1)
-		state["current"]=open;
-
-
-	return state;
-#endif
-	return Dictionary();
-}
-void ShaderEditor::set_state(const Dictionary &p_state) {
-#if 0
-	print_line("setting state..");
-	if (!p_state.has("sources"))
-		return; //bleh
-
-	Array sources = p_state["sources"];
-	for(int i=0;i<sources.size();i++) {
-
-		Variant source=sources[i];
-
-		Ref<Shader> shader;
-
-		if (source.get_type()==Variant::NODE_PATH) {
-
-			print_line("cain find owner at path "+String(source));
-			Node *owner=get_root_node()->get_node(source);
-			if (!owner)
-				continue;
-
-			shader = owner->get_shader();
-		} else if (source.get_type()==Variant::STRING) {
-
-			print_line("loading at path "+String(source));
-			shader = ResourceLoader::load(source,"Shader");
-		}
-
-		print_line("found shader at "+String(source)+"? - "+itos(shader.is_null()));
-		if (shader.is_null()) //ah well..
-			continue;
-
-		get_scene()->get_root_node()->call("_resource_selected",shader);
-	}
-
-	if (p_state.has("current"))
-	tab_container->set_current_tab(p_state["current"]);
-#endif
-}
-void ShaderEditor::clear() {
-}
-
 void ShaderEditor::_params_changed() {
 
 	shader_editor->_validate_script();
@@ -372,6 +282,7 @@ void ShaderEditor::_editor_settings_changed() {
 	shader_editor->get_text_edit()->set_scroll_pass_end_of_file(EditorSettings::get_singleton()->get("text_editor/cursor/scroll_past_end_of_file"));
 	shader_editor->get_text_edit()->set_indent_size(EditorSettings::get_singleton()->get("text_editor/indent/size"));
 	shader_editor->get_text_edit()->set_indent_using_spaces(EditorSettings::get_singleton()->get("text_editor/indent/type"));
+	shader_editor->get_text_edit()->set_auto_indent(EditorSettings::get_singleton()->get("text_editor/indent/auto_indent"));
 	shader_editor->get_text_edit()->set_draw_tabs(EditorSettings::get_singleton()->get("text_editor/indent/draw_tabs"));
 	shader_editor->get_text_edit()->set_show_line_numbers(EditorSettings::get_singleton()->get("text_editor/line_numbers/show_line_numbers"));
 	shader_editor->get_text_edit()->set_syntax_coloring(EditorSettings::get_singleton()->get("text_editor/highlighting/syntax_highlighting"));
@@ -380,6 +291,8 @@ void ShaderEditor::_editor_settings_changed() {
 	shader_editor->get_text_edit()->cursor_set_blink_speed(EditorSettings::get_singleton()->get("text_editor/cursor/caret_blink_speed"));
 	shader_editor->get_text_edit()->add_constant_override("line_spacing", EditorSettings::get_singleton()->get("text_editor/theme/line_spacing"));
 	shader_editor->get_text_edit()->cursor_set_block_mode(EditorSettings::get_singleton()->get("text_editor/cursor/block_caret"));
+	shader_editor->get_text_edit()->set_smooth_scroll_enabled(EditorSettings::get_singleton()->get("text_editor/open_scripts/smooth_scrolling"));
+	shader_editor->get_text_edit()->set_v_scroll_speed(EditorSettings::get_singleton()->get("text_editor/open_scripts/v_scroll_speed"));
 }
 
 void ShaderEditor::_bind_methods() {
@@ -397,7 +310,7 @@ void ShaderEditor::ensure_select_current() {
 	/*
 	if (tab_container->get_child_count() && tab_container->get_current_tab()>=0) {
 
-		ShaderTextEditor *ste = tab_container->get_child(tab_container->get_current_tab())->cast_to<ShaderTextEditor>();
+		ShaderTextEditor *ste = Object::cast_to<ShaderTextEditor>(tab_container->get_child(tab_container->get_current_tab()));
 		if (!ste)
 			return;
 		Ref<Shader> shader = ste->get_edited_shader();
@@ -486,19 +399,13 @@ ShaderEditor::ShaderEditor() {
 
 void ShaderEditorPlugin::edit(Object *p_object) {
 
-	Shader *s = p_object->cast_to<Shader>();
+	Shader *s = Object::cast_to<Shader>(p_object);
 	shader_editor->edit(s);
 }
 
 bool ShaderEditorPlugin::handles(Object *p_object) const {
 
-	bool handles = true;
-	Shader *shader = p_object->cast_to<Shader>();
-	/*
-	if (!shader || shader->cast_to<ShaderGraph>()) // Don't handle ShaderGraph's
-		handles = false;
-	*/
-
+	Shader *shader = Object::cast_to<Shader>(p_object);
 	return shader != NULL;
 }
 
@@ -520,20 +427,6 @@ void ShaderEditorPlugin::make_visible(bool p_visible) {
 void ShaderEditorPlugin::selected_notify() {
 
 	shader_editor->ensure_select_current();
-}
-
-Dictionary ShaderEditorPlugin::get_state() const {
-
-	return shader_editor->get_state();
-}
-
-void ShaderEditorPlugin::set_state(const Dictionary &p_state) {
-
-	shader_editor->set_state(p_state);
-}
-void ShaderEditorPlugin::clear() {
-
-	shader_editor->clear();
 }
 
 void ShaderEditorPlugin::save_external_data() {

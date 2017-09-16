@@ -3,7 +3,7 @@
 /*************************************************************************/
 /*                       This file is part of:                           */
 /*                           GODOT ENGINE                                */
-/*                    http://www.godotengine.org                         */
+/*                      https://godotengine.org                          */
 /*************************************************************************/
 /* Copyright (c) 2007-2017 Juan Linietsky, Ariel Manzur.                 */
 /* Copyright (c) 2014-2017 Godot Engine contributors (cf. AUTHORS.md)    */
@@ -50,7 +50,7 @@ void DependencyEditor::_searched(const String &p_path) {
 
 void DependencyEditor::_load_pressed(Object *p_item, int p_cell, int p_button) {
 
-	TreeItem *ti = p_item->cast_to<TreeItem>();
+	TreeItem *ti = Object::cast_to<TreeItem>(p_item);
 	String fname = ti->get_text(0);
 	replacing = ti->get_text(1);
 
@@ -489,6 +489,7 @@ DependencyErrorDialog::DependencyErrorDialog() {
 	vb->add_margin_child(TTR("Scene failed to load due to missing dependencies:"), files, true);
 	files->set_v_size_flags(SIZE_EXPAND_FILL);
 	get_ok()->set_text(TTR("Open Anyway"));
+	get_cancel()->set_text(TTR("Done"));
 
 	text = memnew(Label);
 	vb->add_child(text);
@@ -626,7 +627,7 @@ void OrphanResourcesDialog::_delete_confirm() {
 
 void OrphanResourcesDialog::_button_pressed(Object *p_item, int p_column, int p_id) {
 
-	TreeItem *ti = p_item->cast_to<TreeItem>();
+	TreeItem *ti = Object::cast_to<TreeItem>(p_item);
 
 	String path = ti->get_metadata(0);
 	dep_edit->edit(path);

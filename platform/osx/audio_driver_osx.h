@@ -3,7 +3,7 @@
 /*************************************************************************/
 /*                       This file is part of:                           */
 /*                           GODOT ENGINE                                */
-/*                    http://www.godotengine.org                         */
+/*                      https://godotengine.org                          */
 /*************************************************************************/
 /* Copyright (c) 2007-2017 Juan Linietsky, Ariel Manzur.                 */
 /* Copyright (c) 2014-2017 Godot Engine contributors (cf. AUTHORS.md)    */
@@ -45,8 +45,9 @@ class AudioDriverOSX : public AudioDriver {
 	Mutex *mutex;
 
 	int mix_rate;
-	int channels;
-	int buffer_frames;
+	unsigned int channels;
+	unsigned int buffer_frames;
+	unsigned int buffer_size;
 
 	Vector<int32_t> samples_in;
 

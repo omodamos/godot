@@ -3,7 +3,7 @@
 /*************************************************************************/
 /*                       This file is part of:                           */
 /*                           GODOT ENGINE                                */
-/*                    http://www.godotengine.org                         */
+/*                      https://godotengine.org                          */
 /*************************************************************************/
 /* Copyright (c) 2007-2017 Juan Linietsky, Ariel Manzur.                 */
 /* Copyright (c) 2014-2017 Godot Engine contributors (cf. AUTHORS.md)    */
@@ -28,14 +28,16 @@
 /* SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                */
 /*************************************************************************/
 #include "resource_format_binary.h"
-#include "image.h"
-#include "io/file_access_compressed.h"
-#include "io/marshalls.h"
-#include "os/dir_access.h"
-#include "project_settings.h"
-#include "version.h"
+
+#include "core/image.h"
+#include "core/io/file_access_compressed.h"
+#include "core/io/marshalls.h"
+#include "core/os/dir_access.h"
+#include "core/project_settings.h"
+#include "core/version.h"
+
 //#define print_bl(m_what) print_line(m_what)
-#define print_bl(m_what)
+#define print_bl(m_what) (void)(m_what)
 
 enum {
 
@@ -100,7 +102,7 @@ StringName ResourceInteractiveLoaderBinary::_get_string() {
 
 	uint32_t id = f->get_32();
 	if (id & 0x80000000) {
-		uint32_t len = id & 0x7FFFFFFF;
+		int len = id & 0x7FFFFFFF;
 		if (len > str_buf.size()) {
 			str_buf.resize(len);
 		}
@@ -334,9 +336,9 @@ Error ResourceInteractiveLoaderBinary::parse_variant(Variant &r_v) {
 				} break;
 				case OBJECT_EXTERNAL_RESOURCE_INDEX: {
 					//new file format, just refers to an index in the external list
-					uint32_t erindex = f->get_32();
+					int erindex = f->get_32();
 
-					if (erindex >= external_resources.size()) {
+					if (erindex < 0 || erindex >= external_resources.size()) {
 						WARN_PRINT("Broken external resource! (index out of size");
 						r_v = Variant();
 					} else {
@@ -713,7 +715,7 @@ Error ResourceInteractiveLoaderBinary::poll() {
 	}
 	ERR_FAIL_COND_V(!obj, ERR_FILE_CORRUPT);
 
-	Resource *r = obj->cast_to<Resource>();
+	Resource *r = Object::cast_to<Resource>(obj);
 	if (!r) {
 		error = ERR_FILE_CORRUPT;
 		memdelete(obj); //bye
@@ -852,12 +854,6 @@ void ResourceInteractiveLoaderBinary::open(FileAccess *p_f) {
 	}
 
 	bool big_endian = f->get_32();
-#ifdef BIG_ENDIAN_ENABLED
-	endian_swap = !big_endian;
-#else
-	bool endian_swap = big_endian;
-#endif
-
 	bool use_real64 = f->get_32();
 
 	f->set_endian_swap(big_endian != 0); //read big endian if saved as big endian
@@ -867,7 +863,11 @@ void ResourceInteractiveLoaderBinary::open(FileAccess *p_f) {
 	uint32_t ver_format = f->get_32();
 
 	print_bl("big endian: " + itos(big_endian));
-	print_bl("endian swap: " + itos(endian_swap));
+#ifdef BIG_ENDIAN_ENABLED
+	print_bl("endian swap: " + itos(!big_endian));
+#else
+	print_bl("endian swap: " + itos(big_endian));
+#endif
 	print_bl("real64: " + itos(use_real64));
 	print_bl("major: " + itos(ver_major));
 	print_bl("minor: " + itos(ver_minor));
@@ -876,7 +876,7 @@ void ResourceInteractiveLoaderBinary::open(FileAccess *p_f) {
 	if (ver_format > FORMAT_VERSION || ver_major > VERSION_MAJOR) {
 
 		f->close();
-		ERR_EXPLAIN("File Format '" + itos(FORMAT_VERSION) + "." + itos(ver_major) + "." + itos(ver_minor) + "' is too new! Please upgrade to a a new engine version: " + local_path);
+		ERR_EXPLAIN("File Format '" + itos(FORMAT_VERSION) + "." + itos(ver_major) + "." + itos(ver_minor) + "' is too new! Please upgrade to a new engine version: " + local_path);
 		ERR_FAIL();
 	}
 
@@ -962,18 +962,12 @@ String ResourceInteractiveLoaderBinary::recognize(FileAccess *p_f) {
 	}
 
 	bool big_endian = f->get_32();
-#ifdef BIG_ENDIAN_ENABLED
-	endian_swap = !big_endian;
-#else
-	bool endian_swap = big_endian;
-#endif
-
-	bool use_real64 = f->get_32();
+	f->get_32(); // use_real64
 
 	f->set_endian_swap(big_endian != 0); //read big endian if saved as big endian
 
 	uint32_t ver_major = f->get_32();
-	uint32_t ver_minor = f->get_32();
+	f->get_32(); // ver_minor
 	uint32_t ver_format = f->get_32();
 
 	if (ver_format > FORMAT_VERSION || ver_major > VERSION_MAJOR) {
@@ -991,8 +985,6 @@ ResourceInteractiveLoaderBinary::ResourceInteractiveLoaderBinary() {
 
 	f = NULL;
 	stage = 0;
-	endian_swap = false;
-	use_real64 = false;
 	error = OK;
 	translation_remapped = false;
 }
@@ -1003,7 +995,7 @@ ResourceInteractiveLoaderBinary::~ResourceInteractiveLoaderBinary() {
 		memdelete(f);
 }
 
-Ref<ResourceInteractiveLoader> ResourceFormatLoaderBinary::load_interactive(const String &p_path, Error *r_error) {
+Ref<ResourceInteractiveLoader> ResourceFormatLoaderBinary::load_interactive(const String &p_path, const String &p_original_path, Error *r_error) {
 
 	if (r_error)
 		*r_error = ERR_FILE_CANT_OPEN;
@@ -1017,7 +1009,8 @@ Ref<ResourceInteractiveLoader> ResourceFormatLoaderBinary::load_interactive(cons
 	}
 
 	Ref<ResourceInteractiveLoaderBinary> ria = memnew(ResourceInteractiveLoaderBinary);
-	ria->local_path = ProjectSettings::get_singleton()->localize_path(p_path);
+	String path = p_original_path != "" ? p_original_path : p_path;
+	ria->local_path = ProjectSettings::get_singleton()->localize_path(path);
 	ria->res_path = ria->local_path;
 	//ria->set_local_path( Globals::get_singleton()->localize_path(p_path) );
 	ria->open(f);
@@ -1114,19 +1107,20 @@ Error ResourceFormatLoaderBinary::rename_dependencies(const String &p_path, cons
 			memdelete(f);
 		}
 		ERR_FAIL_COND_V(!fw, ERR_CANT_CREATE);
+
+		uint8_t magic[4] = { 'R', 'S', 'R', 'C' };
+		fw->store_buffer(magic, 4);
 	}
 
 	bool big_endian = f->get_32();
-#ifdef BIG_ENDIAN_ENABLED
-	endian_swap = !big_endian;
-#else
-	bool endian_swap = big_endian;
-#endif
-
 	bool use_real64 = f->get_32();
 
 	f->set_endian_swap(big_endian != 0); //read big endian if saved as big endian
-	fw->store_32(endian_swap);
+#ifdef BIG_ENDIAN_ENABLED
+	fw->store_32(!big_endian);
+#else
+	fw->store_32(big_endian);
+#endif
 	fw->set_endian_swap(big_endian != 0);
 	fw->store_32(use_real64); //use real64
 
@@ -1175,7 +1169,7 @@ Error ResourceFormatLoaderBinary::rename_dependencies(const String &p_path, cons
 
 		memdelete(f);
 		memdelete(fw);
-		ERR_EXPLAIN("File Format '" + itos(FORMAT_VERSION) + "." + itos(ver_major) + "." + itos(ver_minor) + "' is too new! Please upgrade to a a new engine version: " + local_path);
+		ERR_EXPLAIN("File Format '" + itos(FORMAT_VERSION) + "." + itos(ver_major) + "." + itos(ver_minor) + "' is too new! Please upgrade to a new engine version: " + local_path);
 		ERR_FAIL_V(ERR_FILE_UNRECOGNIZED);
 	}
 
@@ -1715,54 +1709,6 @@ void ResourceFormatSaverBinaryInstance::_find_resources(const Variant &p_variant
 		default: {}
 	}
 }
-#if 0
-Error ResourceFormatSaverBinary::_save_obj(const Object *p_object,SavedObject *so) {
-
-	//use classic way
-	List<PropertyInfo> property_list;
-	p_object->get_property_list( &property_list );
-
-	for(List<PropertyInfo>::Element *E=property_list.front();E;E=E->next()) {
-
-		if (skip_editor && E->get().name.begins_with("__editor"))
-			continue;
-		if (E->get().usage&PROPERTY_USAGE_STORAGE || (bundle_resources && E->get().usage&PROPERTY_USAGE_BUNDLE)) {
-
-			SavedObject::SavedProperty sp;
-			sp.name_idx=get_string_index(E->get().name);
-			sp.value = p_object->get(E->get().name);
-			_find_resources(sp.value);
-			so->properties.push_back(sp);
-		}
-	}
-
-	return OK;
-
-}
-
-
-
-Error ResourceFormatSaverBinary::save(const Object *p_object,const Variant &p_meta) {
-
-	ERR_FAIL_COND_V(!f,ERR_UNCONFIGURED);
-	ERR_EXPLAIN("write_object should supply either an object, a meta, or both");
-	ERR_FAIL_COND_V(!p_object && p_meta.get_type()==Variant::NIL, ERR_INVALID_PARAMETER);
-
-	SavedObject *so = memnew( SavedObject );
-
-	if (p_object)
-		so->type=p_object->get_type();
-
-	_find_resources(p_meta);
-	so->meta=p_meta;
-	Error err = _save_obj(p_object,so);
-	ERR_FAIL_COND_V( err, ERR_INVALID_DATA );
-
-	saved_objects.push_back(so);
-
-	return OK;
-}
-#endif
 
 void ResourceFormatSaverBinaryInstance::save_unicode_string(const String &p_string) {
 
@@ -1798,7 +1744,6 @@ Error ResourceFormatSaverBinaryInstance::save(const String &p_path, const RES &p
 	}
 
 	ERR_FAIL_COND_V(err, err);
-	FileAccessRef _fref(f);
 
 	relative_paths = p_flags & ResourceSaver::FLAG_RELATIVE_PATHS;
 	skip_editor = p_flags & ResourceSaver::FLAG_OMIT_EDITOR_PROPERTIES;
@@ -1810,7 +1755,6 @@ Error ResourceFormatSaverBinaryInstance::save(const String &p_path, const RES &p
 		takeover_paths = false;
 
 	local_path = p_path.get_base_dir();
-	//bin_meta_idx = get_string_index("__bin_meta__"); //is often used, so create
 
 	_find_resources(p_resource, true);
 
@@ -1836,10 +1780,8 @@ Error ResourceFormatSaverBinaryInstance::save(const String &p_path, const RES &p
 		return ERR_CANT_CREATE;
 	}
 
-	//f->store_32(saved_resources.size()+external_resources.size()); // load steps -not needed
 	save_unicode_string(p_resource->get_class());
-	uint64_t md_at = f->get_pos();
-	f->store_64(0); //offset to impoty metadata
+	f->store_64(0); //offset to import metadata
 	for (int i = 0; i < 14; i++)
 		f->store_32(0); // reserved
 
@@ -1859,11 +1801,11 @@ Error ResourceFormatSaverBinaryInstance::save(const String &p_path, const RES &p
 
 				if (skip_editor && F->get().name.begins_with("__editor"))
 					continue;
-				if (F->get().usage & PROPERTY_USAGE_STORAGE) {
+				if ((F->get().usage & PROPERTY_USAGE_STORAGE)) {
 					Property p;
 					p.name_idx = get_string_index(F->get().name);
 					p.value = E->get()->get(F->get().name);
-					if ((F->get().usage & PROPERTY_USAGE_STORE_IF_NONZERO && p.value.is_zero()) || (F->get().usage & PROPERTY_USAGE_STORE_IF_NONONE && p.value.is_one()))
+					if (((F->get().usage & PROPERTY_USAGE_STORE_IF_NONZERO) && p.value.is_zero()) || ((F->get().usage & PROPERTY_USAGE_STORE_IF_NONONE) && p.value.is_one()))
 						continue;
 					p.pi = F->get();
 
@@ -1875,7 +1817,6 @@ Error ResourceFormatSaverBinaryInstance::save(const String &p_path, const RES &p
 
 	f->store_32(strings.size()); //string table size
 	for (int i = 0; i < strings.size(); i++) {
-		//print_bl("saving string: "+strings[i]);
 		save_unicode_string(strings[i]);
 	}
 
@@ -1944,9 +1885,8 @@ Error ResourceFormatSaverBinaryInstance::save(const String &p_path, const RES &p
 	}
 
 	Vector<uint64_t> ofs_table;
-	//int saved_idx=0;
-	//now actually save the resources
 
+	//now actually save the resources
 	for (List<ResourceData>::Element *E = resources.front(); E; E = E->next()) {
 
 		ResourceData &rd = E->get();

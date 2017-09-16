@@ -3,7 +3,7 @@
 /*************************************************************************/
 /*                       This file is part of:                           */
 /*                           GODOT ENGINE                                */
-/*                    http://www.godotengine.org                         */
+/*                      https://godotengine.org                          */
 /*************************************************************************/
 /* Copyright (c) 2007-2017 Juan Linietsky, Ariel Manzur.                 */
 /* Copyright (c) 2014-2017 Godot Engine contributors (cf. AUTHORS.md)    */
@@ -28,6 +28,7 @@
 /* SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                */
 /*************************************************************************/
 #include "input_default.h"
+
 #include "input_map.h"
 #include "os/os.h"
 #include "scene/resources/texture.h"
@@ -79,7 +80,7 @@ bool InputDefault::is_key_pressed(int p_scancode) const {
 bool InputDefault::is_mouse_button_pressed(int p_button) const {
 
 	_THREAD_SAFE_METHOD_
-	return (mouse_button_mask & (1 << p_button)) != 0;
+	return (mouse_button_mask & (1 << (p_button - 1))) != 0;
 }
 
 static int _combine_device(int p_value, int p_device) {
@@ -96,58 +97,6 @@ bool InputDefault::is_joy_button_pressed(int p_device, int p_button) const {
 bool InputDefault::is_action_pressed(const StringName &p_action) const {
 
 	return action_state.has(p_action) && action_state[p_action].pressed;
-#if 0
-	if (custom_action_press.has(p_action))
-		return true; //simpler
-
-	const List<InputEvent> *alist = InputMap::get_singleton()->get_action_list(p_action);
-	if (!alist)
-		return false;
-
-
-	for (const List<InputEvent>::Element *E=alist->front();E;E=E->next()) {
-
-
-		int device=E->get().device;
-
-		switch(E->get().type) {
-
-			case InputEvent::KEY: {
-
-				const InputEventKey &iek=E->get().key;
-				if ((keys_pressed.has(iek->get_scancode())))
-					return true;
-			} break;
-			case InputEvent::MOUSE_BUTTON: {
-
-				const InputEventMouseButton &iemb=E->get().mouse_button;
-				 if(mouse_button_mask&(1<<iemb->get_button_index()))
-					 return true;
-			} break;
-			case InputEvent::JOYPAD_BUTTON: {
-
-				const InputEventJoypadButton &iejb=E->get().joy_button;
-				int c = _combine_device(iejb->get_button_index(),device);
-				if (joy_buttons_pressed.has(c))
-					return true;
-			} break;
-			case InputEvent::JOYPAD_MOTION: {
-
-				const InputEventJoypadMotion &iejm=E->get().joy_motion;
-				int c = _combine_device(iejm.axis,device);
-				if (_joy_axis.has(c)) {
-					if (iejm.axis_value < 0) {
-						if (_joy_axis[c] < -0.5f) return true;
-					}
-					else
-						if (_joy_axis[c] > 0.5f) return true;
-				}
-			} break;
-		}
-	}
-
-	return false;
-#endif
 }
 
 bool InputDefault::is_action_just_pressed(const StringName &p_action) const {
@@ -316,10 +265,11 @@ void InputDefault::parse_input_event(const Ref<InputEvent> &p_event) {
 
 	if (mb.is_valid() && !mb->is_doubleclick()) {
 
-		if (mb->is_pressed())
-			mouse_button_mask |= (1 << mb->get_button_index());
-		else
-			mouse_button_mask &= ~(1 << mb->get_button_index());
+		if (mb->is_pressed()) {
+			mouse_button_mask |= (1 << (mb->get_button_index() - 1));
+		} else {
+			mouse_button_mask &= ~(1 << (mb->get_button_index() - 1));
+		}
 
 		if (main_loop && emulate_touch && mb->get_button_index() == 1) {
 			Ref<InputEventScreenTouch> touch_event;

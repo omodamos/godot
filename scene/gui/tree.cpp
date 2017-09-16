@@ -3,7 +3,7 @@
 /*************************************************************************/
 /*                       This file is part of:                           */
 /*                           GODOT ENGINE                                */
-/*                    http://www.godotengine.org                         */
+/*                      https://godotengine.org                          */
 /*************************************************************************/
 /* Copyright (c) 2007-2017 Juan Linietsky, Ariel Manzur.                 */
 /* Copyright (c) 2014-2017 Godot Engine contributors (cf. AUTHORS.md)    */
@@ -28,6 +28,7 @@
 /* SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                */
 /*************************************************************************/
 #include "tree.h"
+
 #include "os/input.h"
 #include "os/keyboard.h"
 #include "os/os.h"
@@ -330,6 +331,15 @@ void TreeItem::set_collapsed(bool p_collapsed) {
 bool TreeItem::is_collapsed() {
 
 	return collapsed;
+}
+
+void TreeItem::set_custom_minimum_height(int p_height) {
+	custom_min_height = p_height;
+	_changed_notify();
+}
+
+int TreeItem::get_custom_minimum_height() const {
+	return custom_min_height;
 }
 
 TreeItem *TreeItem::get_next() {
@@ -702,6 +712,9 @@ void TreeItem::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("set_collapsed", "enable"), &TreeItem::set_collapsed);
 	ClassDB::bind_method(D_METHOD("is_collapsed"), &TreeItem::is_collapsed);
 
+	ClassDB::bind_method(D_METHOD("set_custom_minimum_height", "height"), &TreeItem::set_custom_minimum_height);
+	ClassDB::bind_method(D_METHOD("get_custom_minimum_height"), &TreeItem::get_custom_minimum_height);
+
 	ClassDB::bind_method(D_METHOD("get_next"), &TreeItem::get_next);
 	ClassDB::bind_method(D_METHOD("get_prev"), &TreeItem::get_prev);
 	ClassDB::bind_method(D_METHOD("get_parent"), &TreeItem::get_parent);
@@ -758,6 +771,10 @@ void TreeItem::_bind_methods() {
 	BIND_ENUM_CONSTANT(CELL_MODE_RANGE_EXPRESSION);
 	BIND_ENUM_CONSTANT(CELL_MODE_ICON);
 	BIND_ENUM_CONSTANT(CELL_MODE_CUSTOM);
+
+	BIND_ENUM_CONSTANT(ALIGN_LEFT);
+	BIND_ENUM_CONSTANT(ALIGN_CENTER);
+	BIND_ENUM_CONSTANT(ALIGN_RIGHT);
 }
 
 void TreeItem::clear_children() {
@@ -779,6 +796,7 @@ TreeItem::TreeItem(Tree *p_tree) {
 	tree = p_tree;
 	collapsed = false;
 	disable_folding = false;
+	custom_min_height = 0;
 
 	parent = 0; // parent item
 	next = 0; // next in list
@@ -920,6 +938,9 @@ int Tree::compute_item_height(TreeItem *p_item) const {
 			default: {}
 		}
 	}
+	int item_min_height = p_item->get_custom_minimum_height();
+	if (height < item_min_height)
+		height = item_min_height;
 
 	height += cache.vseparation;
 
@@ -990,41 +1011,10 @@ void Tree::draw_item_rect(const TreeItem::Cell &p_cell, const Rect2i &p_rect, co
 		rect.size.x -= bmsize.x + cache.hseparation;
 	}
 
-	/*
-	if (p_tool)
-		rect.size.x-=Math::floor(rect.size.y/2);
-	*/
-
 	rect.position.y += Math::floor((rect.size.y - font->get_height()) / 2.0) + font->get_ascent();
 	font->draw(ci, rect.position, text, p_color, rect.size.x);
 }
 
-#if 0
-void Tree::draw_item_text(String p_text,const Ref<Texture>& p_icon,int p_icon_max_w,bool p_tool,Rect2i p_rect,const Color& p_color) {
-
-	RID ci = get_canvas_item();
-	if (!p_icon.is_null()) {
-		Size2i bmsize = p_icon->get_size();
-		if (p_icon_max_w>0 && bmsize.width > p_icon_max_w) {
-			bmsize.height = bmsize.height * p_icon_max_w / bmsize.width;
-			bmsize.width=p_icon_max_w;
-		}
-
-		draw_texture_rect(p_icon,Rect2(p_rect.pos + Size2i(0,Math::floor((p_rect.size.y-bmsize.y)/2)),bmsize));
-		p_rect.pos.x+=bmsize.x+cache.hseparation;
-		p_rect.size.x-=bmsize.x+cache.hseparation;
-
-	}
-
-	if (p_tool)
-		p_rect.size.x-=Math::floor(p_rect.size.y/2);
-
-	Ref<Font> font = cache.font;
-
-	p_rect.pos.y+=Math::floor((p_rect.size.y-font->get_height())/2.0) +font->get_ascent();
-	font->draw(ci,p_rect.pos,p_text,p_color,p_rect.size.x);
-}
-#endif
 int Tree::draw_item(const Point2i &p_pos, const Point2 &p_draw_ofs, const Size2 &p_draw_size, TreeItem *p_item) {
 
 	if (p_pos.y - cache.offset.y > (p_draw_size.height))
@@ -1146,7 +1136,8 @@ int Tree::draw_item(const Point2i &p_pos, const Point2 &p_draw_ofs, const Size2 
 					cache.selected->draw(ci, r);
 				}
 				if (text_editor->is_visible_in_tree()) {
-					text_editor->set_position(get_global_position() + r.position);
+					Vector2 ofs(0, (text_editor->get_size().height - r.size.height) / 2);
+					text_editor->set_position(get_global_position() + r.position - ofs);
 				}
 			}
 
@@ -2333,7 +2324,7 @@ void Tree::_gui_input(Ref<InputEvent> p_event) {
 				int col, h, section;
 				TreeItem *it = _find_item_at_pos(root, mpos, col, h, section);
 
-				if (drop_mode_flags && it != drop_mode_over || section != drop_mode_section) {
+				if ((drop_mode_flags && it != drop_mode_over) || section != drop_mode_section) {
 					drop_mode_over = it;
 					drop_mode_section = section;
 					update();
@@ -2473,22 +2464,24 @@ void Tree::_gui_input(Ref<InputEvent> p_event) {
 
 				Point2 pos = b->get_position() - bg->get_offset();
 				cache.click_type = Cache::CLICK_NONE;
-				if (show_column_titles && b->get_button_index() == BUTTON_LEFT) {
+				if (show_column_titles) {
 					pos.y -= _get_title_button_height();
 
 					if (pos.y < 0) {
-						pos.x += cache.offset.x;
-						int len = 0;
-						for (int i = 0; i < columns.size(); i++) {
+						if (b->get_button_index() == BUTTON_LEFT) {
+							pos.x += cache.offset.x;
+							int len = 0;
+							for (int i = 0; i < columns.size(); i++) {
 
-							len += get_column_width(i);
-							if (pos.x < len) {
+								len += get_column_width(i);
+								if (pos.x < len) {
 
-								cache.click_type = Cache::CLICK_TITLE;
-								cache.click_index = i;
-								//cache.click_id=;
-								update();
-								break;
+									cache.click_type = Cache::CLICK_TITLE;
+									cache.click_index = i;
+									//cache.click_id=;
+									update();
+									break;
+								}
 							}
 						}
 						break;
@@ -2505,7 +2498,7 @@ void Tree::_gui_input(Ref<InputEvent> p_event) {
 				pressing_for_editor = false;
 
 				blocked++;
-				bool handled = propagate_mouse_event(pos + cache.offset, 0, 0, b->is_doubleclick(), root, b->get_button_index(), b);
+				propagate_mouse_event(pos + cache.offset, 0, 0, b->is_doubleclick(), root, b->get_button_index(), b);
 				blocked--;
 
 				if (pressing_for_editor) {
@@ -2600,7 +2593,8 @@ bool Tree::edit_selected() {
 
 	} else if (c.mode == TreeItem::CELL_MODE_STRING || c.mode == TreeItem::CELL_MODE_RANGE || c.mode == TreeItem::CELL_MODE_RANGE_EXPRESSION) {
 
-		Point2i textedpos = get_global_position() + rect.position;
+		Vector2 ofs(0, (text_editor->get_size().height - rect.size.height) / 2);
+		Point2i textedpos = get_global_position() + rect.position - ofs;
 		text_editor->set_position(textedpos);
 		text_editor->set_size(rect.size);
 		text_editor->clear();
@@ -2868,8 +2862,8 @@ TreeItem *Tree::create_item(TreeItem *p_parent) {
 
 	TreeItem *ti = memnew(TreeItem(this));
 
-	ti->cells.resize(columns.size());
 	ERR_FAIL_COND_V(!ti, NULL);
+	ti->cells.resize(columns.size());
 
 	if (p_parent) {
 
@@ -3619,6 +3613,7 @@ void Tree::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("get_item_area_rect", "item", "column"), &Tree::_get_item_rect, DEFVAL(-1));
 	ClassDB::bind_method(D_METHOD("get_item_at_pos", "pos"), &Tree::get_item_at_pos);
 	ClassDB::bind_method(D_METHOD("get_column_at_pos", "pos"), &Tree::get_column_at_pos);
+	ClassDB::bind_method(D_METHOD("get_drop_section_at_pos", "pos"), &Tree::get_drop_section_at_pos);
 
 	ClassDB::bind_method(D_METHOD("ensure_cursor_is_visible"), &Tree::ensure_cursor_is_visible);
 

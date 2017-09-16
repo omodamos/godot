@@ -3,7 +3,7 @@
 /*************************************************************************/
 /*                       This file is part of:                           */
 /*                           GODOT ENGINE                                */
-/*                    http://www.godotengine.org                         */
+/*                      https://godotengine.org                          */
 /*************************************************************************/
 /* Copyright (c) 2007-2017 Juan Linietsky, Ariel Manzur.                 */
 /*                                                                       */
@@ -128,6 +128,7 @@ public:
 	FUNC3(material_set_param, RID, const StringName &, const Variant &)
 	FUNC2RC(Variant, material_get_param, RID, const StringName &)
 
+	FUNC2(material_set_render_priority, RID, int)
 	FUNC2(material_set_line_width, RID, float)
 	FUNC2(material_set_next_pass, RID, RID)
 
@@ -232,6 +233,7 @@ public:
 
 	FUNC2(light_directional_set_shadow_mode, RID, LightDirectionalShadowMode)
 	FUNC2(light_directional_set_blend_splits, RID, bool)
+	FUNC2(light_directional_set_shadow_depth_range_mode, RID, LightDirectionalShadowDepthRangeMode)
 
 	/* PROBE API */
 
@@ -249,23 +251,6 @@ public:
 	FUNC2(reflection_probe_set_enable_box_projection, RID, bool)
 	FUNC2(reflection_probe_set_enable_shadows, RID, bool)
 	FUNC2(reflection_probe_set_cull_mask, RID, uint32_t)
-
-	/* ROOM API */
-
-	FUNC0R(RID, room_create)
-	FUNC4(room_add_bounds, RID, const PoolVector<Vector2> &, float, const Transform &)
-	FUNC1(room_clear_bounds, RID)
-
-	/* PORTAL API */
-
-	// portals are only (x/y) points, forming a convex shape, which its clockwise
-	// order points outside. (z is 0);
-
-	FUNC0R(RID, portal_create)
-	FUNC2(portal_set_shape, RID, const Vector<Point2> &)
-	FUNC2(portal_set_enabled, RID, bool)
-	FUNC2(portal_set_disable_distance, RID, float)
-	FUNC2(portal_set_disabled_color, RID, const Color &)
 
 	/* BAKED LIGHT API */
 
@@ -438,7 +423,6 @@ public:
 
 	FUNC2(instance_attach_skeleton, RID, RID)
 	FUNC2(instance_set_exterior, RID, bool)
-	FUNC2(instance_set_room, RID, RID)
 
 	FUNC2(instance_set_extra_visibility_margin, RID, real_t)
 

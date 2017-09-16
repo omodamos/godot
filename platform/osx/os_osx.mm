@@ -3,7 +3,7 @@
 /*************************************************************************/
 /*                       This file is part of:                           */
 /*                           GODOT ENGINE                                */
-/*                    http://www.godotengine.org                         */
+/*                      https://godotengine.org                          */
 /*************************************************************************/
 /* Copyright (c) 2007-2017 Juan Linietsky, Ariel Manzur.                 */
 /* Copyright (c) 2014-2017 Godot Engine contributors (cf. AUTHORS.md)    */
@@ -910,6 +910,8 @@ OS::VideoMode OS_OSX::get_default_video_mode() const {
 
 void OS_OSX::initialize_core() {
 
+	crash_handler.initialize();
+
 	OS_Unix::initialize_core();
 
 	DirAccess::make_default<DirAccessOSX>(DirAccess::ACCESS_RESOURCES);
@@ -1327,6 +1329,46 @@ MainLoop *OS_OSX::get_main_loop() const {
 	return main_loop;
 }
 
+String OS_OSX::get_system_dir(SystemDir p_dir) const {
+
+	NSSearchPathDirectory id = 0;
+
+	switch (p_dir) {
+		case SYSTEM_DIR_DESKTOP: {
+			id = NSDesktopDirectory;
+		} break;
+		case SYSTEM_DIR_DOCUMENTS: {
+			id = NSDocumentDirectory;
+		} break;
+		case SYSTEM_DIR_DOWNLOADS: {
+			id = NSDownloadsDirectory;
+		} break;
+		case SYSTEM_DIR_MOVIES: {
+			id = NSMoviesDirectory;
+		} break;
+		case SYSTEM_DIR_MUSIC: {
+			id = NSMusicDirectory;
+		} break;
+		case SYSTEM_DIR_PICTURES: {
+			id = NSPicturesDirectory;
+		} break;
+	}
+
+	String ret;
+	if (id) {
+
+		NSArray *paths = NSSearchPathForDirectoriesInDomains(id, NSUserDomainMask, YES);
+		if (paths && [paths count] >= 1) {
+
+			char *utfs = strdup([[paths firstObject] UTF8String]);
+			ret.parse_utf8(utfs);
+			free(utfs);
+		}
+	}
+
+	return ret;
+}
+
 bool OS_OSX::can_draw() const {
 
 	return true;
@@ -1696,6 +1738,17 @@ String OS_OSX::get_executable_path() const {
 	}
 }
 
+String OS_OSX::get_resource_dir() const {
+	// start with our executable path
+	String path = get_executable_path();
+
+	int pos = path.find_last("/Contents/MacOS/");
+	if (pos < 0)
+		return OS::get_resource_dir();
+
+	return path.substr(0, pos) + "/Contents/Resources/";
+}
+
 // Returns string representation of keys, if they are printable.
 //
 static NSString *createStringForKeys(const CGKeyCode *keyCode, int length) {
@@ -1861,7 +1914,7 @@ String OS_OSX::get_joy_guid(int p_device) const {
 	return input->get_joy_guid_remapped(p_device);
 }
 
-PowerState OS_OSX::get_power_state() {
+OS::PowerState OS_OSX::get_power_state() {
 	return power_manager->get_power_state();
 }
 
@@ -1970,4 +2023,12 @@ OS_OSX::OS_OSX() {
 
 bool OS_OSX::_check_internal_feature_support(const String &p_feature) {
 	return p_feature == "pc" || p_feature == "s3tc";
+}
+
+void OS_OSX::disable_crash_handler() {
+	crash_handler.disable();
+}
+
+bool OS_OSX::is_disable_crash_handler() const {
+	return crash_handler.is_disabled();
 }

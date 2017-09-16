@@ -3,7 +3,7 @@
 /*************************************************************************/
 /*                       This file is part of:                           */
 /*                           GODOT ENGINE                                */
-/*                    http://www.godotengine.org                         */
+/*                      https://godotengine.org                          */
 /*************************************************************************/
 /* Copyright (c) 2007-2017 Juan Linietsky, Ariel Manzur.                 */
 /* Copyright (c) 2014-2017 Godot Engine contributors (cf. AUTHORS.md)    */
@@ -54,7 +54,7 @@ public:
 		CELL_MODE_CHECK, ///< string + check
 		CELL_MODE_RANGE, ///< Contains a range
 		CELL_MODE_RANGE_EXPRESSION, ///< Contains a range
-		CELL_MODE_ICON, ///< Contains a icon, not editable
+		CELL_MODE_ICON, ///< Contains an icon, not editable
 		CELL_MODE_CUSTOM, ///< Contains a custom value, show a string, and an edit button
 	};
 
@@ -145,6 +145,7 @@ private:
 
 	bool collapsed; // wont show childs
 	bool disable_folding;
+	int custom_min_height;
 
 	TreeItem *parent; // parent item
 	TreeItem *next; // next in list
@@ -172,7 +173,9 @@ protected:
 
 		return d;
 	}
-	void _remove_child(Object *p_child) { remove_child(p_child->cast_to<TreeItem>()); }
+	void _remove_child(Object *p_child) {
+		remove_child(Object::cast_to<TreeItem>(p_child));
+	}
 
 public:
 	/* cell mode */
@@ -227,6 +230,9 @@ public:
 
 	void set_collapsed(bool p_collapsed);
 	bool is_collapsed();
+
+	void set_custom_minimum_height(int p_height);
+	int get_custom_minimum_height() const;
 
 	TreeItem *get_prev();
 	TreeItem *get_next();
@@ -504,9 +510,17 @@ protected:
 	static void _bind_methods();
 
 	//bind helpers
-	Object *_create_item(Object *p_parent) { return create_item(p_parent->cast_to<TreeItem>()); }
-	TreeItem *_get_next_selected(Object *p_item) { return get_next_selected(p_item->cast_to<TreeItem>()); }
-	Rect2 _get_item_rect(Object *p_item, int p_column) const { return get_item_rect(p_item->cast_to<TreeItem>(), p_column); }
+	Object *_create_item(Object *p_parent) {
+		return create_item(Object::cast_to<TreeItem>(p_parent));
+	}
+
+	TreeItem *_get_next_selected(Object *p_item) {
+		return get_next_selected(Object::cast_to<TreeItem>(p_item));
+	}
+
+	Rect2 _get_item_rect(Object *p_item, int p_column) const {
+		return get_item_rect(Object::cast_to<TreeItem>(p_item), p_column);
+	}
 
 public:
 	virtual String get_tooltip(const Point2 &p_pos) const;

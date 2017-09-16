@@ -3,7 +3,7 @@
 /*************************************************************************/
 /*                       This file is part of:                           */
 /*                           GODOT ENGINE                                */
-/*                    http://www.godotengine.org                         */
+/*                      https://godotengine.org                          */
 /*************************************************************************/
 /* Copyright (c) 2007-2017 Juan Linietsky, Ariel Manzur.                 */
 /* Copyright (c) 2014-2017 Godot Engine contributors (cf. AUTHORS.md)    */
@@ -31,6 +31,7 @@
 #define OS_X11_H
 
 #include "context_gl_x11.h"
+#include "crash_handler_x11.h"
 #include "drivers/unix/os_unix.h"
 #include "os/input.h"
 #include "servers/visual_server.h"
@@ -170,6 +171,8 @@ class OS_X11 : public OS_Unix {
 
 	PowerX11 *power_manager;
 
+	CrashHandler crash_handler;
+
 	int audio_driver_index;
 	unsigned int capture_idle;
 	bool maximized;
@@ -191,6 +194,7 @@ protected:
 	virtual int get_audio_driver_count() const;
 	virtual const char *get_audio_driver_name(int p_driver) const;
 
+	virtual void initialize_core();
 	virtual void initialize(const VideoMode &p_desired, int p_video_driver, int p_audio_driver);
 	virtual void finalize();
 
@@ -265,13 +269,16 @@ public:
 	virtual void set_use_vsync(bool p_enable);
 	virtual bool is_vsync_enabled() const;
 
-	virtual PowerState get_power_state();
+	virtual OS::PowerState get_power_state();
 	virtual int get_power_seconds_left();
 	virtual int get_power_percent_left();
 
 	virtual bool _check_internal_feature_support(const String &p_feature);
 
 	void run();
+
+	void disable_crash_handler();
+	bool is_disable_crash_handler() const;
 
 	OS_X11();
 };

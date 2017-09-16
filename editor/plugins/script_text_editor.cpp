@@ -3,7 +3,7 @@
 /*************************************************************************/
 /*                       This file is part of:                           */
 /*                           GODOT ENGINE                                */
-/*                    http://www.godotengine.org                         */
+/*                      https://godotengine.org                          */
 /*************************************************************************/
 /* Copyright (c) 2007-2017 Juan Linietsky, Ariel Manzur.                 */
 /* Copyright (c) 2014-2017 Godot Engine contributors (cf. AUTHORS.md)    */
@@ -75,14 +75,9 @@ void ScriptTextEditor::_load_theme_settings() {
 
 	text_edit->clear_colors();
 
-	/* color from color_theme or from editor color */
-
-	Color background_color = EDITOR_DEF("text_editor/highlighting/background_color", Color(0, 0, 0, 0));
-	if (EDITOR_DEF("text_editor/theme/adapted_code_editor_background_color", false))
-		background_color = get_color("dark_color_1", "Editor");
-
 	/* keyword color */
-	text_edit->add_color_override("background_color", background_color);
+
+	text_edit->add_color_override("background_color", EDITOR_DEF("text_editor/highlighting/background_color", Color(0, 0, 0, 0)));
 	text_edit->add_color_override("completion_background_color", EDITOR_DEF("text_editor/highlighting/completion_background_color", Color(0, 0, 0, 0)));
 	text_edit->add_color_override("completion_selected_color", EDITOR_DEF("text_editor/highlighting/completion_selected_color", Color::html("434244")));
 	text_edit->add_color_override("completion_existing_color", EDITOR_DEF("text_editor/highlighting/completion_existing_color", Color::html("21dfdfdf")));
@@ -120,17 +115,29 @@ void ScriptTextEditor::_load_theme_settings() {
 	//colorize core types
 	Color basetype_color = EDITOR_DEF("text_editor/highlighting/base_type_color", Color(0.3, 0.3, 0.0));
 
+	text_edit->add_keyword_color("String", basetype_color);
 	text_edit->add_keyword_color("Vector2", basetype_color);
-	text_edit->add_keyword_color("Vector3", basetype_color);
-	text_edit->add_keyword_color("Plane", basetype_color);
-	text_edit->add_keyword_color("Quat", basetype_color);
-	text_edit->add_keyword_color("AABB", basetype_color);
-	text_edit->add_keyword_color("Matrix3", basetype_color);
-	text_edit->add_keyword_color("Transform", basetype_color);
-	text_edit->add_keyword_color("Color", basetype_color);
-	text_edit->add_keyword_color("Image", basetype_color);
 	text_edit->add_keyword_color("Rect2", basetype_color);
+	text_edit->add_keyword_color("Transform2D", basetype_color);
+	text_edit->add_keyword_color("Vector3", basetype_color);
+	text_edit->add_keyword_color("Rect3", basetype_color);
+	text_edit->add_keyword_color("Basis", basetype_color);
+	text_edit->add_keyword_color("Plane", basetype_color);
+	text_edit->add_keyword_color("Transform", basetype_color);
+	text_edit->add_keyword_color("Quat", basetype_color);
+	text_edit->add_keyword_color("Color", basetype_color);
+	text_edit->add_keyword_color("Object", basetype_color);
 	text_edit->add_keyword_color("NodePath", basetype_color);
+	text_edit->add_keyword_color("RID", basetype_color);
+	text_edit->add_keyword_color("Dictionary", basetype_color);
+	text_edit->add_keyword_color("Array", basetype_color);
+	text_edit->add_keyword_color("PoolByteArray", basetype_color);
+	text_edit->add_keyword_color("PoolIntArray", basetype_color);
+	text_edit->add_keyword_color("PoolRealArray", basetype_color);
+	text_edit->add_keyword_color("PoolStringArray", basetype_color);
+	text_edit->add_keyword_color("PoolVector2Array", basetype_color);
+	text_edit->add_keyword_color("PoolVector3Array", basetype_color);
+	text_edit->add_keyword_color("PoolColorArray", basetype_color);
 
 	//colorize engine types
 	Color type_color = EDITOR_DEF("text_editor/highlighting/engine_type_color", Color(0.0, 0.2, 0.4));
@@ -529,7 +536,7 @@ void ScriptTextEditor::_validate_script() {
 	}
 
 	emit_signal("name_changed");
-	emit_signal("script_changed");
+	emit_signal("edited_script_changed");
 }
 
 static Node *_find_node_for_script(Node *p_base, Node *p_current, const Ref<Script> &p_script) {
@@ -617,7 +624,7 @@ void ScriptTextEditor::_code_complete_script(const String &p_code, List<String> 
 	}
 	String hint;
 	Error err = script->get_language()->complete_code(p_code, script->get_path().get_base_dir(), base, r_options, r_force, hint);
-	if (hint != "") {
+	if (err == OK && hint != "") {
 		code_editor->get_text_edit()->set_code_hint(hint);
 	}
 }
@@ -941,13 +948,26 @@ void ScriptTextEditor::_edit_option(int p_op) {
 				if (tx->get_selection_to_column() == 0)
 					end -= 1;
 
+				// Check if all lines in the selected block are commented
+				bool is_commented = true;
+				for (int i = begin; i <= end; i++) {
+					if (!tx->get_line(i).begins_with("#")) {
+						is_commented = false;
+						break;
+					}
+				}
 				for (int i = begin; i <= end; i++) {
 					String line_text = tx->get_line(i);
 
-					if (line_text.begins_with("#"))
-						line_text = line_text.substr(1, line_text.length());
-					else
-						line_text = "#" + line_text;
+					if (line_text.strip_edges().empty()) {
+						line_text = "#";
+					} else {
+						if (is_commented) {
+							line_text = line_text.substr(1, line_text.length());
+						} else {
+							line_text = "#" + line_text;
+						}
+					}
 					tx->set_line(i, line_text);
 				}
 			} else {
@@ -1230,7 +1250,7 @@ void ScriptTextEditor::drop_data_fw(const Point2 &p_point, const Variant &p_data
 		}
 
 		if (res->get_path().is_resource_file()) {
-			EditorNode::get_singleton()->show_warning("Only resources from filesystem can be dropped.");
+			EditorNode::get_singleton()->show_warning(TTR("Only resources from filesystem can be dropped."));
 			return;
 		}
 

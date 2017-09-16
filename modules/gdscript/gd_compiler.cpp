@@ -3,7 +3,7 @@
 /*************************************************************************/
 /*                       This file is part of:                           */
 /*                           GODOT ENGINE                                */
-/*                    http://www.godotengine.org                         */
+/*                      https://godotengine.org                          */
 /*************************************************************************/
 /* Copyright (c) 2007-2017 Juan Linietsky, Ariel Manzur.                 */
 /* Copyright (c) 2014-2017 Godot Engine contributors (cf. AUTHORS.md)    */
@@ -1971,7 +1971,7 @@ Error GDCompiler::_parse_class(GDScript *p_script, GDScript *p_owner, const GDPa
 					p_script->placeholders.erase(psi); //remove placeholder
 
 					GDInstance *instance = memnew(GDInstance);
-					instance->base_ref = E->get()->cast_to<Reference>();
+					instance->base_ref = Object::cast_to<Reference>(E->get());
 					instance->members.resize(p_script->member_indices.size());
 					instance->script = Ref<GDScript>(p_script);
 					instance->owner = E->get();

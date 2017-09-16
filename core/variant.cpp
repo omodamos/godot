@@ -3,7 +3,7 @@
 /*************************************************************************/
 /*                       This file is part of:                           */
 /*                           GODOT ENGINE                                */
-/*                    http://www.godotengine.org                         */
+/*                      https://godotengine.org                          */
 /*************************************************************************/
 /* Copyright (c) 2007-2017 Juan Linietsky, Ariel Manzur.                 */
 /* Copyright (c) 2014-2017 Godot Engine contributors (cf. AUTHORS.md)    */
@@ -1764,14 +1764,14 @@ Variant::operator Object *() const {
 Variant::operator Node *() const {
 
 	if (type == OBJECT)
-		return _get_obj().obj ? _get_obj().obj->cast_to<Node>() : NULL;
+		return Object::cast_to<Node>(_get_obj().obj);
 	else
 		return NULL;
 }
 Variant::operator Control *() const {
 
 	if (type == OBJECT)
-		return _get_obj().obj ? _get_obj().obj->cast_to<Control>() : NULL;
+		return Object::cast_to<Control>(_get_obj().obj);
 	else
 		return NULL;
 }
@@ -2259,8 +2259,8 @@ Variant::Variant(const RefPtr &p_resource) {
 
 	type = OBJECT;
 	memnew_placement(_data._mem, ObjData);
-	REF ref = p_resource;
-	_get_obj().obj = ref.ptr();
+	REF *ref = reinterpret_cast<REF *>(p_resource.get_data());
+	_get_obj().obj = ref->ptr();
 	_get_obj().ref = p_resource;
 }
 

@@ -3,7 +3,7 @@
 /*************************************************************************/
 /*                       This file is part of:                           */
 /*                           GODOT ENGINE                                */
-/*                    http://www.godotengine.org                         */
+/*                      https://godotengine.org                          */
 /*************************************************************************/
 /* Copyright (c) 2007-2017 Juan Linietsky, Ariel Manzur.                 */
 /* Copyright (c) 2014-2017 Godot Engine contributors (cf. AUTHORS.md)    */
@@ -58,6 +58,7 @@
 
 #ifdef TOOLS_ENABLED
 #include "editor/doc/doc_data.h"
+#include "editor/doc/doc_data_class_path.gen.h"
 #include "editor/editor_node.h"
 #include "editor/project_manager.h"
 #endif
@@ -69,7 +70,6 @@
 #include "core/io/file_access_zip.h"
 #include "core/io/stream_peer_ssl.h"
 #include "core/io/stream_peer_tcp.h"
-#include "core/os/thread.h"
 #include "main/input_default.h"
 #include "performance.h"
 #include "translation.h"
@@ -112,6 +112,8 @@ static int init_screen = -1;
 static bool use_vsync = true;
 static bool editor = false;
 static bool show_help = false;
+static bool disable_render_loop = false;
+static int fixed_fps = -1;
 
 static OS::ProcessID allow_focus_steal_pid = 0;
 
@@ -176,7 +178,7 @@ void Main::print_help(const char *p_binary) {
 	OS::get_singleton()->print("  -w, --windowed                   Request windowed mode.\n");
 	OS::get_singleton()->print("  --resolution <W>x<H>             Request window resolution.\n");
 	OS::get_singleton()->print("  --position <X>,<Y>               Request window position.\n");
-	OS::get_singleton()->print("  --low-dpi                        Force low-DPI mode (macOS only).\n");
+	OS::get_singleton()->print("  --low-dpi                        Force low-DPI mode (macOS and Windows only).\n");
 	OS::get_singleton()->print("  --no-window                      Disable window creation (Windows only). Useful together with --script.\n");
 	OS::get_singleton()->print("\n");
 
@@ -191,6 +193,9 @@ void Main::print_help(const char *p_binary) {
 #endif
 	OS::get_singleton()->print("  --frame-delay <ms>               Simulate high CPU load (delay each frame by <ms> milliseconds).\n");
 	OS::get_singleton()->print("  --time-scale <scale>             Force time scale (higher values are faster, 1.0 is normal speed).\n");
+	OS::get_singleton()->print("  --disable-render-loop            Disable render loop so rendering only occurs when called explicitly from script.\n");
+	OS::get_singleton()->print("  --disable-crash-handler          Disable crash handler when supported by the platform code.\n");
+	OS::get_singleton()->print("  --fixed-fps <fps>                Forces a fixed ratio between process and fixed_process timing, for use when precision is required, or when rendering to video files. Setting this will disable real-time syncronization, so that run speed is only capped by performance\n");
 	OS::get_singleton()->print("\n");
 
 	OS::get_singleton()->print("Standalone tools:\n");
@@ -242,6 +247,8 @@ Error Main::setup(const char *execpath, int argc, char *argv[], bool p_second_ph
 	translation_server = memnew(TranslationServer);
 	performance = memnew(Performance);
 	globals->add_singleton(ProjectSettings::Singleton("Performance", performance));
+
+	GLOBAL_DEF("debug/settings/backtrace/message", String("Please include this when reporting the bug on https://github.com/godotengine/godot/issues"));
 
 	MAIN_PRINT("Main: Parse CMDLine");
 
@@ -568,6 +575,18 @@ Error Main::setup(const char *execpath, int argc, char *argv[], bool p_second_ph
 				OS::get_singleton()->print("Missing editor PID argument, aborting.\n");
 				goto error;
 			}
+		} else if (I->get() == "--disable-render-loop") {
+			disable_render_loop = true;
+		} else if (I->get() == "--fixed-fps") {
+			if (I->next()) {
+				fixed_fps = I->next()->get().to_int();
+				N = I->next()->next();
+			} else {
+				OS::get_singleton()->print("Missing fixed-fps argument, aborting.\n");
+				goto error;
+			}
+		} else if (I->get() == "--disable-crash-handler") {
+			OS::get_singleton()->disable_crash_handler();
 		} else {
 
 			//test for game path
@@ -886,7 +905,11 @@ error:
 	return ERR_INVALID_PARAMETER;
 }
 
-Error Main::setup2() {
+Error Main::setup2(Thread::ID p_main_tid_override) {
+
+	if (p_main_tid_override) {
+		Thread::_main_thread_id = p_main_tid_override;
+	}
 
 	OS::get_singleton()->initialize(video_mode, video_driver_idx, audio_driver_idx);
 	if (init_use_custom_pos) {
@@ -981,7 +1004,7 @@ Error Main::setup2() {
 	if (bool(GLOBAL_DEF("display/window/handheld/emulate_touchscreen", false))) {
 		if (!OS::get_singleton()->has_touchscreen_ui_hint() && Input::get_singleton() && !editor) {
 			//only if no touchscreen ui hint, set emulation
-			InputDefault *id = Input::get_singleton()->cast_to<InputDefault>();
+			InputDefault *id = Object::cast_to<InputDefault>(Input::get_singleton());
 			if (id)
 				id->set_emulate_touch(true);
 		}
@@ -1095,10 +1118,20 @@ bool Main::start() {
 				test = args[i + 1];
 			} else if (args[i] == "--export") {
 				editor = true; //needs editor
-				_export_preset = args[i + 1];
+				if (i + 1 < args.size()) {
+					_export_preset = args[i + 1];
+				} else {
+					ERR_PRINT("Export preset name not specified");
+					return false;
+				}
 			} else if (args[i] == "--export-debug") {
 				editor = true; //needs editor
-				_export_preset = args[i + 1];
+				if (i + 1 < args.size()) {
+					_export_preset = args[i + 1];
+				} else {
+					ERR_PRINT("Export preset name not specified");
+					return false;
+				}
 				export_debug = true;
 			} else {
 				// The parameter does not match anything known, don't skip the next argument
@@ -1116,26 +1149,46 @@ bool Main::start() {
 #ifdef TOOLS_ENABLED
 	if (doc_tool != "") {
 
+		{
+			DirAccessRef da = DirAccess::open(doc_tool);
+			if (!da) {
+				ERR_EXPLAIN("Argument supplied to --doctool must be a base godot build directory");
+				ERR_FAIL_V(false);
+			}
+		}
 		DocData doc;
 		doc.generate(doc_base);
 
 		DocData docsrc;
-		if (docsrc.load(doc_tool) == OK) {
-			print_line("Doc exists. Merging..");
-			doc.merge_from(docsrc);
-		} else {
-			print_line("No Doc exists. Generating empty.");
-		}
+		Map<String, String> doc_data_classes;
+		Set<String> checked_paths;
+		print_line("Loading docs..");
 
-		for (List<String>::Element *E = removal_docs.front(); E; E = E->next()) {
-			DocData rmdoc;
-			if (rmdoc.load(E->get()) == OK) {
-				print_line(String("Removing classes in ") + E->get());
-				doc.remove_from(rmdoc);
+		for (int i = 0; i < _doc_data_class_path_count; i++) {
+			String path = doc_tool.plus_file(_doc_data_class_paths[i].path);
+			String name = _doc_data_class_paths[i].name;
+			doc_data_classes[name] = path;
+			if (!checked_paths.has(path)) {
+				checked_paths.insert(path);
+				docsrc.load_classes(path);
+				print_line("Loading docs from: " + path);
 			}
 		}
 
-		doc.save(doc_tool);
+		String index_path = doc_tool.plus_file("doc/classes");
+		docsrc.load_classes(index_path);
+		checked_paths.insert(index_path);
+		print_line("Loading docs from: " + index_path);
+
+		print_line("Merging docs..");
+		doc.merge_from(docsrc);
+		for (Set<String>::Element *E = checked_paths.front(); E; E = E->next()) {
+			print_line("Erasing old docs at: " + E->get());
+			DocData::erase_classes(E->get());
+		}
+
+		print_line("Generating new docs..");
+		doc.save_classes(index_path, doc_data_classes);
 
 		return false;
 	}
@@ -1181,7 +1234,7 @@ bool Main::start() {
 
 			StringName instance_type = script_res->get_instance_base_type();
 			Object *obj = ClassDB::instance(instance_type);
-			MainLoop *script_loop = obj ? obj->cast_to<MainLoop>() : NULL;
+			MainLoop *script_loop = Object::cast_to<MainLoop>(obj);
 			if (!script_loop) {
 				if (obj)
 					memdelete(obj);
@@ -1215,7 +1268,7 @@ bool Main::start() {
 				ERR_FAIL_V(false);
 			}
 
-			main_loop = ml->cast_to<MainLoop>();
+			main_loop = Object::cast_to<MainLoop>(ml);
 			if (!main_loop) {
 
 				memdelete(ml);
@@ -1227,7 +1280,7 @@ bool Main::start() {
 
 	if (main_loop->is_class("SceneTree")) {
 
-		SceneTree *sml = main_loop->cast_to<SceneTree>();
+		SceneTree *sml = Object::cast_to<SceneTree>(main_loop);
 
 #ifdef DEBUG_ENABLED
 		if (debug_collisions) {
@@ -1306,6 +1359,9 @@ bool Main::start() {
 			Viewport::Usage usage = Viewport::Usage(int(GLOBAL_GET("rendering/quality/intended_usage/framebuffer_allocation")));
 			sml->get_root()->set_usage(usage);
 
+			bool snap_controls = GLOBAL_DEF("gui/common/snap_controls_to_pixels", true);
+			sml->get_root()->set_snap_controls_to_pixels(snap_controls);
+
 		} else {
 			GLOBAL_DEF("display/window/stretch/mode", "disabled");
 			ProjectSettings::get_singleton()->set_custom_property_info("display/window/stretch/mode", PropertyInfo(Variant::STRING, "display/window/stretch/mode", PROPERTY_HINT_ENUM, "disabled,2d,viewport"));
@@ -1315,6 +1371,7 @@ bool Main::start() {
 			ProjectSettings::get_singleton()->set_custom_property_info("display/window/stretch/shrink", PropertyInfo(Variant::STRING, "display/window/stretch/shrink", PROPERTY_HINT_RANGE, "1,8,1"));
 			sml->set_auto_accept_quit(GLOBAL_DEF("application/config/auto_accept_quit", true));
 			sml->set_quit_on_go_back(GLOBAL_DEF("application/config/quit_on_go_back", true));
+			GLOBAL_DEF("gui/common/snap_controls_to_pixels", true);
 		}
 
 		String local_game_path;
@@ -1356,6 +1413,8 @@ bool Main::start() {
 			if (editor) {
 
 				Error serr = editor_node->load_scene(local_game_path);
+				if (serr != OK)
+					ERR_PRINT("Failed to load scene");
 				OS::get_singleton()->set_context(OS::CONTEXT_EDITOR);
 			}
 #endif
@@ -1421,7 +1480,7 @@ bool Main::start() {
 						ERR_EXPLAIN("Cannot instance script for autoload, expected 'Node' inheritance, got: " + String(ibt));
 						ERR_CONTINUE(obj == NULL);
 
-						n = obj->cast_to<Node>();
+						n = Object::cast_to<Node>(obj);
 						n->set_script(s.get_ref_ptr());
 					}
 
@@ -1502,6 +1561,9 @@ bool Main::iteration() {
 	uint64_t ticks_elapsed = ticks - last_ticks;
 
 	double step = (double)ticks_elapsed / 1000000.0;
+	if (fixed_fps != -1)
+		step = 1.0 / fixed_fps;
+
 	float frame_slice = 1.0 / Engine::get_singleton()->get_iterations_per_second();
 
 	Engine::get_singleton()->_frame_step = step;
@@ -1518,7 +1580,7 @@ bool Main::iteration() {
 
 	last_ticks = ticks;
 
-	if (step > frame_slice * 8)
+	if (fixed_fps == -1 && step > frame_slice * 8)
 		step = frame_slice * 8;
 
 	time_accum += step;
@@ -1571,7 +1633,7 @@ bool Main::iteration() {
 
 	VisualServer::get_singleton()->sync(); //sync if still drawing from previous frames.
 
-	if (OS::get_singleton()->can_draw()) {
+	if (OS::get_singleton()->can_draw() && !disable_render_loop) {
 
 		if ((!force_redraw_requested) && OS::get_singleton()->is_in_low_processor_usage_mode()) {
 			if (VisualServer::get_singleton()->has_changed()) {
@@ -1621,6 +1683,9 @@ bool Main::iteration() {
 		frame %= 1000000;
 		frames = 0;
 	}
+
+	if (fixed_fps != -1)
+		return exit;
 
 	if (OS::get_singleton()->is_in_low_processor_usage_mode() || !OS::get_singleton()->can_draw())
 		OS::get_singleton()->delay_usec(16600); //apply some delay to force idle time (results in about 60 FPS max)

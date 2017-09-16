@@ -3,7 +3,7 @@
 /*************************************************************************/
 /*                       This file is part of:                           */
 /*                           GODOT ENGINE                                */
-/*                    http://www.godotengine.org                         */
+/*                      https://godotengine.org                          */
 /*************************************************************************/
 /* Copyright (c) 2007-2017 Juan Linietsky, Ariel Manzur.                 */
 /* Copyright (c) 2014-2017 Godot Engine contributors (cf. AUTHORS.md)    */
@@ -183,6 +183,9 @@ private:
 	void _update_quadrant_transform();
 	void _recompute_rect_cache();
 
+	void _update_all_items_material_state();
+	_FORCE_INLINE_ void _update_item_material_state(const RID &p_canvas_item);
+
 	_FORCE_INLINE_ int _get_quadrant_size() const;
 
 	void _set_tile_data(const PoolVector<int> &p_data);
@@ -277,6 +280,10 @@ public:
 	int get_occluder_light_mask() const;
 
 	virtual void set_light_mask(int p_light_mask);
+
+	virtual void set_material(const Ref<Material> &p_material);
+
+	virtual void set_use_parent_material(bool p_use_parent_material);
 
 	void clear();
 

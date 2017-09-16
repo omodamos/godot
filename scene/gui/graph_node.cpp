@@ -3,7 +3,7 @@
 /*************************************************************************/
 /*                       This file is part of:                           */
 /*                           GODOT ENGINE                                */
-/*                    http://www.godotengine.org                         */
+/*                      https://godotengine.org                          */
 /*************************************************************************/
 /* Copyright (c) 2007-2017 Juan Linietsky, Ariel Manzur.                 */
 /* Copyright (c) 2014-2017 Godot Engine contributors (cf. AUTHORS.md)    */
@@ -96,7 +96,7 @@ void GraphNode::_get_property_list(List<PropertyInfo> *p_list) const {
 
 	int idx = 0;
 	for (int i = 0; i < get_child_count(); i++) {
-		Control *c = get_child(i)->cast_to<Control>();
+		Control *c = Object::cast_to<Control>(get_child(i));
 		if (!c || c->is_set_as_toplevel())
 			continue;
 
@@ -122,7 +122,7 @@ void GraphNode::_resort() {
 	Size2 minsize;
 
 	for (int i = 0; i < get_child_count(); i++) {
-		Control *c = get_child(i)->cast_to<Control>();
+		Control *c = Object::cast_to<Control>(get_child(i));
 		if (!c)
 			continue;
 		if (c->is_set_as_toplevel())
@@ -144,7 +144,7 @@ void GraphNode::_resort() {
 
 	cache_y.clear();
 	for (int i = 0; i < get_child_count(); i++) {
-		Control *c = get_child(i)->cast_to<Control>();
+		Control *c = Object::cast_to<Control>(get_child(i));
 		if (!c)
 			continue;
 		if (c->is_set_as_toplevel())
@@ -270,7 +270,7 @@ void GraphNode::_notification(int p_what) {
 			}
 		}
 
-		if (resizeable) {
+		if (resizable) {
 			draw_texture(resizer, get_size() - resizer->get_size());
 		}
 	}
@@ -375,7 +375,7 @@ Size2 GraphNode::get_minimum_size() const {
 
 	for (int i = 0; i < get_child_count(); i++) {
 
-		Control *c = get_child(i)->cast_to<Control>();
+		Control *c = Object::cast_to<Control>(get_child(i));
 		if (!c)
 			continue;
 		if (c->is_set_as_toplevel())
@@ -462,7 +462,7 @@ void GraphNode::_connpos_update() {
 	int idx = 0;
 
 	for (int i = 0; i < get_child_count(); i++) {
-		Control *c = get_child(i)->cast_to<Control>();
+		Control *c = Object::cast_to<Control>(get_child(i));
 		if (!c)
 			continue;
 		if (c->is_set_as_toplevel())
@@ -594,7 +594,7 @@ void GraphNode::_gui_input(const Ref<InputEvent> &p_ev) {
 
 			Ref<Texture> resizer = get_icon("resizer");
 
-			if (resizeable && mpos.x > get_size().x - resizer->get_width() && mpos.y > get_size().y - resizer->get_height()) {
+			if (resizable && mpos.x > get_size().x - resizer->get_width() && mpos.y > get_size().y - resizer->get_height()) {
 
 				resizing = true;
 				resizing_from = mpos;
@@ -645,15 +645,15 @@ bool GraphNode::is_comment() const {
 	return comment;
 }
 
-void GraphNode::set_resizeable(bool p_enable) {
+void GraphNode::set_resizable(bool p_enable) {
 
-	resizeable = p_enable;
+	resizable = p_enable;
 	update();
 }
 
-bool GraphNode::is_resizeable() const {
+bool GraphNode::is_resizable() const {
 
-	return resizeable;
+	return resizable;
 }
 
 void GraphNode::_bind_methods() {
@@ -678,8 +678,8 @@ void GraphNode::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("set_comment", "comment"), &GraphNode::set_comment);
 	ClassDB::bind_method(D_METHOD("is_comment"), &GraphNode::is_comment);
 
-	ClassDB::bind_method(D_METHOD("set_resizeable", "resizeable"), &GraphNode::set_resizeable);
-	ClassDB::bind_method(D_METHOD("is_resizeable"), &GraphNode::is_resizeable);
+	ClassDB::bind_method(D_METHOD("set_resizable", "resizable"), &GraphNode::set_resizable);
+	ClassDB::bind_method(D_METHOD("is_resizable"), &GraphNode::is_resizable);
 
 	ClassDB::bind_method(D_METHOD("set_selected", "selected"), &GraphNode::set_selected);
 	ClassDB::bind_method(D_METHOD("is_selected"), &GraphNode::is_selected);
@@ -702,7 +702,7 @@ void GraphNode::_bind_methods() {
 
 	ADD_PROPERTY(PropertyInfo(Variant::STRING, "title"), "set_title", "get_title");
 	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "show_close"), "set_show_close_button", "is_close_button_visible");
-	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "resizeable"), "set_resizeable", "is_resizeable");
+	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "resizable"), "set_resizable", "is_resizable");
 
 	ADD_SIGNAL(MethodInfo("offset_changed"));
 	ADD_SIGNAL(MethodInfo("dragged", PropertyInfo(Variant::VECTOR2, "from"), PropertyInfo(Variant::VECTOR2, "to")));
@@ -722,7 +722,7 @@ GraphNode::GraphNode() {
 	connpos_dirty = true;
 	set_mouse_filter(MOUSE_FILTER_STOP);
 	comment = false;
-	resizeable = false;
+	resizable = false;
 	resizing = false;
 	selected = false;
 }

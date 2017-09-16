@@ -3,7 +3,7 @@
 /*************************************************************************/
 /*                       This file is part of:                           */
 /*                           GODOT ENGINE                                */
-/*                    http://www.godotengine.org                         */
+/*                      https://godotengine.org                          */
 /*************************************************************************/
 /* Copyright (c) 2007-2017 Juan Linietsky, Ariel Manzur.                 */
 /* Copyright (c) 2014-2017 Godot Engine contributors (cf. AUTHORS.md)    */
@@ -116,7 +116,7 @@ real_t Area2D::get_priority() const {
 void Area2D::_body_enter_tree(ObjectID p_id) {
 
 	Object *obj = ObjectDB::get_instance(p_id);
-	Node *node = obj ? obj->cast_to<Node>() : NULL;
+	Node *node = Object::cast_to<Node>(obj);
 	ERR_FAIL_COND(!node);
 
 	Map<ObjectID, BodyState>::Element *E = body_map.find(p_id);
@@ -134,7 +134,7 @@ void Area2D::_body_enter_tree(ObjectID p_id) {
 void Area2D::_body_exit_tree(ObjectID p_id) {
 
 	Object *obj = ObjectDB::get_instance(p_id);
-	Node *node = obj ? obj->cast_to<Node>() : NULL;
+	Node *node = Object::cast_to<Node>(obj);
 	ERR_FAIL_COND(!node);
 	Map<ObjectID, BodyState>::Element *E = body_map.find(p_id);
 	ERR_FAIL_COND(!E);
@@ -153,7 +153,7 @@ void Area2D::_body_inout(int p_status, const RID &p_body, int p_instance, int p_
 	ObjectID objid = p_instance;
 
 	Object *obj = ObjectDB::get_instance(objid);
-	Node *node = obj ? obj->cast_to<Node>() : NULL;
+	Node *node = Object::cast_to<Node>(obj);
 
 	Map<ObjectID, BodyState>::Element *E = body_map.find(objid);
 
@@ -217,7 +217,7 @@ void Area2D::_body_inout(int p_status, const RID &p_body, int p_instance, int p_
 void Area2D::_area_enter_tree(ObjectID p_id) {
 
 	Object *obj = ObjectDB::get_instance(p_id);
-	Node *node = obj ? obj->cast_to<Node>() : NULL;
+	Node *node = Object::cast_to<Node>(obj);
 	ERR_FAIL_COND(!node);
 
 	Map<ObjectID, AreaState>::Element *E = area_map.find(p_id);
@@ -235,7 +235,7 @@ void Area2D::_area_enter_tree(ObjectID p_id) {
 void Area2D::_area_exit_tree(ObjectID p_id) {
 
 	Object *obj = ObjectDB::get_instance(p_id);
-	Node *node = obj ? obj->cast_to<Node>() : NULL;
+	Node *node = Object::cast_to<Node>(obj);
 	ERR_FAIL_COND(!node);
 	Map<ObjectID, AreaState>::Element *E = area_map.find(p_id);
 	ERR_FAIL_COND(!E);
@@ -254,7 +254,7 @@ void Area2D::_area_inout(int p_status, const RID &p_area, int p_instance, int p_
 	ObjectID objid = p_instance;
 
 	Object *obj = ObjectDB::get_instance(objid);
-	Node *node = obj ? obj->cast_to<Node>() : NULL;
+	Node *node = Object::cast_to<Node>(obj);
 
 	Map<ObjectID, AreaState>::Element *E = area_map.find(objid);
 
@@ -330,7 +330,7 @@ void Area2D::_clear_monitoring() {
 		for (Map<ObjectID, BodyState>::Element *E = bmcopy.front(); E; E = E->next()) {
 
 			Object *obj = ObjectDB::get_instance(E->key());
-			Node *node = obj ? obj->cast_to<Node>() : NULL;
+			Node *node = Object::cast_to<Node>(obj);
 
 			if (!node) //node may have been deleted in previous frame or at other legiminate point
 				continue;
@@ -360,7 +360,7 @@ void Area2D::_clear_monitoring() {
 		for (Map<ObjectID, AreaState>::Element *E = bmcopy.front(); E; E = E->next()) {
 
 			Object *obj = ObjectDB::get_instance(E->key());
-			Node *node = obj ? obj->cast_to<Node>() : NULL;
+			Node *node = Object::cast_to<Node>(obj);
 
 			if (!node) //node may have been deleted in previous frame or at other legiminate point
 				continue;
@@ -596,7 +596,7 @@ void Area2D::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("_area_enter_tree", "id"), &Area2D::_area_enter_tree);
 	ClassDB::bind_method(D_METHOD("_area_exit_tree", "id"), &Area2D::_area_exit_tree);
 
-	ClassDB::bind_method(D_METHOD("set_space_override_mode", "enable"), &Area2D::set_space_override_mode);
+	ClassDB::bind_method(D_METHOD("set_space_override_mode", "space_override_mode"), &Area2D::set_space_override_mode);
 	ClassDB::bind_method(D_METHOD("get_space_override_mode"), &Area2D::get_space_override_mode);
 
 	ClassDB::bind_method(D_METHOD("set_gravity_is_point", "enable"), &Area2D::set_gravity_is_point);
@@ -680,6 +680,12 @@ void Area2D::_bind_methods() {
 	ADD_GROUP("Audio Bus", "audio_bus_");
 	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "audio_bus_override"), "set_audio_bus_override", "is_overriding_audio_bus");
 	ADD_PROPERTY(PropertyInfo(Variant::STRING, "audio_bus_name", PROPERTY_HINT_ENUM, ""), "set_audio_bus", "get_audio_bus");
+
+	BIND_ENUM_CONSTANT(SPACE_OVERRIDE_DISABLED);
+	BIND_ENUM_CONSTANT(SPACE_OVERRIDE_COMBINE);
+	BIND_ENUM_CONSTANT(SPACE_OVERRIDE_COMBINE_REPLACE);
+	BIND_ENUM_CONSTANT(SPACE_OVERRIDE_REPLACE);
+	BIND_ENUM_CONSTANT(SPACE_OVERRIDE_REPLACE_COMBINE);
 }
 
 Area2D::Area2D()

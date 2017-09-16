@@ -3,7 +3,7 @@
 /*************************************************************************/
 /*                       This file is part of:                           */
 /*                           GODOT ENGINE                                */
-/*                    http://www.godotengine.org                         */
+/*                      https://godotengine.org                          */
 /*************************************************************************/
 /* Copyright (c) 2007-2017 Juan Linietsky, Ariel Manzur.                 */
 /* Copyright (c) 2014-2017 Godot Engine contributors (cf. AUTHORS.md)    */
@@ -466,8 +466,6 @@ void AppxPackager::add_file(String p_file_name, const uint8_t *p_buffer, size_t 
 		EditorNode::progress_task_step(progress_task, "File: " + p_file_name, (p_file_no * 100) / p_total_files);
 	}
 
-	bool do_hash = p_file_name != "AppxSignature.p7x";
-
 	FileMeta meta;
 	meta.name = p_file_name;
 	meta.uncompressed_size = p_len;
@@ -501,7 +499,7 @@ void AppxPackager::add_file(String p_file_name, const uint8_t *p_buffer, size_t 
 
 		size_t block_size = (p_len - step) > BLOCK_SIZE ? BLOCK_SIZE : (p_len - step);
 
-		for (int i = 0; i < block_size; i++) {
+		for (uint32_t i = 0; i < block_size; i++) {
 			strm_in[i] = p_buffer[step + i];
 		}
 
@@ -523,14 +521,14 @@ void AppxPackager::add_file(String p_file_name, const uint8_t *p_buffer, size_t 
 			//package->store_buffer(strm_out.ptr(), strm.total_out - total_out_before);
 			int start = file_buffer.size();
 			file_buffer.resize(file_buffer.size() + bh.compressed_size);
-			for (int i = 0; i < bh.compressed_size; i++)
+			for (uint32_t i = 0; i < bh.compressed_size; i++)
 				file_buffer[start + i] = strm_out[i];
 		} else {
 			bh.compressed_size = block_size;
 			//package->store_buffer(strm_in.ptr(), block_size);
 			int start = file_buffer.size();
 			file_buffer.resize(file_buffer.size() + block_size);
-			for (int i = 0; i < bh.compressed_size; i++)
+			for (uint32_t i = 0; i < bh.compressed_size; i++)
 				file_buffer[start + i] = strm_in[i];
 		}
 
@@ -553,7 +551,7 @@ void AppxPackager::add_file(String p_file_name, const uint8_t *p_buffer, size_t 
 		//package->store_buffer(strm_out.ptr(), strm.total_out - total_out_before);
 		int start = file_buffer.size();
 		file_buffer.resize(file_buffer.size() + (strm.total_out - total_out_before));
-		for (int i = 0; i < (strm.total_out - total_out_before); i++)
+		for (uint32_t i = 0; i < (strm.total_out - total_out_before); i++)
 			file_buffer[start + i] = strm_out[i];
 
 		deflateEnd(&strm);
@@ -866,22 +864,24 @@ class EditorExportUWP : public EditorExportPlatform {
 	Vector<uint8_t> _get_image_data(const Ref<EditorExportPreset> &p_preset, const String &p_path) {
 
 		Vector<uint8_t> data;
-		StreamTexture *image;
+		StreamTexture *image = NULL;
 
 		if (p_path.find("StoreLogo") != -1) {
-			image = p_preset->get("images/store_logo").is_zero() ? NULL : ((Object *)p_preset->get("images/store_logo"))->cast_to<StreamTexture>();
+			image = p_preset->get("images/store_logo").is_zero() ? NULL : Object::cast_to<StreamTexture>(((Object *)p_preset->get("images/store_logo")));
 		} else if (p_path.find("Square44x44Logo") != -1) {
-			image = p_preset->get("images/square44x44_logo").is_zero() ? NULL : ((Object *)p_preset->get("images/square44x44_logo"))->cast_to<StreamTexture>();
+			image = p_preset->get("images/square44x44_logo").is_zero() ? NULL : Object::cast_to<StreamTexture>(((Object *)p_preset->get("images/square44x44_logo")));
 		} else if (p_path.find("Square71x71Logo") != -1) {
-			image = p_preset->get("images/square71x71_logo").is_zero() ? NULL : ((Object *)p_preset->get("images/square71x71_logo"))->cast_to<StreamTexture>();
+			image = p_preset->get("images/square71x71_logo").is_zero() ? NULL : Object::cast_to<StreamTexture>(((Object *)p_preset->get("images/square71x71_logo")));
 		} else if (p_path.find("Square150x150Logo") != -1) {
-			image = p_preset->get("images/square150x150_logo").is_zero() ? NULL : ((Object *)p_preset->get("images/square150x150_logo"))->cast_to<StreamTexture>();
+			image = p_preset->get("images/square150x150_logo").is_zero() ? NULL : Object::cast_to<StreamTexture>(((Object *)p_preset->get("images/square150x150_logo")));
 		} else if (p_path.find("Square310x310Logo") != -1) {
-			image = p_preset->get("images/square310x310_logo").is_zero() ? NULL : ((Object *)p_preset->get("images/square310x310_logo"))->cast_to<StreamTexture>();
+			image = p_preset->get("images/square310x310_logo").is_zero() ? NULL : Object::cast_to<StreamTexture>(((Object *)p_preset->get("images/square310x310_logo")));
 		} else if (p_path.find("Wide310x150Logo") != -1) {
-			image = p_preset->get("images/wide310x150_logo").is_zero() ? NULL : ((Object *)p_preset->get("images/wide310x150_logo"))->cast_to<StreamTexture>();
+			image = p_preset->get("images/wide310x150_logo").is_zero() ? NULL : Object::cast_to<StreamTexture>(((Object *)p_preset->get("images/wide310x150_logo")));
 		} else if (p_path.find("SplashScreen") != -1) {
-			image = p_preset->get("images/splash_screen").is_zero() ? NULL : ((Object *)p_preset->get("images/splash_screen"))->cast_to<StreamTexture>();
+			image = p_preset->get("images/splash_screen").is_zero() ? NULL : Object::cast_to<StreamTexture>(((Object *)p_preset->get("images/splash_screen")));
+		} else {
+			ERR_PRINT("Unable to load logo");
 		}
 
 		if (!image) return data;
@@ -1162,37 +1162,37 @@ public:
 			err += "\nInvalid background color.";
 		}
 
-		if (!p_preset->get("images/store_logo").is_zero() && !_valid_image(((Object *)p_preset->get("images/store_logo"))->cast_to<StreamTexture>(), 50, 50)) {
+		if (!p_preset->get("images/store_logo").is_zero() && !_valid_image((Object::cast_to<StreamTexture>((Object *)p_preset->get("images/store_logo"))), 50, 50)) {
 			valid = false;
 			err += "\nInvalid Store Logo image dimensions (should be 50x50).";
 		}
 
-		if (!p_preset->get("images/square44x44_logo").is_zero() && !_valid_image(((Object *)p_preset->get("images/square44x44_logo"))->cast_to<StreamTexture>(), 44, 44)) {
+		if (!p_preset->get("images/square44x44_logo").is_zero() && !_valid_image((Object::cast_to<StreamTexture>((Object *)p_preset->get("images/square44x44_logo"))), 44, 44)) {
 			valid = false;
 			err += "\nInvalid square 44x44 logo image dimensions (should be 44x44).";
 		}
 
-		if (!p_preset->get("images/square71x71_logo").is_zero() && !_valid_image(((Object *)p_preset->get("images/square71x71_logo"))->cast_to<StreamTexture>(), 71, 71)) {
+		if (!p_preset->get("images/square71x71_logo").is_zero() && !_valid_image((Object::cast_to<StreamTexture>((Object *)p_preset->get("images/square71x71_logo"))), 71, 71)) {
 			valid = false;
 			err += "\nInvalid square 71x71 logo image dimensions (should be 71x71).";
 		}
 
-		if (!p_preset->get("images/square150x150_logo").is_zero() && !_valid_image(((Object *)p_preset->get("images/square150x150_logo"))->cast_to<StreamTexture>(), 150, 0)) {
+		if (!p_preset->get("images/square150x150_logo").is_zero() && !_valid_image((Object::cast_to<StreamTexture>((Object *)p_preset->get("images/square150x150_logo"))), 150, 0)) {
 			valid = false;
 			err += "\nInvalid square 150x150 logo image dimensions (should be 150x150).";
 		}
 
-		if (!p_preset->get("images/square310x310_logo").is_zero() && !_valid_image(((Object *)p_preset->get("images/square310x310_logo"))->cast_to<StreamTexture>(), 310, 310)) {
+		if (!p_preset->get("images/square310x310_logo").is_zero() && !_valid_image((Object::cast_to<StreamTexture>((Object *)p_preset->get("images/square310x310_logo"))), 310, 310)) {
 			valid = false;
 			err += "\nInvalid square 310x310 logo image dimensions (should be 310x310).";
 		}
 
-		if (!p_preset->get("images/wide310x150_logo").is_zero() && !_valid_image(((Object *)p_preset->get("images/wide310x150_logo"))->cast_to<StreamTexture>(), 310, 150)) {
+		if (!p_preset->get("images/wide310x150_logo").is_zero() && !_valid_image((Object::cast_to<StreamTexture>((Object *)p_preset->get("images/wide310x150_logo"))), 310, 150)) {
 			valid = false;
 			err += "\nInvalid wide 310x150 logo image dimensions (should be 310x150).";
 		}
 
-		if (!p_preset->get("images/splash_screen").is_zero() && !_valid_image(((Object *)p_preset->get("images/splash_screen"))->cast_to<StreamTexture>(), 620, 300)) {
+		if (!p_preset->get("images/splash_screen").is_zero() && !_valid_image((Object::cast_to<StreamTexture>((Object *)p_preset->get("images/splash_screen"))), 620, 300)) {
 			valid = false;
 			err += "\nInvalid splash screen image dimensions (should be 620x300).";
 		}

@@ -3,7 +3,7 @@
 /*************************************************************************/
 /*                       This file is part of:                           */
 /*                           GODOT ENGINE                                */
-/*                    http://www.godotengine.org                         */
+/*                      https://godotengine.org                          */
 /*************************************************************************/
 /* Copyright (c) 2007-2017 Juan Linietsky, Ariel Manzur.                 */
 /* Copyright (c) 2014-2017 Godot Engine contributors (cf. AUTHORS.md)    */
@@ -27,9 +27,11 @@
 /* TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE     */
 /* SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                */
 /*************************************************************************/
-#include "shader_graph_editor_plugin.h"
 
+// FIXME: Godot 3.0 broke compatibility with ShaderGraphEditorPlugin,
+// it needs to be ported to the new shader language.
 #if 0
+#include "shader_graph_editor_plugin.h"
 
 #include "canvas_item_editor_plugin.h"
 #include "os/keyboard.h"
@@ -539,22 +541,7 @@ void GraphCurveMapEdit::_plot_curve(const Vector2& p_a,const Vector2& p_b,const 
 		newy = CLAMP ((Math::round (y)), 0, ymax);
 
 		/* if this point is different than the last one...then draw it */
-		if ((lastx != newx) || (lasty != newy))
-		{
-#if 0
-			if(fix255)
-			{
-				/* use fixed array size (for the curve graph) */
-				cd->curve[cd->outline][newx] = newy;
-			}
-			else
-			{
-				/* use dynamic allocated curve_ptr (for the real curve) */
-				cd->curve_ptr[cd->outline][newx] = newy;
-
-				if(gb_debug) printf("outline: %d  cX: %d cY: %d\n", (int)cd->outline, (int)newx, (int)newy);
-			}
-#endif
+		if ((lastx != newx) || (lasty != newy)) {
 			draw_line(Vector2(lastx,ymax-lasty),Vector2(newx,ymax-newy),Color(0.8,0.8,0.8,0.8),2.0);
 		}
 
@@ -839,7 +826,7 @@ void ShaderGraphView::_vec_input_changed(double p_value, int p_id,Array p_arr){
 void ShaderGraphView::_xform_input_changed(int p_id, Node *p_button){
 
 
-	ToolButton *tb = p_button->cast_to<ToolButton>();
+	ToolButton *tb = Object::cast_to<ToolButton>(p_button);
 	ped_popup->set_position(tb->get_global_position()+Vector2(0,tb->get_size().height));
 	ped_popup->set_size(tb->get_size());
 	edited_id=p_id;
@@ -850,7 +837,7 @@ void ShaderGraphView::_xform_input_changed(int p_id, Node *p_button){
 }
 void ShaderGraphView::_xform_const_changed(int p_id, Node *p_button){
 
-	ToolButton *tb = p_button->cast_to<ToolButton>();
+	ToolButton *tb = Object::cast_to<ToolButton>(p_button);
 	ped_popup->set_position(tb->get_global_position()+Vector2(0,tb->get_size().height));
 	ped_popup->set_size(tb->get_size());
 	edited_id=p_id;
@@ -964,7 +951,7 @@ void ShaderGraphView::_variant_edited() {
 void ShaderGraphView::_comment_edited(int p_id,Node* p_button) {
 
 	UndoRedo *ur=EditorNode::get_singleton()->get_undo_redo();
-	TextEdit *te=p_button->cast_to<TextEdit>();
+	TextEdit *te=Object::cast_to<TextEdit>(p_button);
 	ur->create_action(TTR("Change Comment"),UndoRedo::MERGE_ENDS);
 	ur->add_do_method(graph.ptr(),"comment_node_set_text",type,p_id,te->get_text());
 	ur->add_undo_method(graph.ptr(),"comment_node_set_text",type,p_id,graph->comment_node_get_text(type,p_id));
@@ -978,7 +965,7 @@ void ShaderGraphView::_comment_edited(int p_id,Node* p_button) {
 
 void ShaderGraphView::_color_ramp_changed(int p_id,Node* p_ramp) {
 
-	GraphColorRampEdit *cr=p_ramp->cast_to<GraphColorRampEdit>();
+	GraphColorRampEdit *cr=Object::cast_to<GraphColorRampEdit>(p_ramp);
 
 	UndoRedo *ur=EditorNode::get_singleton()->get_undo_redo();
 
@@ -1020,7 +1007,7 @@ void ShaderGraphView::_color_ramp_changed(int p_id,Node* p_ramp) {
 
 void ShaderGraphView::_curve_changed(int p_id,Node* p_curve) {
 
-	GraphCurveMapEdit *cr=p_curve->cast_to<GraphCurveMapEdit>();
+	GraphCurveMapEdit *cr=Object::cast_to<GraphCurveMapEdit>(p_curve);
 
 	UndoRedo *ur=EditorNode::get_singleton()->get_undo_redo();
 
@@ -1057,7 +1044,7 @@ void ShaderGraphView::_curve_changed(int p_id,Node* p_curve) {
 
 void ShaderGraphView::_input_name_changed(const String& p_name, int p_id, Node *p_line_edit) {
 
-	LineEdit *le=p_line_edit->cast_to<LineEdit>();
+	LineEdit *le=Object::cast_to<LineEdit>(p_line_edit);
 	ERR_FAIL_COND(!le);
 
 	UndoRedo *ur=EditorNode::get_singleton()->get_undo_redo();
@@ -1074,7 +1061,7 @@ void ShaderGraphView::_input_name_changed(const String& p_name, int p_id, Node *
 
 void ShaderGraphView::_tex_edited(int p_id,Node* p_button) {
 
-	ToolButton *tb = p_button->cast_to<ToolButton>();
+	ToolButton *tb = Object::cast_to<ToolButton>(p_button);
 	ped_popup->set_position(tb->get_global_position()+Vector2(0,tb->get_size().height));
 	ped_popup->set_size(tb->get_size());
 	edited_id=p_id;
@@ -1084,7 +1071,7 @@ void ShaderGraphView::_tex_edited(int p_id,Node* p_button) {
 
 void ShaderGraphView::_cube_edited(int p_id,Node* p_button) {
 
-	ToolButton *tb = p_button->cast_to<ToolButton>();
+	ToolButton *tb = Object::cast_to<ToolButton>(p_button);
 	ped_popup->set_position(tb->get_global_position()+Vector2(0,tb->get_size().height));
 	ped_popup->set_size(tb->get_size());
 	edited_id=p_id;
@@ -1299,7 +1286,7 @@ void ShaderGraphView::_delete_nodes_request()
 
 void ShaderGraphView::_default_changed(int p_id, Node *p_button, int p_param, int v_type, String p_hint)
 {
-	ToolButton *tb = p_button->cast_to<ToolButton>();
+	ToolButton *tb = Object::cast_to<ToolButton>(p_button);
 	ped_popup->set_position(tb->get_global_position()+Vector2(0,tb->get_size().height));
 	ped_popup->set_size(tb->get_size());
 	edited_id=p_id;
@@ -2530,7 +2517,7 @@ void ShaderGraphView::_sg_updated() {
 
 Variant ShaderGraphView::get_drag_data_fw(const Point2 &p_point, Control *p_from)
 {
-	TextureRect* frame = p_from->cast_to<TextureRect>();
+	TextureRect* frame = Object::cast_to<TextureRect>(p_from);
 	if (!frame)
 		return Variant();
 
@@ -2556,7 +2543,7 @@ bool ShaderGraphView::can_drop_data_fw(const Point2 &p_point, const Variant &p_d
 
 			if (val.get_type()==Variant::OBJECT) {
 				RES res = val;
-				if (res.is_valid() && res->cast_to<Texture>())
+				if (res.is_valid() && Object::cast_to<Texture>(res))
 					return true;
 			}
 		}
@@ -2576,7 +2563,7 @@ void ShaderGraphView::drop_data_fw(const Point2 &p_point, const Variant &p_data,
 	if (!can_drop_data_fw(p_point, p_data, p_from))
 		return;
 
-	TextureRect *frame = p_from->cast_to<TextureRect>();
+	TextureRect *frame = Object::cast_to<TextureRect>(p_from);
 	if (!frame)
 		return;
 
@@ -2590,20 +2577,20 @@ void ShaderGraphView::drop_data_fw(const Point2 &p_point, const Variant &p_data,
 			if (val.get_type()==Variant::OBJECT) {
 				RES res = val;
 				if (res.is_valid())
-					tex = Ref<Texture>(res->cast_to<Texture>());
+					tex = Ref<Texture>(Object::cast_to<Texture>(*res));
 			}
 		}
 		else if (d["type"] == "files" && d.has("files")) {
 			Vector<String> files = d["files"];
 			RES res = ResourceLoader::load(files[0]);
 			if (res.is_valid())
-				tex = Ref<Texture>(res->cast_to<Texture>());
+				tex = Ref<Texture>(Object::cast_to<Texture>(*res));
 		}
 	}
 
 	if (!tex.is_valid()) return;
 
-	GraphNode *gn = frame->get_parent()->cast_to<GraphNode>();
+	GraphNode *gn = Object::cast_to<GraphNode>(frame->get_parent());
 	if (!gn) return;
 
 	int id = -1;
@@ -2896,12 +2883,12 @@ ShaderGraphEditor::ShaderGraphEditor(bool p_2d) {
 
 void ShaderGraphEditorPlugin::edit(Object *p_object) {
 
-	shader_editor->edit(p_object->cast_to<ShaderGraph>());
+	shader_editor->edit(Object::cast_to<ShaderGraph>(p_object));
 }
 
 bool ShaderGraphEditorPlugin::handles(Object *p_object) const {
 
-	ShaderGraph *shader=p_object->cast_to<ShaderGraph>();
+	ShaderGraph *shader=Object::cast_to<ShaderGraph>(p_object);
 	if (!shader)
 		return false;
 	if (_2d)

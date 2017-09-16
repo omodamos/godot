@@ -3,7 +3,7 @@
 /*************************************************************************/
 /*                       This file is part of:                           */
 /*                           GODOT ENGINE                                */
-/*                    http://www.godotengine.org                         */
+/*                      https://godotengine.org                          */
 /*************************************************************************/
 /* Copyright (c) 2007-2017 Juan Linietsky, Ariel Manzur.                 */
 /* Copyright (c) 2014-2017 Godot Engine contributors (cf. AUTHORS.md)    */
@@ -1030,14 +1030,13 @@ RES ResourceFormatLoaderTheme::load(const String &p_path, const String &p_origin
 					ERR_FAIL_V(RES());
 				}
 
-				if (res->cast_to<StyleBox>()) {
-
+				if (Object::cast_to<StyleBox>(*res)) {
 					theme->set_stylebox(item, control, res);
-				} else if (res->cast_to<Font>()) {
+				} else if (Object::cast_to<Font>(*res)) {
 					theme->set_font(item, control, res);
-				} else if (res->cast_to<Font>()) {
+				} else if (Object::cast_to<Font>(*res)) {
 					theme->set_font(item, control, res);
-				} else if (res->cast_to<Texture>()) {
+				} else if (Object::cast_to<Texture>(*res)) {
 					theme->set_icon(item, control, res);
 				} else {
 					memdelete(f);

@@ -3,7 +3,7 @@
 /*************************************************************************/
 /*                       This file is part of:                           */
 /*                           GODOT ENGINE                                */
-/*                    http://www.godotengine.org                         */
+/*                      https://godotengine.org                          */
 /*************************************************************************/
 /* Copyright (c) 2007-2017 Juan Linietsky, Ariel Manzur.                 */
 /* Copyright (c) 2014-2017 Godot Engine contributors (cf. AUTHORS.md)    */
@@ -53,6 +53,7 @@ void EditorFileDialog::_notification(int p_what) {
 
 	if (p_what == NOTIFICATION_ENTER_TREE) {
 
+		//_update_icons
 		mode_thumbnails->set_icon(get_icon("FileThumbnail", "EditorIcons"));
 		mode_list->set_icon(get_icon("FileList", "EditorIcons"));
 		dir_prev->set_icon(get_icon("ArrowLeft", "EditorIcons"));
@@ -92,6 +93,21 @@ void EditorFileDialog::_notification(int p_what) {
 		if (show_hidden_files != show_hidden)
 			set_show_hidden_files(show_hidden);
 		set_display_mode((DisplayMode)EditorSettings::get_singleton()->get("filesystem/file_dialog/display_mode").operator int());
+
+		//_update_icons
+		mode_thumbnails->set_icon(get_icon("FileThumbnail", "EditorIcons"));
+		mode_list->set_icon(get_icon("FileList", "EditorIcons"));
+		dir_prev->set_icon(get_icon("ArrowLeft", "EditorIcons"));
+		dir_next->set_icon(get_icon("ArrowRight", "EditorIcons"));
+		dir_up->set_icon(get_icon("ArrowUp", "EditorIcons"));
+		refresh->set_icon(get_icon("Reload", "EditorIcons"));
+		favorite->set_icon(get_icon("Favorites", "EditorIcons"));
+
+		fav_up->set_icon(get_icon("MoveUp", "EditorIcons"));
+		fav_down->set_icon(get_icon("MoveDown", "EditorIcons"));
+		fav_rm->set_icon(get_icon("RemoveSmall", "EditorIcons"));
+
+		update_file_list();
 	}
 }
 
@@ -488,29 +504,13 @@ void EditorFileDialog::update_file_list() {
 		item_list->set_max_text_lines(2);
 		item_list->set_fixed_icon_size(Size2(thumbnail_size, thumbnail_size));
 
-		if (!has_icon("ResizedFolder", "EditorIcons")) {
-			Ref<ImageTexture> folder = get_icon("FolderBig", "EditorIcons");
-			Ref<Image> img = folder->get_data();
-			img = img->duplicate();
-			img->resize(thumbnail_size, thumbnail_size);
-			Ref<ImageTexture> resized_folder = Ref<ImageTexture>(memnew(ImageTexture));
-			resized_folder->create_from_image(img, 0);
-			Theme::get_default()->set_icon("ResizedFolder", "EditorIcons", resized_folder);
+		if (thumbnail_size < 64) {
+			folder_thumbnail = get_icon("FolderMediumThumb", "EditorIcons");
+			file_thumbnail = get_icon("FileMediumThumb", "EditorIcons");
+		} else {
+			folder_thumbnail = get_icon("FolderBigThumb", "EditorIcons");
+			file_thumbnail = get_icon("FileBigThumb", "EditorIcons");
 		}
-
-		folder_thumbnail = get_icon("ResizedFolder", "EditorIcons");
-
-		if (!has_icon("ResizedFile", "EditorIcons")) {
-			Ref<ImageTexture> file = get_icon("FileBig", "EditorIcons");
-			Ref<Image> img = file->get_data();
-			img = img->duplicate();
-			img->resize(thumbnail_size, thumbnail_size);
-			Ref<ImageTexture> resized_file = Ref<ImageTexture>(memnew(ImageTexture));
-			resized_file->create_from_image(img, 0);
-			Theme::get_default()->set_icon("ResizedFile", "EditorIcons", resized_file);
-		}
-
-		file_thumbnail = get_icon("ResizedFile", "EditorIcons");
 
 		preview_vb->hide();
 
@@ -809,27 +809,27 @@ void EditorFileDialog::set_mode(Mode p_mode) {
 
 		case MODE_OPEN_FILE:
 			get_ok()->set_text(TTR("Open"));
-			set_title("Open a File");
+			set_title(TTR("Open a File"));
 			makedir->hide();
 			break;
 		case MODE_OPEN_FILES:
 			get_ok()->set_text(TTR("Open"));
-			set_title("Open File(s)");
+			set_title(TTR("Open File(s)"));
 			makedir->hide();
 			break;
 		case MODE_OPEN_DIR:
 			get_ok()->set_text(TTR("Open"));
-			set_title("Open a Directory");
+			set_title(TTR("Open a Directory"));
 			makedir->show();
 			break;
 		case MODE_OPEN_ANY:
 			get_ok()->set_text(TTR("Open"));
-			set_title("Open a File or Directory");
+			set_title(TTR("Open a File or Directory"));
 			makedir->show();
 			break;
 		case MODE_SAVE_FILE:
 			get_ok()->set_text(TTR("Save"));
-			set_title("Save a File");
+			set_title(TTR("Save a File"));
 			makedir->show();
 			break;
 	}
@@ -1196,6 +1196,9 @@ void EditorFileDialog::_bind_methods() {
 	BIND_ENUM_CONSTANT(ACCESS_RESOURCES);
 	BIND_ENUM_CONSTANT(ACCESS_USERDATA);
 	BIND_ENUM_CONSTANT(ACCESS_FILESYSTEM);
+
+	BIND_ENUM_CONSTANT(DISPLAY_THUMBNAILS);
+	BIND_ENUM_CONSTANT(DISPLAY_LIST);
 }
 
 void EditorFileDialog::set_show_hidden_files(bool p_show) {

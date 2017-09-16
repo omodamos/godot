@@ -167,6 +167,8 @@ opts.Add('builtin_libvpx', "Use the builtin libvpx library (yes/no)", 'yes')
 opts.Add('builtin_libwebp', "Use the builtin libwebp library (yes/no)", 'yes')
 opts.Add('builtin_openssl', "Use the builtin openssl library (yes/no)", 'yes')
 opts.Add('builtin_opus', "Use the builtin opus library (yes/no)", 'yes')
+opts.Add('builtin_pcre2', "Use the builtin pcre2 library (yes/no)", 'yes')
+opts.Add('builtin_recast', "Use the builtin recast library (yes/no)", 'yes')
 opts.Add('builtin_squish', "Use the builtin squish library (yes/no)", 'yes')
 opts.Add('builtin_zlib', "Use the builtin zlib library (yes/no)", 'yes')
 
@@ -265,17 +267,17 @@ if selected_platform in platform_list:
     CCFLAGS = env.get('CCFLAGS', '')
     env['CCFLAGS'] = ''
 
-    env.Append(CCFLAGS=string.split(str(CCFLAGS)))
+    env.Append(CCFLAGS=str(CCFLAGS).split())
 
     CFLAGS = env.get('CFLAGS', '')
     env['CFLAGS'] = ''
 
-    env.Append(CFLAGS=string.split(str(CFLAGS)))
+    env.Append(CFLAGS=str(CFLAGS).split())
 
     LINKFLAGS = env.get('LINKFLAGS', '')
     env['LINKFLAGS'] = ''
 
-    env.Append(LINKFLAGS=string.split(str(LINKFLAGS)))
+    env.Append(LINKFLAGS=str(LINKFLAGS).split())
 
     flag_list = platform_flags[selected_platform]
     for f in flag_list:
@@ -288,7 +290,9 @@ if selected_platform in platform_list:
     if (env["warnings"] == 'yes'):
         print("WARNING: warnings=yes is deprecated; assuming warnings=all")
 
+    env.msvc = 0
     if (os.name == "nt" and os.getenv("VCINSTALLDIR") and (platform_arg == "windows" or platform_arg == "uwp")): # MSVC, needs to stand out of course
+        env.msvc = 1
         disable_nonessential_warnings = ['/wd4267', '/wd4244', '/wd4305', '/wd4800'] # Truncations, narrowing conversions...
         if (env["warnings"] == 'extra'):
             env.Append(CCFLAGS=['/Wall']) # Implies /W4
@@ -351,6 +355,7 @@ if selected_platform in platform_list:
     sys.modules.pop('detect')
 
     env.module_list = []
+    env.doc_class_path={}
 
     for x in module_list:
         if env['module_' + x + '_enabled'] != "yes":
@@ -362,6 +367,15 @@ if selected_platform in platform_list:
         if (config.can_build(selected_platform)):
             config.configure(env)
             env.module_list.append(x)
+	    try:
+		 doc_classes = config.get_doc_classes()
+		 doc_path = config.get_doc_path()
+		 for c in doc_classes:
+		     env.doc_class_path[c]="modules/"+x+"/"+doc_path
+	    except:
+		pass
+
+
         sys.path.remove(tmppath)
         sys.modules.pop('config')
 
@@ -409,44 +423,17 @@ if selected_platform in platform_list:
 
     # Microsoft Visual Studio Project Generation
     if (env['vsproj']) == "yes":
+        methods.generate_vs_project(env, GetOption("num_jobs"))
 
-        AddToVSProject(env.core_sources)
-        AddToVSProject(env.main_sources)
-        AddToVSProject(env.modules_sources)
-        AddToVSProject(env.scene_sources)
-        AddToVSProject(env.servers_sources)
-        AddToVSProject(env.editor_sources)
-
-        # this env flag won't work, it needs to be set in env_base=Environment(MSVC_VERSION='9.0')
-        # Even then, SCons still seems to ignore it and builds with the latest MSVC...
-        # That said, it's not needed to be set so far but I'm leaving it here so that this comment
-        # has a purpose.
-        # env['MSVS_VERSION']='9.0'
-
-        # Calls a CMD with /C(lose) and /V(delayed environment variable expansion) options.
-        # And runs vcvarsall bat for the proper architecture and scons for proper configuration
-        env['MSVSBUILDCOM'] = 'cmd /V /C set "plat=$(PlatformTarget)" ^& (if "$(PlatformTarget)"=="x64" (set "plat=x86_amd64")) ^& set "tools=yes" ^& (if "$(Configuration)"=="release" (set "tools=no")) ^& call "$(VCInstallDir)vcvarsall.bat" !plat! ^& scons platform=windows target=$(Configuration) tools=!tools! -j2'
-        env['MSVSREBUILDCOM'] = 'cmd /V /C set "plat=$(PlatformTarget)" ^& (if "$(PlatformTarget)"=="x64" (set "plat=x86_amd64")) ^& set "tools=yes" ^& (if "$(Configuration)"=="release" (set "tools=no")) & call "$(VCInstallDir)vcvarsall.bat" !plat! ^& scons platform=windows target=$(Configuration) tools=!tools! vsproj=yes -j2'
-        env['MSVSCLEANCOM'] = 'cmd /V /C set "plat=$(PlatformTarget)" ^& (if "$(PlatformTarget)"=="x64" (set "plat=x86_amd64")) ^& set "tools=yes" ^& (if "$(Configuration)"=="release" (set "tools=no")) ^& call "$(VCInstallDir)vcvarsall.bat" !plat! ^& scons --clean platform=windows target=$(Configuration) tools=!tools! -j2'
-
-        # This version information (Win32, x64, Debug, Release, Release_Debug seems to be
-        # required for Visual Studio to understand that it needs to generate an NMAKE
-        # project. Do not modify without knowing what you are doing.
-        debug_variants = ['debug|Win32'] + ['debug|x64']
-        release_variants = ['release|Win32'] + ['release|x64']
-        release_debug_variants = ['release_debug|Win32'] + ['release_debug|x64']
-        variants = debug_variants + release_variants + release_debug_variants
-        debug_targets = ['bin\\godot.windows.tools.32.exe'] + ['bin\\godot.windows.tools.64.exe']
-        release_targets = ['bin\\godot.windows.opt.32.exe'] + ['bin\\godot.windows.opt.64.exe']
-        release_debug_targets = ['bin\\godot.windows.opt.tools.32.exe'] + ['bin\\godot.windows.opt.tools.64.exe']
-        targets = debug_targets + release_targets + release_debug_targets
-        msvproj = env.MSVSProject(target=['#godot' + env['MSVSPROJECTSUFFIX']],
-                                  incs=env.vs_incs,
-                                  srcs=env.vs_srcs,
-                                  runfile=targets,
-                                  buildtarget=targets,
-                                  auto_build_solution=1,
-                                  variant=variants)
+    # Check for the existence of headers
+    conf = Configure(env)
+    if ("check_c_headers" in env):
+        for header in env["check_c_headers"]:
+            if (conf.CheckCHeader(header[0])):
+                if (env.msvc):
+                    env.Append(CCFLAGS=['/D' + header[1]])
+                else:
+                    env.Append(CCFLAGS=['-D' + header[1]])
 
 else:
 
