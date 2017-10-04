@@ -273,12 +273,14 @@ void EditorExportPlatform::gen_debug_flags(Vector<String> &r_flags, int p_flags)
 }
 
 Error EditorExportPlatform::_save_pack_file(void *p_userdata, const String &p_path, const Vector<uint8_t> &p_data, int p_file, int p_total) {
+	if (p_path.ends_with(".so") || p_path.ends_with(".dylib") || p_path.ends_with(".dll"))
+		return OK;
 
 	PackData *pd = (PackData *)p_userdata;
 
 	SavedData sd;
 	sd.path_utf8 = p_path.utf8();
-	sd.ofs = pd->f->get_pos();
+	sd.ofs = pd->f->get_position();
 	sd.size = p_data.size();
 
 	pd->f->store_buffer(p_data.ptr(), p_data.size());
@@ -736,7 +738,7 @@ Error EditorExportPlatform::save_pack(const Ref<EditorExportPreset> &p_preset, c
 
 	f->store_32(pd.file_ofs.size()); //amount of files
 
-	size_t header_size = f->get_pos();
+	size_t header_size = f->get_position();
 
 	//precalculate header size
 
@@ -1139,6 +1141,12 @@ void EditorExportPlatformPC::get_preset_features(const Ref<EditorExportPreset> &
 	if (p_preset->get("texture_format/etc2")) {
 		r_features->push_back("etc2");
 	}
+
+	if (p_preset->get("binary_format/64_bits")) {
+		r_features->push_back("64");
+	} else {
+		r_features->push_back("32");
+	}
 }
 
 void EditorExportPlatformPC::get_export_options(List<ExportOption> *r_options) {
@@ -1246,8 +1254,12 @@ Error EditorExportPlatformPC::export_project(const Ref<EditorExportPreset> &p_pr
 	}
 
 	DirAccess *da = DirAccess::create(DirAccess::ACCESS_FILESYSTEM);
-	da->copy(template_path, p_path);
+	Error err = da->copy(template_path, p_path, get_chmod_flags());
 	memdelete(da);
+
+	if (err != OK) {
+		return err;
+	}
 
 	String pck_path = p_path.get_basename() + ".pck";
 
@@ -1302,5 +1314,17 @@ void EditorExportPlatformPC::get_platform_features(List<String> *r_features) {
 	}
 }
 
+int EditorExportPlatformPC::get_chmod_flags() const {
+
+	return chmod_flags;
+}
+
+void EditorExportPlatformPC::set_chmod_flags(int p_flags) {
+
+	chmod_flags = p_flags;
+}
+
 EditorExportPlatformPC::EditorExportPlatformPC() {
+
+	chmod_flags = -1;
 }

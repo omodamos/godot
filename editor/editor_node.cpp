@@ -114,7 +114,7 @@ EditorNode *EditorNode::singleton = NULL;
 
 void EditorNode::_update_scene_tabs() {
 
-	bool show_rb = EditorSettings::get_singleton()->get("interface/show_script_in_scene_tabs");
+	bool show_rb = EditorSettings::get_singleton()->get("interface/editor/show_script_in_scene_tabs");
 
 	scene_tabs->clear_tabs();
 	Ref<Texture> script_icon = gui_base->get_icon("Script", "EditorIcons");
@@ -282,8 +282,8 @@ void EditorNode::_notification(int p_what) {
 	}
 
 	if (p_what == EditorSettings::NOTIFICATION_EDITOR_SETTINGS_CHANGED) {
-		scene_tabs->set_tab_close_display_policy((bool(EDITOR_DEF("interface/always_show_close_button_in_scene_tabs", false)) ? Tabs::CLOSE_BUTTON_SHOW_ALWAYS : Tabs::CLOSE_BUTTON_SHOW_ACTIVE_ONLY));
-		property_editor->set_enable_capitalize_paths(bool(EDITOR_DEF("interface/capitalize_properties", true)));
+		scene_tabs->set_tab_close_display_policy((bool(EDITOR_DEF("interface/editor/always_show_close_button_in_scene_tabs", false)) ? Tabs::CLOSE_BUTTON_SHOW_ALWAYS : Tabs::CLOSE_BUTTON_SHOW_ACTIVE_ONLY));
+		property_editor->set_enable_capitalize_paths(bool(EDITOR_DEF("interface/editor/capitalize_properties", true)));
 		Ref<Theme> theme = create_editor_theme(theme_base->get_theme());
 
 		theme_base->set_theme(theme);
@@ -307,6 +307,10 @@ void EditorNode::_notification(int p_what) {
 			scene_tabs->set_min_width(0);
 		}
 		_update_scene_tabs();
+
+		// debugger area
+		if (ScriptEditor::get_singleton()->get_debugger()->is_visible())
+			bottom_panel->add_style_override("panel", gui_base->get_stylebox("BottomPanelDebuggerOverride", "EditorStyles"));
 
 		//_update_icons
 		for (int i = 0; i < singleton->main_editor_buttons.size(); i++) {
@@ -2240,10 +2244,10 @@ void EditorNode::_menu_option_confirm(int p_option, bool p_confirmed) {
 		case RUN_PROJECT_MANAGER: {
 
 			if (!p_confirmed) {
-				bool save_each = EDITOR_DEF("interface/save_each_scene_on_quit", true);
+				bool save_each = EDITOR_DEF("interface/editor/save_each_scene_on_quit", true);
 				if (_next_unsaved_scene(!save_each) == -1) {
 
-					bool confirm = EDITOR_DEF("interface/quit_confirmation", true);
+					bool confirm = EDITOR_DEF("interface/editor/quit_confirmation", true);
 					if (confirm) {
 
 						confirmation->get_ok()->set_text(p_option == FILE_QUIT ? TTR("Quit") : TTR("Yes"));
@@ -2568,7 +2572,7 @@ void EditorNode::_editor_select(int p_which) {
 		editor_data.get_editor_plugin(i)->notify_main_screen_changed(editor_plugin_screen->get_name());
 	}
 
-	if (EditorSettings::get_singleton()->get("interface/separate_distraction_mode")) {
+	if (EditorSettings::get_singleton()->get("interface/editor/separate_distraction_mode")) {
 		if (p_which == EDITOR_SCRIPT) {
 			set_distraction_free_mode(script_distraction);
 		} else {
@@ -2780,14 +2784,6 @@ Dictionary EditorNode::_get_main_scene_state() {
 	state["property_edit_offset"] = get_property_editor()->get_scene_tree()->get_vscroll_bar()->get_value();
 	state["saved_version"] = saved_version;
 	state["node_filter"] = scene_tree_dock->get_filter();
-	int current = -1;
-	for (int i = 0; i < editor_table.size(); i++) {
-		if (editor_plugin_screen == editor_table[i]) {
-			current = i;
-			break;
-		}
-	}
-	state["editor_index"] = current;
 	return state;
 }
 
@@ -2798,29 +2794,32 @@ void EditorNode::_set_main_scene_state(Dictionary p_state, Node *p_for_scene) {
 
 	changing_scene = false;
 
-	if (p_state.has("editor_index")) {
-
-		int index = p_state["editor_index"];
-		int current = -1;
-		for (int i = 0; i < editor_table.size(); i++) {
-			if (editor_plugin_screen == editor_table[i]) {
-				current = i;
-				break;
-			}
+	int current = -1;
+	for (int i = 0; i < editor_table.size(); i++) {
+		if (editor_plugin_screen == editor_table[i]) {
+			current = i;
+			break;
 		}
+	}
 
+	if (p_state.has("editor_index")) {
+		int index = p_state["editor_index"];
 		if (current < 2) { //if currently in spatial/2d, only switch to spatial/2d. if curently in script, stay there
 			if (index < 2 || !get_edited_scene()) {
 				_editor_select(index);
-			} else {
-				//use heuristic instead
-				int n2d = 0, n3d = 0;
-				_find_node_types(get_edited_scene(), n2d, n3d);
-				if (n2d > n3d) {
-					_editor_select(EDITOR_2D);
-				} else if (n3d > n2d) {
-					_editor_select(EDITOR_3D);
-				}
+			}
+		}
+	}
+
+	if (get_edited_scene()) {
+		if (current < 2) {
+			//use heuristic instead
+			int n2d = 0, n3d = 0;
+			_find_node_types(get_edited_scene(), n2d, n3d);
+			if (n2d > n3d) {
+				_editor_select(EDITOR_2D);
+			} else if (n3d > n2d) {
+				_editor_select(EDITOR_3D);
 			}
 		}
 	}
@@ -3252,6 +3251,7 @@ void EditorNode::register_editor_types() {
 	ClassDB::register_virtual_class<ScriptEditor>();
 	ClassDB::register_virtual_class<EditorInterface>();
 	ClassDB::register_class<EditorExportPlugin>();
+	ClassDB::register_class<EditorResourceConversionPlugin>();
 
 	// FIXME: Is this stuff obsolete, or should it be ported to new APIs?
 	//ClassDB::register_class<EditorScenePostImport>();
@@ -3343,9 +3343,9 @@ void EditorNode::_editor_file_dialog_unregister(EditorFileDialog *p_dialog) {
 
 Vector<EditorNodeInitCallback> EditorNode::_init_callbacks;
 
-Error EditorNode::export_preset(const String &preset, const String &p_path, bool p_debug, const String &p_password, bool p_quit_after) {
+Error EditorNode::export_preset(const String &p_preset, const String &p_path, bool p_debug, const String &p_password, bool p_quit_after) {
 
-	export_defer.preset = preset;
+	export_defer.preset = p_preset;
 	export_defer.path = p_path;
 	export_defer.debug = p_debug;
 	export_defer.password = p_password;
@@ -3472,7 +3472,7 @@ void EditorNode::_dock_select_draw() {
 
 	Color used = Color(0.6, 0.6, 0.6, 0.8);
 	Color used_selected = Color(0.8, 0.8, 0.8, 0.8);
-	Color tab_selected = Color(1, 1, 1, 1);
+	Color tab_selected = theme_base->get_color("mono_color", "Editor");
 	Color unused = used;
 	unused.a = 0.4;
 	Color unusable = unused;
@@ -4071,9 +4071,15 @@ void EditorNode::_bottom_panel_switch(bool p_enable, int p_idx) {
 			bottom_panel_items[i].button->set_pressed(i == p_idx);
 			bottom_panel_items[i].control->set_visible(i == p_idx);
 		}
+		if (ScriptEditor::get_singleton()->get_debugger() == bottom_panel_items[p_idx].control) { // this is the debug panel wich uses tabs, so the top section should be smaller
+			bottom_panel->add_style_override("panel", gui_base->get_stylebox("BottomPanelDebuggerOverride", "EditorStyles"));
+		} else {
+			bottom_panel->add_style_override("panel", gui_base->get_stylebox("panel", "TabContainer"));
+		}
 		center_split->set_dragger_visibility(SplitContainer::DRAGGER_VISIBLE);
 		center_split->set_collapsed(false);
 	} else {
+		bottom_panel->add_style_override("panel", gui_base->get_stylebox("panel", "TabContainer"));
 		for (int i = 0; i < bottom_panel_items.size(); i++) {
 
 			bottom_panel_items[i].button->set_pressed(false);
@@ -4095,7 +4101,7 @@ bool EditorNode::get_docks_visible() const {
 
 void EditorNode::_toggle_distraction_free_mode() {
 
-	if (EditorSettings::get_singleton()->get("interface/separate_distraction_mode")) {
+	if (EditorSettings::get_singleton()->get("interface/editor/separate_distraction_mode")) {
 		int screen = -1;
 		for (int i = 0; i < editor_table.size(); i++) {
 			if (editor_plugin_screen == editor_table[i]) {
@@ -4379,7 +4385,7 @@ void EditorNode::_open_imported() {
 
 void EditorNode::dim_editor(bool p_dimming) {
 	static int dim_count = 0;
-	bool dim_ui = EditorSettings::get_singleton()->get("interface/dim_editor_on_dialog_popup");
+	bool dim_ui = EditorSettings::get_singleton()->get("interface/editor/dim_editor_on_dialog_popup");
 	if (p_dimming) {
 		if (dim_ui) {
 			if (dim_count == 0) {
@@ -4406,9 +4412,9 @@ void EditorNode::_start_dimming(bool p_dimming) {
 void EditorNode::_dim_timeout() {
 
 	_dim_time += _dim_timer->get_wait_time();
-	float wait_time = EditorSettings::get_singleton()->get("interface/dim_transition_time");
+	float wait_time = EditorSettings::get_singleton()->get("interface/editor/dim_transition_time");
 
-	float c = 1.0f - (float)EditorSettings::get_singleton()->get("interface/dim_amount");
+	float c = 1.0f - (float)EditorSettings::get_singleton()->get("interface/editor/dim_amount");
 
 	Color base = _dimming ? Color(1, 1, 1) : Color(c, c, c);
 	Color final = _dimming ? Color(c, c, c) : Color(1, 1, 1);
@@ -4421,25 +4427,30 @@ void EditorNode::_dim_timeout() {
 	}
 }
 
-void EditorNode::_check_gui_base_size() {
-	if (gui_base->get_size().width > 1200 * EDSCALE) {
-		for (int i = 0; i < singleton->main_editor_button_vb->get_child_count(); i++) {
-			ToolButton *btn = Object::cast_to<ToolButton>(singleton->main_editor_button_vb->get_child(i));
-			if (btn == singleton->distraction_free) continue;
-			btn->set_text(btn->get_name());
-		}
-	} else {
-		for (int i = 0; i < singleton->main_editor_button_vb->get_child_count(); i++) {
-			ToolButton *btn = Object::cast_to<ToolButton>(singleton->main_editor_button_vb->get_child(i));
-			if (btn == singleton->distraction_free) continue;
-			btn->set_text("");
-		}
-	}
-}
-
 void EditorNode::open_export_template_manager() {
 
 	export_template_manager->popup_manager();
+}
+
+void EditorNode::add_resource_conversion_plugin(const Ref<EditorResourceConversionPlugin> &p_plugin) {
+	resource_conversion_plugins.push_back(p_plugin);
+}
+
+void EditorNode::remove_resource_conversion_plugin(const Ref<EditorResourceConversionPlugin> &p_plugin) {
+	resource_conversion_plugins.erase(p_plugin);
+}
+
+Vector<Ref<EditorResourceConversionPlugin> > EditorNode::find_resource_conversion_plugin(const Ref<Resource> &p_for_resource) {
+
+	Vector<Ref<EditorResourceConversionPlugin> > ret;
+
+	for (int i = 0; i < resource_conversion_plugins.size(); i++) {
+		if (resource_conversion_plugins[i].is_valid() && resource_conversion_plugins[i]->handles(p_for_resource)) {
+			ret.push_back(resource_conversion_plugins[i]);
+		}
+	}
+
+	return ret;
 }
 
 void EditorNode::_bind_methods() {
@@ -4516,7 +4527,6 @@ void EditorNode::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("_open_imported"), &EditorNode::_open_imported);
 	ClassDB::bind_method(D_METHOD("_inherit_imported"), &EditorNode::_inherit_imported);
 	ClassDB::bind_method(D_METHOD("_dim_timeout"), &EditorNode::_dim_timeout);
-	ClassDB::bind_method(D_METHOD("_check_gui_base_size"), &EditorNode::_check_gui_base_size);
 
 	ClassDB::bind_method(D_METHOD("_resources_reimported"), &EditorNode::_resources_reimported);
 
@@ -4576,7 +4586,7 @@ EditorNode::EditorNode() {
 		EditorSettings::create();
 
 	{
-		int dpi_mode = EditorSettings::get_singleton()->get("interface/hidpi_mode");
+		int dpi_mode = EditorSettings::get_singleton()->get("interface/editor/hidpi_mode");
 		if (dpi_mode == 0) {
 			editor_set_scale(OS::get_singleton()->get_screen_dpi(0) >= 192 && OS::get_singleton()->get_screen_size(OS::get_singleton()->get_current_screen()).x > 2000 ? 2.0 : 1.0);
 		} else if (dpi_mode == 1) {
@@ -4612,6 +4622,10 @@ EditorNode::EditorNode() {
 		Ref<ResourceImporterWAV> import_wav;
 		import_wav.instance();
 		ResourceFormatImporter::get_singleton()->add_importer(import_wav);
+
+		Ref<ResourceImporterOBJ> import_obj;
+		import_obj.instance();
+		ResourceFormatImporter::get_singleton()->add_importer(import_obj);
 
 		Ref<ResourceImporterScene> import_scene;
 		import_scene.instance();
@@ -4661,12 +4675,11 @@ EditorNode::EditorNode() {
 
 	theme_base = memnew(Control);
 	add_child(theme_base);
-	theme_base->set_area_as_parent_rect();
+	theme_base->set_anchors_and_margins_preset(Control::PRESET_WIDE);
 
 	gui_base = memnew(Panel);
 	theme_base->add_child(gui_base);
-	gui_base->set_area_as_parent_rect();
-	gui_base->connect("item_rect_changed", this, "_check_gui_base_size");
+	gui_base->set_anchors_and_margins_preset(Control::PRESET_WIDE);
 
 	Ref<Theme> theme = create_editor_theme();
 	theme_base->set_theme(theme);
@@ -4685,7 +4698,7 @@ EditorNode::EditorNode() {
 
 	main_vbox = memnew(VBoxContainer);
 	gui_base->add_child(main_vbox);
-	main_vbox->set_area_as_parent_rect(8);
+	main_vbox->set_anchors_and_margins_preset(Control::PRESET_WIDE, Control::PRESET_MODE_MINSIZE, 8);
 	main_vbox->set_margin(MARGIN_TOP, 5 * EDSCALE);
 
 	menu_hb = memnew(HBoxContainer);
@@ -4828,7 +4841,7 @@ EditorNode::EditorNode() {
 	scene_tabs->add_style_override("tab_bg", gui_base->get_stylebox("SceneTabBG", "EditorStyles"));
 	scene_tabs->add_tab("unsaved");
 	scene_tabs->set_tab_align(Tabs::ALIGN_LEFT);
-	scene_tabs->set_tab_close_display_policy((bool(EDITOR_DEF("interface/always_show_close_button_in_scene_tabs", false)) ? Tabs::CLOSE_BUTTON_SHOW_ALWAYS : Tabs::CLOSE_BUTTON_SHOW_ACTIVE_ONLY));
+	scene_tabs->set_tab_close_display_policy((bool(EDITOR_DEF("interface/editor/always_show_close_button_in_scene_tabs", false)) ? Tabs::CLOSE_BUTTON_SHOW_ALWAYS : Tabs::CLOSE_BUTTON_SHOW_ACTIVE_ONLY));
 	scene_tabs->set_min_width(int(EDITOR_DEF("interface/scene_tabs/minimum_width", 50)) * EDSCALE);
 	scene_tabs->connect("tab_changed", this, "_scene_tab_changed");
 	scene_tabs->connect("right_button_pressed", this, "_scene_tab_script_edited");
@@ -4854,7 +4867,7 @@ EditorNode::EditorNode() {
 	scene_root_parent = memnew(PanelContainer);
 	scene_root_parent->set_custom_minimum_size(Size2(0, 80) * EDSCALE);
 	scene_root_parent->add_style_override("panel", gui_base->get_stylebox("Content", "EditorStyles"));
-
+	scene_root_parent->set_draw_behind_parent(true);
 	srt->add_child(scene_root_parent);
 	scene_root_parent->set_v_size_flags(Control::SIZE_EXPAND_FILL);
 
@@ -5074,9 +5087,6 @@ EditorNode::EditorNode() {
 	play_cc = memnew(CenterContainer);
 	play_cc->set_mouse_filter(Control::MOUSE_FILTER_IGNORE);
 	menu_hb->add_child(play_cc);
-	play_cc->set_area_as_parent_rect();
-	play_cc->set_anchor_and_margin(MARGIN_BOTTOM, Control::ANCHOR_BEGIN, 10);
-	play_cc->set_margin(MARGIN_TOP, 5);
 
 	play_button_panel = memnew(PanelContainer);
 	// play_button_panel->add_style_override("panel", gui_base->get_stylebox("PlayButtonPanel", "EditorStyles"));
@@ -5285,7 +5295,7 @@ EditorNode::EditorNode() {
 	property_editor->set_v_size_flags(Control::SIZE_EXPAND_FILL);
 	property_editor->set_use_doc_hints(true);
 	property_editor->set_hide_script(false);
-	property_editor->set_enable_capitalize_paths(bool(EDITOR_DEF("interface/capitalize_properties", true)));
+	property_editor->set_enable_capitalize_paths(bool(EDITOR_DEF("interface/editor/capitalize_properties", true)));
 
 	property_editor->hide_top_label();
 	property_editor->register_text_enter(search_box);
@@ -5510,6 +5520,11 @@ EditorNode::EditorNode() {
 	resource_preview->add_preview_generator(Ref<EditorMeshPreviewPlugin>(memnew(EditorMeshPreviewPlugin)));
 	resource_preview->add_preview_generator(Ref<EditorBitmapPreviewPlugin>(memnew(EditorBitmapPreviewPlugin)));
 
+	{
+		Ref<SpatialMaterialConversionPlugin> spatial_mat_convert;
+		spatial_mat_convert.instance();
+		resource_conversion_plugins.push_back(spatial_mat_convert);
+	}
 	circle_step_msec = OS::get_singleton()->get_ticks_msec();
 	circle_step_frame = Engine::get_singleton()->get_frames_drawn();
 	circle_step = 0;

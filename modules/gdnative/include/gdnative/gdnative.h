@@ -34,23 +34,14 @@
 extern "C" {
 #endif
 
-#ifdef GDAPI_BUILT_IN
-#define GDAPI_EXPORT
-#endif
-
 #ifdef _WIN32
-#if defined(GDAPI_EXPORT)
 #define GDCALLINGCONV
-#define GDAPI __declspec(dllexport) GDCALLINGCONV
-#else
-#define GDCALLINGCONV
-#define GDAPI __declspec(dllimport) GDCALLINGCONV
-#endif
+#define GDAPI GDCALLINGCONV
 #elif defined(__APPLE__)
 #include "TargetConditionals.h"
 #if TARGET_OS_IPHONE
-#define GDCALLINGCONV
-#define GDAPI
+#define GDCALLINGCONV __attribute__((visibility("default")))
+#define GDAPI GDCALLINGCONV
 #elif TARGET_OS_MAC
 #define GDCALLINGCONV __attribute__((sysv_abi))
 #define GDAPI GDCALLINGCONV
@@ -103,7 +94,7 @@ typedef enum {
 	GODOT_ERR_CANT_CONNECT, // (25)
 	GODOT_ERR_CANT_RESOLVE,
 	GODOT_ERR_CONNECTION_ERROR,
-	GODOT_ERR_CANT_AQUIRE_RESOURCE,
+	GODOT_ERR_CANT_ACQUIRE_RESOURCE,
 	GODOT_ERR_CANT_FORK,
 	GODOT_ERR_INVALID_DATA, ///< Data passed is invalid	(30)
 	GODOT_ERR_INVALID_PARAMETER, ///< Parameter passed is invalid
@@ -234,12 +225,16 @@ void GDAPI godot_method_bind_ptrcall(godot_method_bind *p_method_bind, godot_obj
 godot_variant GDAPI godot_method_bind_call(godot_method_bind *p_method_bind, godot_object *p_instance, const godot_variant **p_args, const int p_arg_count, godot_variant_call_error *p_call_error);
 ////// Script API
 
+struct godot_gdnative_api_struct; // Forward declaration
+
 typedef struct {
 	godot_bool in_editor;
 	uint64_t core_api_hash;
 	uint64_t editor_api_hash;
 	uint64_t no_api_hash;
 	godot_object *gd_native_library; // pointer to GDNativeLibrary that is being initialized
+	const struct godot_gdnative_api_struct *api_struct;
+	const godot_string *active_library_path;
 } godot_gdnative_init_options;
 
 typedef struct {

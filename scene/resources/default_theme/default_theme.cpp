@@ -774,6 +774,9 @@ void fill_default_theme(Ref<Theme> &theme, const Ref<Font> &default_font, const 
 	theme->set_icon("add_preset", "ColorPicker", make_icon(icon_add_png));
 	theme->set_icon("color_hue", "ColorPicker", make_icon(color_picker_hue_png));
 	theme->set_icon("color_sample", "ColorPicker", make_icon(color_picker_sample_png));
+	theme->set_icon("preset_bg", "ColorPicker", make_icon(mini_checkerboard_png));
+
+	theme->set_icon("bg", "ColorPickerButton", make_icon(mini_checkerboard_png));
 
 	// TooltipPanel
 
@@ -879,7 +882,7 @@ void fill_default_theme(Ref<Theme> &theme, const Ref<Font> &default_font, const 
 	theme->set_icon("minus", "GraphEdit", make_icon(icon_zoom_less_png));
 	theme->set_icon("reset", "GraphEdit", make_icon(icon_zoom_reset_png));
 	theme->set_icon("more", "GraphEdit", make_icon(icon_zoom_more_png));
-	theme->set_icon("snap", "GraphEdit", make_icon(icon_snap_png));
+	theme->set_icon("SnapGrid", "GraphEdit", make_icon(icon_snap_grid_png));
 	theme->set_stylebox("bg", "GraphEdit", make_stylebox(tree_bg_png, 4, 4, 4, 5));
 	theme->set_color("grid_minor", "GraphEdit", Color(1, 1, 1, 0.05));
 	theme->set_color("grid_major", "GraphEdit", Color(1, 1, 1, 0.2));

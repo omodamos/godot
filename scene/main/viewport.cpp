@@ -456,10 +456,10 @@ void Viewport::_notification(int p_what) {
 			VS::get_singleton()->viewport_set_active(viewport, false);
 
 		} break;
-		case NOTIFICATION_FIXED_PROCESS: {
+		case NOTIFICATION_PHYSICS_PROCESS: {
 
 			if (gui.tooltip_timer >= 0) {
-				gui.tooltip_timer -= get_fixed_process_delta_time();
+				gui.tooltip_timer -= get_physics_process_delta_time();
 				if (gui.tooltip_timer < 0) {
 					_gui_show_tooltip();
 				}
@@ -1339,7 +1339,7 @@ Vector2 Viewport::get_mouse_position() const {
 void Viewport::warp_mouse(const Vector2 &p_pos) {
 
 	Vector2 gpos = (get_final_transform().affine_inverse() * _get_input_pre_xform()).affine_inverse().xform(p_pos);
-	Input::get_singleton()->warp_mouse_pos(gpos);
+	Input::get_singleton()->warp_mouse_position(gpos);
 }
 
 void Viewport::_gui_sort_subwindows() {
@@ -2453,7 +2453,7 @@ Rect2 Viewport::get_attach_to_screen_rect() const {
 void Viewport::set_physics_object_picking(bool p_enable) {
 
 	physics_object_picking = p_enable;
-	set_fixed_process(physics_object_picking);
+	set_physics_process(physics_object_picking);
 	if (!physics_object_picking)
 		physics_picking_events.clear();
 }
@@ -2673,7 +2673,7 @@ void Viewport::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("set_attach_to_screen_rect", "rect"), &Viewport::set_attach_to_screen_rect);
 
 	ClassDB::bind_method(D_METHOD("get_mouse_position"), &Viewport::get_mouse_position);
-	ClassDB::bind_method(D_METHOD("warp_mouse", "to_pos"), &Viewport::warp_mouse);
+	ClassDB::bind_method(D_METHOD("warp_mouse", "to_position"), &Viewport::warp_mouse);
 
 	ClassDB::bind_method(D_METHOD("gui_has_modal_stack"), &Viewport::gui_has_modal_stack);
 	ClassDB::bind_method(D_METHOD("gui_get_drag_data"), &Viewport::gui_get_drag_data);

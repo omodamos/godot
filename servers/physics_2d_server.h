@@ -65,17 +65,17 @@ public:
 
 	virtual int get_contact_count() const = 0;
 
-	virtual Vector2 get_contact_local_pos(int p_contact_idx) const = 0;
+	virtual Vector2 get_contact_local_position(int p_contact_idx) const = 0;
 	virtual Vector2 get_contact_local_normal(int p_contact_idx) const = 0;
 	virtual int get_contact_local_shape(int p_contact_idx) const = 0;
 
 	virtual RID get_contact_collider(int p_contact_idx) const = 0;
-	virtual Vector2 get_contact_collider_pos(int p_contact_idx) const = 0;
+	virtual Vector2 get_contact_collider_position(int p_contact_idx) const = 0;
 	virtual ObjectID get_contact_collider_id(int p_contact_idx) const = 0;
 	virtual Object *get_contact_collider_object(int p_contact_idx) const;
 	virtual int get_contact_collider_shape(int p_contact_idx) const = 0;
 	virtual Variant get_contact_collider_shape_metadata(int p_contact_idx) const = 0;
-	virtual Vector2 get_contact_collider_velocity_at_pos(int p_contact_idx) const = 0;
+	virtual Vector2 get_contact_collider_velocity_at_position(int p_contact_idx) const = 0;
 
 	virtual real_t get_step() const = 0;
 	virtual void integrate_forces();
@@ -283,7 +283,7 @@ public:
 	virtual void space_set_param(RID p_space, SpaceParameter p_param, real_t p_value) = 0;
 	virtual real_t space_get_param(RID p_space, SpaceParameter p_param) const = 0;
 
-	// this function only works on fixed process, errors and returns null otherwise
+	// this function only works on physics process, errors and returns null otherwise
 	virtual Physics2DDirectSpaceState *space_get_direct_state(RID p_space) = 0;
 
 	virtual void space_set_debug_contacts(RID p_space, int p_max_contacts) = 0;

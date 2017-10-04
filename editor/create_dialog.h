@@ -53,7 +53,7 @@ class CreateDialog : public ConfirmationDialog {
 	LineEdit *search_box;
 	Tree *search_options;
 	String base_type;
-
+	String preferred_search_result_type;
 	EditorHelpBit *help_bit;
 
 	void _item_selected();
@@ -74,6 +74,8 @@ class CreateDialog : public ConfirmationDialog {
 	void _confirmed();
 	void _text_changed(const String &p_newtext);
 
+	Ref<Texture> _get_editor_icon(const String &p_type) const;
+
 	void add_type(const String &p_type, HashMap<String, TreeItem *> &p_types, TreeItem *p_root, TreeItem **to_select);
 
 	Variant get_drag_data_fw(const Point2 &p_point, Control *p_from);
@@ -90,6 +92,9 @@ public:
 
 	void set_base_type(const String &p_base);
 	String get_base_type() const;
+
+	void set_preferred_search_result_type(const String &p_preferred_type);
+	String get_preferred_search_result_type();
 
 	void popup_create(bool p_dontclear);
 

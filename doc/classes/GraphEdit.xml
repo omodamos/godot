@@ -177,7 +177,7 @@
 			</argument>
 			<argument index="1" name="from_slot" type="int">
 			</argument>
-			<argument index="2" name="release_pos" type="Vector2">
+			<argument index="2" name="release_position" type="Vector2">
 			</argument>
 			<description>
 			</description>
@@ -228,6 +228,8 @@
 	<constants>
 	</constants>
 	<theme_items>
+		<theme_item name="SnapGrid" type="Texture">
+		</theme_item>
 		<theme_item name="bezier_len_neg" type="int">
 		</theme_item>
 		<theme_item name="bezier_len_pos" type="int">
@@ -243,8 +245,6 @@
 		<theme_item name="more" type="Texture">
 		</theme_item>
 		<theme_item name="reset" type="Texture">
-		</theme_item>
-		<theme_item name="snap" type="Texture">
 		</theme_item>
 	</theme_items>
 </class>

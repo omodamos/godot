@@ -36,6 +36,10 @@
 #include "project_settings.h"
 #include "scene/main/viewport.h"
 
+#ifdef TOOLS_ENABLED
+#include "editor/editor_scale.h"
+#endif
+
 #define TAB_PIXELS
 
 static bool _is_text_char(CharType c) {
@@ -424,22 +428,22 @@ void TextEdit::_notification(int p_what) {
 			draw_caret = false;
 			update();
 		} break;
-		case NOTIFICATION_FIXED_PROCESS: {
+		case NOTIFICATION_PHYSICS_PROCESS: {
 			if (scrolling && v_scroll->get_value() != target_v_scroll) {
 				double target_y = target_v_scroll - v_scroll->get_value();
 				double dist = sqrt(target_y * target_y);
-				double vel = ((target_y / dist) * v_scroll_speed) * get_fixed_process_delta_time();
+				double vel = ((target_y / dist) * v_scroll_speed) * get_physics_process_delta_time();
 
 				if (Math::abs(vel) >= dist) {
 					v_scroll->set_value(target_v_scroll);
 					scrolling = false;
-					set_fixed_process(false);
+					set_physics_process(false);
 				} else {
 					v_scroll->set_value(v_scroll->get_value() + vel);
 				}
 			} else {
 				scrolling = false;
-				set_fixed_process(false);
+				set_physics_process(false);
 			}
 		} break;
 		case NOTIFICATION_DRAW: {
@@ -497,8 +501,7 @@ void TextEdit::_notification(int p_what) {
 
 				if (cache.background_color.a > 0.01) {
 
-					Point2i ofs = Point2i(cache.style_normal->get_offset()) / 2.0;
-					VisualServer::get_singleton()->canvas_item_add_rect(ci, Rect2(ofs, get_size() - cache.style_normal->get_minimum_size() + ofs), cache.background_color);
+					VisualServer::get_singleton()->canvas_item_add_rect(ci, Rect2(Point2i(), get_size()), cache.background_color);
 				}
 				//compute actual region to start (may be inside say, a comment).
 				//slow in very large documments :( but ok for source!
@@ -729,13 +732,16 @@ void TextEdit::_notification(int p_what) {
 					VisualServer::get_singleton()->canvas_item_add_rect(ci, Rect2(xmargin_beg, ofs_y, xmargin_end - xmargin_beg, get_row_height()), cache.mark_color);
 				}
 
-				if (text.is_breakpoint(line)) {
-
-					VisualServer::get_singleton()->canvas_item_add_rect(ci, Rect2(xmargin_beg, ofs_y, xmargin_end - xmargin_beg, get_row_height()), cache.breakpoint_color);
-				}
-
 				if (line == cursor.line) {
 					VisualServer::get_singleton()->canvas_item_add_rect(ci, Rect2(0, ofs_y, xmargin_end, get_row_height()), cache.current_line_color);
+				}
+
+				if (text.is_breakpoint(line) && !draw_breakpoint_gutter) {
+#ifdef TOOLS_ENABLED
+					VisualServer::get_singleton()->canvas_item_add_rect(ci, Rect2(xmargin_beg, ofs_y + get_row_height() - EDSCALE, xmargin_end - xmargin_beg, EDSCALE), cache.breakpoint_color);
+#else
+					VisualServer::get_singleton()->canvas_item_add_rect(ci, Rect2(xmargin_beg, ofs_y, xmargin_end - xmargin_beg, get_row_height()), cache.breakpoint_color);
+#endif
 				}
 
 				// draw breakpoint marker
@@ -1604,7 +1610,7 @@ void TextEdit::_gui_input(const Ref<InputEvent> &p_gui_input) {
 						target_v_scroll = 0;
 					}
 					scrolling = true;
-					set_fixed_process(true);
+					set_physics_process(true);
 				} else {
 					v_scroll->set_value(target_v_scroll);
 				}
@@ -1626,7 +1632,7 @@ void TextEdit::_gui_input(const Ref<InputEvent> &p_gui_input) {
 						target_v_scroll = max_v_scroll;
 					}
 					scrolling = true;
-					set_fixed_process(true);
+					set_physics_process(true);
 				} else {
 					v_scroll->set_value(target_v_scroll);
 				}
@@ -1766,7 +1772,7 @@ void TextEdit::_gui_input(const Ref<InputEvent> &p_gui_input) {
 
 			if (mb->get_button_index() == BUTTON_RIGHT && context_menu_enabled) {
 
-				menu->set_position(get_global_transform().xform(get_local_mouse_pos()));
+				menu->set_position(get_global_transform().xform(get_local_mouse_position()));
 				menu->set_size(Vector2(1, 1));
 				menu->popup();
 				grab_focus();
@@ -1837,7 +1843,7 @@ void TextEdit::_gui_input(const Ref<InputEvent> &p_gui_input) {
 
 				if (k->is_pressed()) {
 
-					highlighted_word = get_word_at_pos(get_local_mouse_pos());
+					highlighted_word = get_word_at_pos(get_local_mouse_position());
 					update();
 
 				} else {
@@ -2793,12 +2799,16 @@ void TextEdit::_gui_input(const Ref<InputEvent> &p_gui_input) {
 						int ini = selection.from_line;
 						int end = selection.to_line;
 						for (int i = ini; i <= end; i++) {
-							if (text[i][0] == '#')
+							if (get_line(i).begins_with("#"))
 								_remove_text(i, 0, i, 1);
 						}
 					} else {
-						if (text[cursor.line][0] == '#')
+						if (get_line(cursor.line).begins_with("#")) {
 							_remove_text(cursor.line, 0, cursor.line, 1);
+							if (cursor.column >= get_line(cursor.line).length()) {
+								cursor.column = MAX(0, get_line(cursor.line).length() - 1);
+							}
+						}
 					}
 					update();
 				}
@@ -3488,7 +3498,7 @@ String TextEdit::get_text() {
 String TextEdit::get_text_for_lookup_completion() {
 
 	int row, col;
-	_get_mouse_pos(get_local_mouse_pos(), row, col);
+	_get_mouse_pos(get_local_mouse_position(), row, col);
 
 	String longthing;
 	int len = text.size();
@@ -4253,6 +4263,10 @@ void TextEdit::set_insert_mode(bool p_enabled) {
 
 bool TextEdit::is_insert_mode() const {
 	return insert_mode;
+}
+
+bool TextEdit::is_insert_text_operation() {
+	return (current_op.type == TextOperation::TYPE_INSERT);
 }
 
 uint32_t TextEdit::get_version() const {

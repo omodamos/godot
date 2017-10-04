@@ -364,7 +364,7 @@ void EditorAutoloadSettings::update_autoload() {
 
 		item->add_button(3, get_icon("MoveUp", "EditorIcons"), BUTTON_MOVE_UP);
 		item->add_button(3, get_icon("MoveDown", "EditorIcons"), BUTTON_MOVE_DOWN);
-		item->add_button(3, get_icon("Del", "EditorIcons"), BUTTON_DELETE);
+		item->add_button(3, get_icon("Remove", "EditorIcons"), BUTTON_DELETE);
 		item->set_selectable(3, false);
 	}
 
@@ -419,12 +419,12 @@ bool EditorAutoloadSettings::can_drop_data_fw(const Point2 &p_point, const Varia
 		return false;
 
 	if (drop_data.has("type")) {
-		TreeItem *ti = tree->get_item_at_pos(p_point);
+		TreeItem *ti = tree->get_item_at_position(p_point);
 
 		if (!ti)
 			return false;
 
-		int section = tree->get_drop_section_at_pos(p_point);
+		int section = tree->get_drop_section_at_position(p_point);
 
 		if (section < -1)
 			return false;
@@ -437,12 +437,12 @@ bool EditorAutoloadSettings::can_drop_data_fw(const Point2 &p_point, const Varia
 
 void EditorAutoloadSettings::drop_data_fw(const Point2 &p_point, const Variant &p_data, Control *p_control) {
 
-	TreeItem *ti = tree->get_item_at_pos(p_point);
+	TreeItem *ti = tree->get_item_at_position(p_point);
 
 	if (!ti)
 		return;
 
-	int section = tree->get_drop_section_at_pos(p_point);
+	int section = tree->get_drop_section_at_position(p_point);
 
 	if (section < -1)
 		return;

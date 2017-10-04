@@ -63,7 +63,7 @@ Size2 AnimationTreeEditor::_get_maximum_size() {
 
 	for (List<StringName>::Element *E = order.front(); E; E = E->next()) {
 
-		Point2 pos = anim_tree->node_get_pos(E->get());
+		Point2 pos = anim_tree->node_get_position(E->get());
 
 		if (click_type == CLICK_NODE && click_node == E->get()) {
 
@@ -257,7 +257,7 @@ void AnimationTreeEditor::_popup_edit_dialog() {
 	filter_button->hide();
 	edit_check->hide();
 
-	Point2 pos = anim_tree->node_get_pos(edited_node) - Point2(h_scroll->get_value(), v_scroll->get_value());
+	Point2 pos = anim_tree->node_get_position(edited_node) - Point2(h_scroll->get_value(), v_scroll->get_value());
 	Ref<StyleBox> style = get_stylebox("panel", "PopupMenu");
 	Size2 size = get_node_size(edited_node);
 	Point2 popup_pos(pos.x + style->get_margin(MARGIN_LEFT), pos.y + size.y - style->get_margin(MARGIN_BOTTOM));
@@ -476,10 +476,10 @@ void AnimationTreeEditor::_draw_node(const StringName &p_node) {
 	Color font_color = get_color("font_color", "PopupMenu");
 	Color font_color_title = get_color("font_color_hover", "PopupMenu");
 	font_color_title.a *= 0.8;
-	Ref<Texture> slot_icon = get_icon("NodeRealSlot", "EditorIcons");
+	Ref<Texture> slot_icon = get_icon("VisualShaderPort", "EditorIcons");
 
 	Size2 size = get_node_size(p_node);
-	Point2 pos = anim_tree->node_get_pos(p_node);
+	Point2 pos = anim_tree->node_get_position(p_node);
 	if (click_type == CLICK_NODE && click_node == p_node) {
 
 		pos += click_motion - click_pos;
@@ -599,7 +599,7 @@ void AnimationTreeEditor::_draw_node(const StringName &p_node) {
 
 	if (editable) {
 
-		Ref<Texture> arrow = get_icon("arrow", "Tree");
+		Ref<Texture> arrow = get_icon("GuiDropdown", "EditorIcons");
 		Point2 arrow_ofs(w - arrow->get_width(), Math::floor((h - arrow->get_height()) / 2));
 		arrow->draw(ci, ofs + arrow_ofs);
 	}
@@ -618,7 +618,7 @@ AnimationTreeEditor::ClickType AnimationTreeEditor::_locate_click(const Point2 &
 
 		AnimationTreePlayer::NodeType type = anim_tree->node_get_type(node);
 
-		Point2 pos = anim_tree->node_get_pos(node);
+		Point2 pos = anim_tree->node_get_position(node);
 		Size2 size = get_node_size(node);
 
 		pos -= Point2(h_scroll->get_value(), v_scroll->get_value());
@@ -671,10 +671,10 @@ Point2 AnimationTreeEditor::_get_slot_pos(const StringName &p_node_id, bool p_in
 
 	Ref<StyleBox> style = get_stylebox("panel", "PopupMenu");
 	Ref<Font> font = get_font("font", "PopupMenu");
-	Ref<Texture> slot_icon = get_icon("NodeRealSlot", "EditorIcons");
+	Ref<Texture> slot_icon = get_icon("VisualShaderPort", "EditorIcons");
 
 	Size2 size = get_node_size(p_node_id);
-	Point2 pos = anim_tree->node_get_pos(p_node_id);
+	Point2 pos = anim_tree->node_get_position(p_node_id);
 
 	if (click_type == CLICK_NODE && click_node == p_node_id) {
 
@@ -806,12 +806,12 @@ void AnimationTreeEditor::_gui_input(Ref<InputEvent> p_event) {
 
 					} break;
 					case CLICK_NODE: {
-						Point2 new_pos = anim_tree->node_get_pos(click_node) + (click_motion - click_pos);
+						Point2 new_pos = anim_tree->node_get_position(click_node) + (click_motion - click_pos);
 						if (new_pos.x < 5)
 							new_pos.x = 5;
 						if (new_pos.y < 5)
 							new_pos.y = 5;
-						anim_tree->node_set_pos(click_node, new_pos);
+						anim_tree->node_set_position(click_node, new_pos);
 
 					} break;
 					default: {}
@@ -1081,7 +1081,7 @@ StringName AnimationTreeEditor::_add_node(int p_item) {
 	}
 
 	anim_tree->add_node((AnimationTreePlayer::NodeType)p_item, name);
-	anim_tree->node_set_pos(name, Point2(last_x, last_y));
+	anim_tree->node_set_position(name, Point2(last_x, last_y));
 	order.push_back(name);
 	last_x += 10;
 	last_y += 10;
@@ -1419,13 +1419,13 @@ void AnimationTreeEditorPlugin::make_visible(bool p_visible) {
 		//editor->animation_panel_make_visible(true);
 		button->show();
 		editor->make_bottom_panel_item_visible(anim_tree_editor);
-		anim_tree_editor->set_fixed_process(true);
+		anim_tree_editor->set_physics_process(true);
 	} else {
 
 		if (anim_tree_editor->is_visible_in_tree())
 			editor->hide_bottom_panel();
 		button->hide();
-		anim_tree_editor->set_fixed_process(false);
+		anim_tree_editor->set_physics_process(false);
 	}
 }
 

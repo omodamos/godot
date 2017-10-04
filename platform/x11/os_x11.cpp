@@ -35,6 +35,7 @@
 #include "servers/physics/physics_server_sw.h"
 #include "servers/visual/visual_server_raster.h"
 #include "servers/visual/visual_server_wrap_mt.h"
+#include <mntent.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -313,29 +314,7 @@ void OS_X11::initialize(const VideoMode &p_desired, int p_video_driver, int p_au
 		XFree(xsh);
 	}
 
-	AudioDriverManager::get_driver(p_audio_driver)->set_singleton();
-
-	audio_driver_index = p_audio_driver;
-	if (AudioDriverManager::get_driver(p_audio_driver)->init() != OK) {
-
-		bool success = false;
-		audio_driver_index = -1;
-		for (int i = 0; i < AudioDriverManager::get_driver_count(); i++) {
-			if (i == p_audio_driver)
-				continue;
-			AudioDriverManager::get_driver(i)->set_singleton();
-			if (AudioDriverManager::get_driver(i)->init() == OK) {
-				success = true;
-				print_line("Audio Driver Failed: " + String(AudioDriverManager::get_driver(p_audio_driver)->get_name()));
-				print_line("Using alternate audio driver: " + String(AudioDriverManager::get_driver(i)->get_name()));
-				audio_driver_index = i;
-				break;
-			}
-		}
-		if (!success) {
-			ERR_PRINT("Initializing audio failed.");
-		}
-	}
+	AudioDriverManager::initialize(p_audio_driver);
 
 	ERR_FAIL_COND(!visual_server);
 	ERR_FAIL_COND(x11_window == 0);
@@ -635,7 +614,7 @@ void OS_X11::set_mouse_mode(MouseMode p_mode) {
 	XFlush(x11_display);
 }
 
-void OS_X11::warp_mouse_pos(const Point2 &p_to) {
+void OS_X11::warp_mouse_position(const Point2 &p_to) {
 
 	if (mouse_mode == MOUSE_MODE_CAPTURED) {
 
@@ -729,6 +708,16 @@ void OS_X11::set_wm_fullscreen(bool p_enabled) {
 
 		XSetWMNormalHints(x11_display, x11_window, xsh);
 		XFree(xsh);
+	}
+
+	if (!p_enabled && !get_borderless_window()) {
+		// put decorations back if the window wasn't suppoesed to be borderless
+		Hints hints;
+		Atom property;
+		hints.flags = 2;
+		hints.decorations = 1;
+		property = XInternAtom(x11_display, "_MOTIF_WM_HINTS", True);
+		XChangeProperty(x11_display, x11_window, property, property, 32, PropModeReplace, (unsigned char *)&hints, 5);
 	}
 }
 
@@ -2187,11 +2176,78 @@ bool OS_X11::is_disable_crash_handler() const {
 	return crash_handler.is_disabled();
 }
 
-OS_X11::OS_X11() {
+static String get_mountpoint(const String &p_path) {
+	struct stat s;
+	if (stat(p_path.utf8().get_data(), &s)) {
+		return "";
+	}
 
-#ifdef RTAUDIO_ENABLED
-	AudioDriverManager::add_driver(&driver_rtaudio);
-#endif
+	dev_t dev = s.st_dev;
+	FILE *fd = setmntent("/proc/mounts", "r");
+	if (!fd) {
+		return "";
+	}
+
+	struct mntent mnt;
+	char buf[1024];
+	size_t buflen = 1024;
+	while (getmntent_r(fd, &mnt, buf, buflen)) {
+		if (!stat(mnt.mnt_dir, &s) && s.st_dev == dev) {
+			endmntent(fd);
+			return String(mnt.mnt_dir);
+		}
+	}
+
+	endmntent(fd);
+	return "";
+}
+
+Error OS_X11::move_to_trash(const String &p_path) {
+	String trashcan = "";
+	String mnt = get_mountpoint(p_path);
+
+	if (mnt != "") {
+		String path(mnt + "/.Trash-" + itos(getuid()) + "/files");
+		struct stat s;
+		if (!stat(path.utf8().get_data(), &s)) {
+			trashcan = path;
+		}
+	}
+
+	if (trashcan == "") {
+		char *dhome = getenv("XDG_DATA_HOME");
+		if (dhome) {
+			trashcan = String(dhome) + "/Trash/files";
+		}
+	}
+
+	if (trashcan == "") {
+		char *home = getenv("HOME");
+		if (home) {
+			trashcan = String(home) + "/.local/share/Trash/files";
+		}
+	}
+
+	if (trashcan == "") {
+		ERR_PRINTS("move_to_trash: Could not determine trashcan location");
+		return FAILED;
+	}
+
+	List<String> args;
+	args.push_back("-p");
+	args.push_back(trashcan);
+	Error err = execute("/bin/mkdir", args, true);
+	if (err == OK) {
+		List<String> args2;
+		args2.push_back(p_path);
+		args2.push_back(trashcan);
+		err = execute("/bin/mv", args2, true);
+	}
+
+	return err;
+}
+
+OS_X11::OS_X11() {
 
 #ifdef PULSEAUDIO_ENABLED
 	AudioDriverManager::add_driver(&driver_pulseaudio);
@@ -2200,11 +2256,6 @@ OS_X11::OS_X11() {
 #ifdef ALSA_ENABLED
 	AudioDriverManager::add_driver(&driver_alsa);
 #endif
-
-	if (AudioDriverManager::get_driver_count() == 0) {
-		WARN_PRINT("No sound driver found... Defaulting to dummy driver");
-		AudioDriverManager::add_driver(&driver_dummy);
-	}
 
 	minimized = false;
 	xim_style = 0L;

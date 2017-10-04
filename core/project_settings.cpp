@@ -152,7 +152,7 @@ bool ProjectSettings::_set(const StringName &p_name, const Variant &p_value) {
 				bool override_valid = false;
 				for (int i = 1; i < s.size(); i++) {
 					String feature = s[i].strip_edges();
-					if (OS::get_singleton()->check_feature_support(feature) || custom_features.has(feature)) {
+					if (OS::get_singleton()->has_feature(feature) || custom_features.has(feature)) {
 						override_valid = true;
 						break;
 					}
@@ -307,8 +307,8 @@ Error ProjectSettings::setup(const String &p_path, const String &p_main_pack) {
 	if (exec_path != "") {
 		bool found = false;
 
-		// get our filename without our path (note, not using exec_path.get_basename anymore because not all file systems have dots in their file names!)
-		String filebase_name = exec_path.get_file();
+		// get our filename without our path (note, using exec_path.get_file before get_basename anymore because not all file systems have dots in their file names!)
+		String filebase_name = exec_path.get_file().get_basename();
 
 		// try to open at the location of executable
 		String datapack_name = exec_path.get_base_dir().plus_file(filebase_name) + ".pck";
@@ -910,7 +910,7 @@ Variant ProjectSettings::property_get_revert(const String &p_name) {
 void ProjectSettings::_bind_methods() {
 
 	ClassDB::bind_method(D_METHOD("has", "name"), &ProjectSettings::has);
-	ClassDB::bind_method(D_METHOD("set_order", "name", "pos"), &ProjectSettings::set_order);
+	ClassDB::bind_method(D_METHOD("set_order", "name", "position"), &ProjectSettings::set_order);
 	ClassDB::bind_method(D_METHOD("get_order", "name"), &ProjectSettings::get_order);
 	ClassDB::bind_method(D_METHOD("set_initial_value", "name", "value"), &ProjectSettings::set_initial_value);
 	ClassDB::bind_method(D_METHOD("add_property_info", "hint"), &ProjectSettings::_add_property_info_bind);

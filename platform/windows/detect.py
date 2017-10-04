@@ -49,6 +49,7 @@ def can_build():
 
 
 def get_opts():
+    from SCons.Variables import BoolVariable, EnumVariable
 
     mingw32 = ""
     mingw64 = ""
@@ -64,6 +65,8 @@ def get_opts():
     return [
         ('mingw_prefix_32', 'MinGW prefix (Win32)', mingw32),
         ('mingw_prefix_64', 'MinGW prefix (Win64)', mingw64),
+        BoolVariable('use_lto', 'Use link time optimization (when using MingW)', False),
+        EnumVariable('debug_symbols', 'Add debug symbols to release version', 'yes', ('yes', 'no', 'full')),
     ]
 
 
@@ -213,11 +216,20 @@ def configure(env):
 
             env.Append(LINKFLAGS=['-Wl,--subsystem,windows'])
 
+            if (env["debug_symbols"] == "yes"):
+               env.Prepend(CCFLAGS=['-g1'])
+            if (env["debug_symbols"] == "full"):
+               env.Prepend(CCFLAGS=['-g2'])
+
         elif (env["target"] == "release_debug"):
             env.Append(CCFLAGS=['-O2', '-DDEBUG_ENABLED'])
+            if (env["debug_symbols"] == "yes"):
+               env.Prepend(CCFLAGS=['-g1'])
+            if (env["debug_symbols"] == "full"):
+               env.Prepend(CCFLAGS=['-g2'])
 
         elif (env["target"] == "debug"):
-            env.Append(CCFLAGS=['-g', '-DDEBUG_ENABLED', '-DDEBUG_MEMORY_ENABLED'])
+            env.Append(CCFLAGS=['-g3', '-DDEBUG_ENABLED', '-DDEBUG_MEMORY_ENABLED'])
 
         ## Compiler configuration
 
@@ -246,10 +258,17 @@ def configure(env):
         env["CC"] = mingw_prefix + "gcc"
         env['AS'] = mingw_prefix + "as"
         env['CXX'] = mingw_prefix + "g++"
-        env['AR'] = mingw_prefix + "ar"
-        env['RANLIB'] = mingw_prefix + "ranlib"
+        env['AR'] = mingw_prefix + "gcc-ar"
+        env['RANLIB'] = mingw_prefix + "gcc-ranlib"
         env['LD'] = mingw_prefix + "g++"
         env["x86_libtheora_opt_gcc"] = True
+
+        if env['use_lto']:
+            env.Append(CCFLAGS=['-flto'])
+            if not env['use_llvm'] and env.GetOption("num_jobs") > 1:
+                env.Append(LINKFLAGS=['-flto=' + str(env.GetOption("num_jobs"))])
+            else:
+                env.Append(LINKFLAGS=['-flto'])
 
         ## Compile flags
 

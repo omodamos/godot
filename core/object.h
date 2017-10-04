@@ -64,9 +64,9 @@ enum PropertyHint {
 	PROPERTY_HINT_LAYERS_3D_RENDER,
 	PROPERTY_HINT_LAYERS_3D_PHYSICS,
 	PROPERTY_HINT_FILE, ///< a file path must be passed, hint_text (optionally) is a filter "*.png,*.wav,*.doc,"
-	PROPERTY_HINT_DIR, ///< a directort path must be passed
+	PROPERTY_HINT_DIR, ///< a directory path must be passed
 	PROPERTY_HINT_GLOBAL_FILE, ///< a file path must be passed, hint_text (optionally) is a filter "*.png,*.wav,*.doc,"
-	PROPERTY_HINT_GLOBAL_DIR, ///< a directort path must be passed
+	PROPERTY_HINT_GLOBAL_DIR, ///< a directory path must be passed
 	PROPERTY_HINT_RESOURCE_TYPE, ///< a resource object type
 	PROPERTY_HINT_MULTILINE_TEXT, ///< used for string properties that can contain multiple lines
 	PROPERTY_HINT_COLOR_NO_ALPHA, ///< used for ignoring alpha component when editing a color
@@ -148,6 +148,7 @@ struct PropertyInfo {
 		  hint(PROPERTY_HINT_NONE),
 		  usage(PROPERTY_USAGE_DEFAULT) {
 	}
+
 	PropertyInfo(Variant::Type p_type, const String p_name, PropertyHint p_hint = PROPERTY_HINT_NONE, const String &p_hint_string = "", uint32_t p_usage = PROPERTY_USAGE_DEFAULT, const StringName &p_class_name = StringName())
 		: type(p_type),
 		  name(p_name),
@@ -161,12 +162,12 @@ struct PropertyInfo {
 			class_name = p_class_name;
 		}
 	}
+
 	PropertyInfo(const StringName &p_class_name)
 		: type(Variant::OBJECT),
+		  class_name(p_class_name),
 		  hint(PROPERTY_HINT_NONE),
 		  usage(PROPERTY_USAGE_DEFAULT) {
-
-		class_name = p_class_name;
 	}
 
 	bool operator<(const PropertyInfo &p_info) const {
@@ -220,7 +221,7 @@ struct MethodInfo {
 //return NULL;
 
 /*
-   the following is an uncomprehensible blob of hacks and workarounds to compensate for many of the fallencies in C++. As a plus, this macro pretty much alone defines the object model.
+   the following is an incomprehensible blob of hacks and workarounds to compensate for many of the fallencies in C++. As a plus, this macro pretty much alone defines the object model.
 */
 
 #define REVERSE_GET_PROPERTY_LIST                                  \

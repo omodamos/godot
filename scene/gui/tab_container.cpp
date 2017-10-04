@@ -208,6 +208,9 @@ void TabContainer::_notification(int p_what) {
 					break;
 			}
 
+			// Draw the tab area.
+			panel->draw(canvas, Rect2(0, header_height, size.width, size.height - header_height));
+
 			// Draw all visible tabs.
 			int x = 0;
 			for (int i = 0; i < tab_widths.size(); i++) {
@@ -261,9 +264,9 @@ void TabContainer::_notification(int p_what) {
 			if (popup) {
 				x -= menu->get_width();
 				if (mouse_x_cache > x)
-					menu_hl->draw(get_canvas_item(), Size2(x, 0));
+					menu_hl->draw(get_canvas_item(), Size2(x, (header_height - menu_hl->get_height()) / 2));
 				else
-					menu->draw(get_canvas_item(), Size2(x, 0));
+					menu->draw(get_canvas_item(), Size2(x, (header_height - menu->get_height()) / 2));
 			}
 
 			// Draw the navigation buttons.
@@ -280,9 +283,6 @@ void TabContainer::_notification(int p_what) {
 						Point2(x, y_center - (decrement->get_height() / 2)),
 						Color(1, 1, 1, first_tab_cache > 0 ? 1.0 : 0.5));
 			}
-
-			// Draw the tab area.
-			panel->draw(canvas, Rect2(0, header_height, size.width, size.height - header_height));
 		} break;
 		case NOTIFICATION_THEME_CHANGED: {
 			if (get_tab_count() > 0) {
@@ -367,7 +367,7 @@ void TabContainer::add_child_notify(Node *p_child) {
 		current = 0;
 		previous = 0;
 	}
-	c->set_area_as_parent_rect();
+	c->set_anchors_and_margins_preset(Control::PRESET_WIDE);
 	if (tabs_visible)
 		c->set_margin(MARGIN_TOP, _get_top_margin());
 	Ref<StyleBox> sb = get_stylebox("panel");
@@ -401,7 +401,7 @@ void TabContainer::set_current_tab(int p_current) {
 		Control *c = tabs[i];
 		if (i == current) {
 			c->show();
-			c->set_area_as_parent_rect();
+			c->set_anchors_and_margins_preset(Control::PRESET_WIDE);
 			if (tabs_visible)
 				c->set_margin(MARGIN_TOP, _get_top_margin());
 			c->set_margin(Margin(MARGIN_TOP), c->get_margin(Margin(MARGIN_TOP)) + sb->get_margin(Margin(MARGIN_TOP)));

@@ -51,7 +51,7 @@ inline void change_nsvg_paint_color(NSVGpaint *p_paint, const uint32_t p_old, co
 
 	if (p_paint->type == NSVG_PAINT_COLOR) {
 		if (p_paint->color << 8 == p_old << 8) {
-			p_paint->color = p_new;
+			p_paint->color = (p_paint->color & 0xFF000000) | (p_new & 0x00FFFFFF);
 		}
 	}
 
@@ -128,13 +128,13 @@ Error ImageLoaderSVG::_create_image(Ref<Image> p_image, const PoolVector<uint8_t
 	return OK;
 }
 
-Error ImageLoaderSVG::create_image_from_string(Ref<Image> p_image, const char *svg_str, float p_scale, bool upsample, bool convert_colors) {
+Error ImageLoaderSVG::create_image_from_string(Ref<Image> p_image, const char *p_svg_str, float p_scale, bool upsample, bool convert_colors) {
 
-	size_t str_len = strlen(svg_str);
+	size_t str_len = strlen(p_svg_str);
 	PoolVector<uint8_t> src_data;
 	src_data.resize(str_len + 1);
 	PoolVector<uint8_t>::Write src_w = src_data.write();
-	memcpy(src_w.ptr(), svg_str, str_len + 1);
+	memcpy(src_w.ptr(), p_svg_str, str_len + 1);
 
 	return _create_image(p_image, &src_data, p_scale, upsample, convert_colors);
 }

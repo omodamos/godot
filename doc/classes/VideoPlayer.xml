@@ -39,7 +39,7 @@
 				Get the name of the video stream.
 			</description>
 		</method>
-		<method name="get_stream_pos" qualifiers="const">
+		<method name="get_stream_position" qualifiers="const">
 			<return type="float">
 			</return>
 			<description>
@@ -154,6 +154,15 @@
 			</argument>
 			<description>
 				Set the video stream for this player.
+			</description>
+		</method>
+		<method name="set_stream_position">
+			<return type="void">
+			</return>
+			<argument index="0" name="position" type="float">
+			</argument>
+			<description>
+				Set the current position of the stream, in seconds.
 			</description>
 		</method>
 		<method name="set_volume">

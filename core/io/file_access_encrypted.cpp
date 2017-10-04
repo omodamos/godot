@@ -71,7 +71,7 @@ Error FileAccessEncrypted::open_and_parse(FileAccess *p_base, const Vector<uint8
 		unsigned char md5d[16];
 		p_base->get_buffer(md5d, 16);
 		length = p_base->get_64();
-		base = p_base->get_pos();
+		base = p_base->get_position();
 		ERR_FAIL_COND_V(p_base->get_len() < base + length, ERR_FILE_CORRUPT);
 		uint32_t ds = length;
 		if (ds % 16) {
@@ -199,7 +199,7 @@ void FileAccessEncrypted::seek_end(int64_t p_position) {
 
 	seek(data.size() + p_position);
 }
-size_t FileAccessEncrypted::get_pos() const {
+size_t FileAccessEncrypted::get_position() const {
 
 	return pos;
 }
@@ -266,6 +266,12 @@ void FileAccessEncrypted::store_buffer(const uint8_t *p_src, int p_length) {
 		}
 		pos += p_length;
 	}
+}
+
+void FileAccessEncrypted::flush() {
+	ERR_FAIL_COND(!writing);
+
+	// encrypted files keep data in memory till close()
 }
 
 void FileAccessEncrypted::store_8(uint8_t p_dest) {
