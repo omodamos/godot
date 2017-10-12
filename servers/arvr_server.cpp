@@ -43,7 +43,7 @@ void ARVRServer::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("get_world_scale"), &ARVRServer::get_world_scale);
 	ClassDB::bind_method(D_METHOD("set_world_scale"), &ARVRServer::set_world_scale);
 	ClassDB::bind_method(D_METHOD("get_reference_frame"), &ARVRServer::get_reference_frame);
-	ClassDB::bind_method(D_METHOD("request_reference_frame", "ignore_tilt", "keep_height"), &ARVRServer::request_reference_frame);
+	ClassDB::bind_method(D_METHOD("center_on_hmd", "ignore_tilt", "keep_height"), &ARVRServer::center_on_hmd);
 
 	ADD_PROPERTY(PropertyInfo(Variant::REAL, "world_scale"), "set_world_scale", "get_world_scale");
 
@@ -53,10 +53,10 @@ void ARVRServer::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("get_tracker_count"), &ARVRServer::get_tracker_count);
 	ClassDB::bind_method(D_METHOD("get_tracker", "idx"), &ARVRServer::get_tracker);
 
-	ClassDB::bind_method(D_METHOD("set_primary_interface"), &ARVRServer::set_primary_interface);
+	ClassDB::bind_method(D_METHOD("set_primary_interface", "interface"), &ARVRServer::set_primary_interface);
 
-	ClassDB::bind_method(D_METHOD("add_interface"), &ARVRServer::add_interface);
-	ClassDB::bind_method(D_METHOD("remove_interface"), &ARVRServer::remove_interface);
+	ClassDB::bind_method(D_METHOD("add_interface", "interface"), &ARVRServer::add_interface);
+	ClassDB::bind_method(D_METHOD("remove_interface", "interface"), &ARVRServer::remove_interface);
 
 	BIND_ENUM_CONSTANT(TRACKER_CONTROLLER);
 	BIND_ENUM_CONSTANT(TRACKER_BASESTATION);
@@ -98,7 +98,7 @@ Transform ARVRServer::get_reference_frame() const {
 	return reference_frame;
 };
 
-void ARVRServer::request_reference_frame(bool p_ignore_tilt, bool p_keep_height) {
+void ARVRServer::center_on_hmd(bool p_ignore_tilt, bool p_keep_height) {
 	if (primary_interface != NULL) {
 		// clear our current reference frame or we'll end up double adjusting it
 		reference_frame = Transform();

@@ -33,6 +33,17 @@
 #include "os/os.h"
 #include "print_string.h"
 
+// va_copy was defined in the C99, but not in C++ standards before C++11.
+// When you compile C++ without --std=c++<XX> option, compilers still define
+// va_copy, otherwise you have to use the internal version (__va_copy).
+#if !defined(va_copy)
+#if defined(__GNUC__)
+#define va_copy(d, s) __va_copy(d, s)
+#else
+#define va_copy(d, s) ((d) = (s))
+#endif
+#endif
+
 bool Logger::should_log(bool p_err) {
 	return (!p_err || _print_error_enabled) && (p_err || _print_line_enabled);
 }
@@ -177,11 +188,14 @@ void RotatedFileLogger::logv(const char *p_format, va_list p_list, bool p_err) {
 		const int static_buf_size = 512;
 		char static_buf[static_buf_size];
 		char *buf = static_buf;
+		va_list list_copy;
+		va_copy(list_copy, p_list);
 		int len = vsnprintf(buf, static_buf_size, p_format, p_list);
 		if (len >= static_buf_size) {
 			buf = (char *)Memory::alloc_static(len + 1);
-			vsnprintf(buf, len + 1, p_format, p_list);
+			vsnprintf(buf, len + 1, p_format, list_copy);
 		}
+		va_end(list_copy);
 		file->store_buffer((uint8_t *)buf, len);
 		if (len >= static_buf_size) {
 			Memory::free_static(buf);

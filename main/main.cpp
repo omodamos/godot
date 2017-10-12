@@ -162,6 +162,7 @@ void Main::print_help(const char *p_binary) {
 #endif
 	OS::get_singleton()->print("  -l, --language <locale>          Use a specific locale (<locale> being a two-letter code).\n");
 	OS::get_singleton()->print("  --path <directory>               Path to a project (<directory> must contain a 'project.godot' file).\n");
+	OS::get_singleton()->print("  -u, --upwards                    Scan folders upwards for project.godot file.\n");
 	OS::get_singleton()->print("  --main-pack <file>               Path to a pack (.pck) file to load.\n");
 	OS::get_singleton()->print("  --render-thread <mode>           Render thread mode ('unsafe', 'safe', 'separate').\n");
 	OS::get_singleton()->print("  --remote-fs <address>            Remote filesystem (<host/IP>[:<port>] address).\n");
@@ -257,6 +258,7 @@ Error Main::setup(const char *execpath, int argc, char *argv[], bool p_second_ph
 
 	translation_server = memnew(TranslationServer);
 	performance = memnew(Performance);
+	ClassDB::register_class<Performance>();
 	globals->add_singleton(ProjectSettings::Singleton("Performance", performance));
 
 	GLOBAL_DEF("debug/settings/crash_handler/message", String("Please include this when reporting the bug on https://github.com/godotengine/godot/issues"));
@@ -289,6 +291,7 @@ Error Main::setup(const char *execpath, int argc, char *argv[], bool p_second_ph
 	String video_driver = "";
 	String audio_driver = "";
 	String game_path = ".";
+	bool upwards = false;
 	String debug_mode;
 	String debug_host;
 	String main_pack;
@@ -497,6 +500,8 @@ Error Main::setup(const char *execpath, int argc, char *argv[], bool p_second_ph
 				OS::get_singleton()->print("Missing relative or absolute path, aborting.\n");
 				goto error;
 			}
+		} else if (I->get() == "-u" || I->get() == "--upwards") { // scan folders upwards
+			upwards = true;
 		} else if (I->get().ends_with("project.godot")) {
 			String path;
 			String file = I->get();
@@ -694,7 +699,7 @@ Error Main::setup(const char *execpath, int argc, char *argv[], bool p_second_ph
 
 #endif
 
-	if (globals->setup(game_path, main_pack) != OK) {
+	if (globals->setup(game_path, main_pack, upwards) != OK) {
 
 #ifdef TOOLS_ENABLED
 		editor = false;
@@ -726,7 +731,7 @@ Error Main::setup(const char *execpath, int argc, char *argv[], bool p_second_ph
 
 #ifdef TOOLS_ENABLED
 
-	if (main_args.size() == 0 && (!ProjectSettings::get_singleton()->has("application/run/main_loop_type")) && (!ProjectSettings::get_singleton()->has("application/run/main_scene") || String(ProjectSettings::get_singleton()->get("application/run/main_scene")) == ""))
+	if (main_args.size() == 0 && (!ProjectSettings::get_singleton()->has_setting("application/run/main_loop_type")) && (!ProjectSettings::get_singleton()->has_setting("application/run/main_scene") || String(ProjectSettings::get_singleton()->get("application/run/main_scene")) == ""))
 		use_custom_res = false; //project manager (run without arguments)
 
 #endif
@@ -739,21 +744,21 @@ Error Main::setup(const char *execpath, int argc, char *argv[], bool p_second_ph
 	//if (video_driver == "") // useless for now, so removing
 	//	video_driver = GLOBAL_DEF("display/driver/name", Variant((const char *)OS::get_singleton()->get_video_driver_name(0)));
 
-	if (!force_res && use_custom_res && globals->has("display/window/size/width"))
+	if (!force_res && use_custom_res && globals->has_setting("display/window/size/width"))
 		video_mode.width = globals->get("display/window/size/width");
-	if (!force_res && use_custom_res && globals->has("display/window/size/height"))
+	if (!force_res && use_custom_res && globals->has_setting("display/window/size/height"))
 		video_mode.height = globals->get("display/window/size/height");
-	if (!editor && ((globals->has("display/window/dpi/allow_hidpi") && !globals->get("display/window/dpi/allow_hidpi")) || force_lowdpi)) {
+	if (!editor && ((globals->has_setting("display/window/dpi/allow_hidpi") && !globals->get("display/window/dpi/allow_hidpi")) || force_lowdpi)) {
 		OS::get_singleton()->_allow_hidpi = false;
 	}
-	if (use_custom_res && globals->has("display/window/size/fullscreen"))
+	if (use_custom_res && globals->has_setting("display/window/size/fullscreen"))
 		video_mode.fullscreen = globals->get("display/window/size/fullscreen");
-	if (use_custom_res && globals->has("display/window/size/resizable"))
+	if (use_custom_res && globals->has_setting("display/window/size/resizable"))
 		video_mode.resizable = globals->get("display/window/size/resizable");
-	if (use_custom_res && globals->has("display/window/size/borderless"))
+	if (use_custom_res && globals->has_setting("display/window/size/borderless"))
 		video_mode.borderless_window = globals->get("display/window/size/borderless");
 
-	if (!force_res && use_custom_res && globals->has("display/window/size/test_width") && globals->has("display/window/size/test_height")) {
+	if (!force_res && use_custom_res && globals->has_setting("display/window/size/test_width") && globals->has_setting("display/window/size/test_height")) {
 		int tw = globals->get("display/window/size/test_width");
 		int th = globals->get("display/window/size/test_height");
 		if (tw > 0 && th > 0) {
@@ -774,6 +779,9 @@ Error Main::setup(const char *execpath, int argc, char *argv[], bool p_second_ph
 	GLOBAL_DEF("rendering/quality/intended_usage/framebuffer_allocation", 2);
 	GLOBAL_DEF("rendering/quality/intended_usage/framebuffer_allocation.mobile", 3);
 
+	if (editor) {
+		OS::get_singleton()->_allow_hidpi = true; //editors always in hidpi
+	}
 	Engine::get_singleton()->_pixel_snap = GLOBAL_DEF("rendering/quality/2d/use_pixel_snap", false);
 	OS::get_singleton()->_keep_screen_on = GLOBAL_DEF("display/window/energy_saving/keep_screen_on", true);
 	if (rtm == -1) {

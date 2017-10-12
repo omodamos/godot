@@ -261,7 +261,7 @@ bool ProjectSettings::_load_resource_pack(const String &p_pack) {
 	return true;
 }
 
-Error ProjectSettings::setup(const String &p_path, const String &p_main_pack) {
+Error ProjectSettings::setup(const String &p_path, const String &p_main_pack, bool p_upwards) {
 
 	//If looking for files in network, just use network!
 
@@ -270,11 +270,6 @@ Error ProjectSettings::setup(const String &p_path, const String &p_main_pack) {
 		if (_load_settings("res://project.godot") == OK || _load_settings_binary("res://project.binary") == OK) {
 
 			_load_settings("res://override.cfg");
-#ifdef DEBUG_ENABLED
-		} else {
-			// when debug version of godot is used, provide some feedback to the developer
-			print_line("Couldn't open project over network");
-#endif
 		}
 
 		return OK;
@@ -292,12 +287,6 @@ Error ProjectSettings::setup(const String &p_path, const String &p_main_pack) {
 		if (_load_settings("res://project.godot") == OK || _load_settings_binary("res://project.binary") == OK) {
 			//load override from location of the main pack
 			_load_settings(p_main_pack.get_base_dir().plus_file("override.cfg"));
-#ifdef DEBUG_ENABLED
-			// when debug version of godot is used, provide some feedback to the developer
-			print_line("Successfully loaded " + p_main_pack + "/project.godot or project.binary");
-		} else {
-			print_line("Couldn't load/find " + p_main_pack + "/project.godot or project.binary");
-#endif
 		}
 
 		return OK;
@@ -315,18 +304,9 @@ Error ProjectSettings::setup(const String &p_path, const String &p_main_pack) {
 		if (_load_resource_pack(datapack_name)) {
 			found = true;
 		} else {
-#ifdef DEBUG_ENABLED
-			// when debug version of godot is used, provide some feedback to the developer
-			print_line("Couldn't open " + datapack_name);
-#endif
 			datapack_name = filebase_name + ".pck";
 			if (_load_resource_pack(datapack_name)) {
 				found = true;
-#ifdef DEBUG_ENABLED
-			} else {
-				// when debug version of godot is used, provide some feedback to the developer
-				print_line("Couldn't open " + datapack_name);
-#endif
 			}
 		}
 
@@ -335,13 +315,6 @@ Error ProjectSettings::setup(const String &p_path, const String &p_main_pack) {
 			if (_load_settings("res://project.godot") == OK || _load_settings_binary("res://project.binary") == OK) {
 				// load override from location of executable
 				_load_settings(exec_path.get_base_dir().plus_file("override.cfg"));
-
-#ifdef DEBUG_ENABLED
-				// when debug version of godot is used, provide some feedback to the developer
-				print_line("Successfully loaded " + datapack_name + "/project.godot or project.binary");
-			} else {
-				print_line("Couldn't load/find " + datapack_name + "/project.godot or project.binary");
-#endif
 			}
 
 			return OK;
@@ -362,12 +335,6 @@ Error ProjectSettings::setup(const String &p_path, const String &p_main_pack) {
 
 		if (_load_settings("res://project.godot") == OK || _load_settings_binary("res://project.binary") == OK) {
 			_load_settings("res://override.cfg");
-#ifdef DEBUG_ENABLED
-			// when debug version of godot is used, provide some feedback to the developer
-			print_line("Successfully loaded " + resource_path + "/project.godot or project.binary");
-		} else {
-			print_line("Couldn't load/find " + resource_path + "/project.godot or project.binary");
-#endif
 		}
 
 		return OK;
@@ -393,18 +360,16 @@ Error ProjectSettings::setup(const String &p_path, const String &p_main_pack) {
 			candidate = current_dir;
 			found = true;
 			break;
-#ifdef DEBUG_ENABLED
-			// when debug version of godot is used, provide some feedback to the developer
-			print_line("Successfully loaded " + current_dir + "/project.godot or project.binary");
-		} else {
-			print_line("Couldn't load/find " + current_dir + "/project.godot or project.binary");
-#endif
 		}
 
-		d->change_dir("..");
-		if (d->get_current_dir() == current_dir)
-			break; //not doing anything useful
-		current_dir = d->get_current_dir();
+		if (p_upwards) {
+			d->change_dir("..");
+			if (d->get_current_dir() == current_dir)
+				break; //not doing anything useful
+			current_dir = d->get_current_dir();
+		} else {
+			break;
+		}
 	}
 
 	resource_path = candidate;
@@ -420,7 +385,7 @@ Error ProjectSettings::setup(const String &p_path, const String &p_main_pack) {
 	return OK;
 }
 
-bool ProjectSettings::has(String p_var) const {
+bool ProjectSettings::has_setting(String p_var) const {
 
 	_THREAD_SAFE_METHOD_
 
@@ -667,8 +632,8 @@ Error ProjectSettings::_save_settings_text(const String &p_file, const Map<Strin
 	file->store_line("; Engine configuration file.");
 	file->store_line("; It's best edited using the editor UI and not directly,");
 	file->store_line("; since the parameters that go here are not all obvious.");
-	file->store_line("; ");
-	file->store_line("; Format: ");
+	file->store_line(";");
+	file->store_line("; Format:");
 	file->store_line(";   [section] ; section goes between []");
 	file->store_line(";   param=value ; assign values to parameters");
 	file->store_line("");
@@ -800,7 +765,7 @@ Error ProjectSettings::save_custom(const String &p_path, const CustomMap &p_cust
 Variant _GLOBAL_DEF(const String &p_var, const Variant &p_default) {
 
 	Variant ret;
-	if (ProjectSettings::get_singleton()->has(p_var)) {
+	if (ProjectSettings::get_singleton()->has_setting(p_var)) {
 		ret = ProjectSettings::get_singleton()->get(p_var);
 	} else {
 		ProjectSettings::get_singleton()->set(p_var, p_default);
@@ -907,9 +872,19 @@ Variant ProjectSettings::property_get_revert(const String &p_name) {
 	return props[p_name].initial;
 }
 
+void ProjectSettings::set_setting(const String &p_setting, const Variant &p_value) {
+	set(p_setting, p_value);
+}
+
+Variant ProjectSettings::get_setting(const String &p_setting) const {
+	return get(p_setting);
+}
+
 void ProjectSettings::_bind_methods() {
 
-	ClassDB::bind_method(D_METHOD("has", "name"), &ProjectSettings::has);
+	ClassDB::bind_method(D_METHOD("has_setting", "name"), &ProjectSettings::has_setting);
+	ClassDB::bind_method(D_METHOD("set_setting", "name", "value"), &ProjectSettings::set_setting);
+	ClassDB::bind_method(D_METHOD("get_setting", "name"), &ProjectSettings::get_setting);
 	ClassDB::bind_method(D_METHOD("set_order", "name", "position"), &ProjectSettings::set_order);
 	ClassDB::bind_method(D_METHOD("get_order", "name"), &ProjectSettings::get_order);
 	ClassDB::bind_method(D_METHOD("set_initial_value", "name", "value"), &ProjectSettings::set_initial_value);
