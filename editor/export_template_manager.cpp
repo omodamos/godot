@@ -179,7 +179,7 @@ void ExportTemplateManager::_install_from_file(const String &p_file) {
 	int ret = unzGoToFirstFile(pkg);
 
 	int fc = 0; //count them and find version
-	String version;
+	String version = "3.0-alpha";
 
 	while (ret == UNZ_OK) {
 
@@ -189,40 +189,42 @@ void ExportTemplateManager::_install_from_file(const String &p_file) {
 
 		String file = fname;
 
-		if (file.ends_with("version.txt")) {
+		// if (file.ends_with("version.txt")) {
 
-			Vector<uint8_t> data;
-			data.resize(info.uncompressed_size);
+		// 	Vector<uint8_t> data;
+		// 	data.resize(info.uncompressed_size);
 
-			//read
-			unzOpenCurrentFile(pkg);
-			ret = unzReadCurrentFile(pkg, data.ptr(), data.size());
-			unzCloseCurrentFile(pkg);
+		// 	//read
+		// 	unzOpenCurrentFile(pkg);
+		// 	ret = unzReadCurrentFile(pkg, data.ptr(), data.size());
+		// 	unzCloseCurrentFile(pkg);
 
-			String data_str;
-			data_str.parse_utf8((const char *)data.ptr(), data.size());
-			data_str = data_str.strip_edges();
+		// 	String data_str;
+		// 	data_str.parse_utf8((const char *)data.ptr(), data.size());
+		// 	data_str = data_str.strip_edges();
 
-			if (data_str.get_slice_count("-") != 2 || data_str.get_slice_count(".") != 2) {
-				EditorNode::get_singleton()->show_warning(TTR("Invalid version.txt format inside templates."));
-				unzClose(pkg);
-				return;
-			}
+		// 	if (data_str.get_slice_count("-") != 2 || data_str.get_slice_count(".") != 2) {
+		// 		print_line("- slice count: " + itos(data_str.get_slice_count("-")) + "\n");
+		// 		print_line(". slice count: " + itos(data_str.get_slice_count(".")) + "\n");
+		// 		EditorNode::get_singleton()->show_warning(TTR("Invalid version.txt format inside templates. blah"));
+		// 		unzClose(pkg);
+		// 		return;
+		// 	}
 
-			String ver = data_str.get_slice("-", 0);
+		// 	String ver = data_str.get_slice("-", 0);
 
-			int major = ver.get_slice(".", 0).to_int();
-			int minor = ver.get_slice(".", 1).to_int();
-			String rev = data_str.get_slice("-", 1);
+		// 	int major = ver.get_slice(".", 0).to_int();
+		// 	int minor = ver.get_slice(".", 1).to_int();
+		// 	String rev = data_str.get_slice("-", 1);
 
-			if (!rev.is_valid_identifier()) {
-				EditorNode::get_singleton()->show_warning(TTR("Invalid version.txt format inside templates. Revision is not a valid identifier."));
-				unzClose(pkg);
-				return;
-			}
+		// 	if (!rev.is_valid_identifier()) {
+		// 		EditorNode::get_singleton()->show_warning(TTR("Invalid version.txt format inside templates. Revision is not a valid identifier."));
+		// 		unzClose(pkg);
+		// 		return;
+		// 	}
 
-			version = itos(major) + "." + itos(minor) + "-" + rev;
-		}
+		// 	version = itos(major) + "." + itos(minor) + "-" + rev;
+		// }
 
 		fc++;
 		ret = unzGoToNextFile(pkg);
