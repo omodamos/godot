@@ -1759,6 +1759,14 @@ int RichTextLabel::get_visible_line_count() const {
 	return visible_line_count;
 }
 
+int RichTextLabel::get_text_height() {
+	if (main->lines.size()) {
+		return main->lines[main->lines.size() - 1].height_accum_cache;
+	} else {
+		return 0;
+	}
+}
+
 void RichTextLabel::set_selection_enabled(bool p_enabled) {
 
 	selection.enabled = p_enabled;
@@ -2006,6 +2014,7 @@ void RichTextLabel::_bind_methods() {
 
 	ClassDB::bind_method(D_METHOD("get_line_count"), &RichTextLabel::get_line_count);
 	ClassDB::bind_method(D_METHOD("get_visible_line_count"), &RichTextLabel::get_visible_line_count);
+	ClassDB::bind_method(D_METHOD("get_text_height"), &RichTextLabel::get_text_height);
 
 	ADD_GROUP("BBCode", "bbcode_");
 	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "bbcode_enabled"), "set_use_bbcode", "is_using_bbcode");
