@@ -76,7 +76,14 @@ void AudioStreamPlaybackResampled::mix(AudioFrame *p_buffer, float p_rate_scale,
 			internal_buffer[1] = internal_buffer[INTERNAL_BUFFER_LEN + 1];
 			internal_buffer[2] = internal_buffer[INTERNAL_BUFFER_LEN + 2];
 			internal_buffer[3] = internal_buffer[INTERNAL_BUFFER_LEN + 3];
-			_mix_internal(internal_buffer + 4, INTERNAL_BUFFER_LEN);
+			if (is_playing()) {
+				_mix_internal(internal_buffer + 4, INTERNAL_BUFFER_LEN);
+			} else {
+				//fill with silence, not playing
+				for (int i = 0; i < INTERNAL_BUFFER_LEN; ++i) {
+					internal_buffer[i + 4] = AudioFrame(0, 0);
+				}
+			}
 			mix_offset -= (INTERNAL_BUFFER_LEN << FP_BITS);
 		}
 	}
@@ -191,12 +198,12 @@ void AudioStreamPlaybackRandomPitch::seek(float p_time) {
 	}
 }
 
-void AudioStreamPlaybackRandomPitch::mix(AudioFrame *p_bufer, float p_rate_scale, int p_frames) {
+void AudioStreamPlaybackRandomPitch::mix(AudioFrame *p_buffer, float p_rate_scale, int p_frames) {
 	if (playing.is_valid()) {
-		playing->mix(p_bufer, p_rate_scale * pitch_scale, p_frames);
+		playing->mix(p_buffer, p_rate_scale * pitch_scale, p_frames);
 	} else {
 		for (int i = 0; i < p_frames; i++) {
-			p_bufer[i] = AudioFrame(0, 0);
+			p_buffer[i] = AudioFrame(0, 0);
 		}
 	}
 }

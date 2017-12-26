@@ -83,7 +83,7 @@ void VisibilityNotifier2D::set_rect(const Rect2 &p_rect) {
 	_change_notify("rect");
 }
 
-Rect2 VisibilityNotifier2D::get_item_rect() const {
+Rect2 VisibilityNotifier2D::_edit_get_rect() const {
 
 	return rect;
 }
@@ -341,12 +341,12 @@ void VisibilityEnabler2D::_bind_methods() {
 	ADD_PROPERTYI(PropertyInfo(Variant::BOOL, "process_parent"), "set_enabler", "is_enabler_enabled", ENABLER_PARENT_PROCESS);
 	ADD_PROPERTYI(PropertyInfo(Variant::BOOL, "physics_process_parent"), "set_enabler", "is_enabler_enabled", ENABLER_PARENT_PHYSICS_PROCESS);
 
-	BIND_ENUM_CONSTANT(ENABLER_FREEZE_BODIES);
 	BIND_ENUM_CONSTANT(ENABLER_PAUSE_ANIMATIONS);
+	BIND_ENUM_CONSTANT(ENABLER_FREEZE_BODIES);
 	BIND_ENUM_CONSTANT(ENABLER_PAUSE_PARTICLES);
-	BIND_ENUM_CONSTANT(ENABLER_PAUSE_ANIMATED_SPRITES);
 	BIND_ENUM_CONSTANT(ENABLER_PARENT_PROCESS);
 	BIND_ENUM_CONSTANT(ENABLER_PARENT_PHYSICS_PROCESS);
+	BIND_ENUM_CONSTANT(ENABLER_PAUSE_ANIMATED_SPRITES);
 	BIND_ENUM_CONSTANT(ENABLER_MAX);
 }
 

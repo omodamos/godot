@@ -36,7 +36,7 @@ namespace GDMonoMarshal {
 
 #define RETURN_BOXED_STRUCT(m_t, m_var_in)                                    \
 	{                                                                         \
-		const m_t &m_in = m_var_in->operator m_t();                           \
+		const m_t &m_in = m_var_in->operator ::m_t();                         \
 		MARSHALLED_OUT(m_t, m_in, raw);                                       \
 		return mono_value_box(mono_domain_get(), CACHED_CLASS_RAW(m_t), raw); \
 	}
@@ -104,14 +104,17 @@ Variant::Type managed_to_variant_type(const ManagedType &p_type) {
 			if (tclass == CACHED_CLASS(Transform))
 				return Variant::TRANSFORM;
 
-			if (tclass == CACHED_CLASS(Rect3))
-				return Variant::RECT3;
+			if (tclass == CACHED_CLASS(AABB))
+				return Variant::AABB;
 
 			if (tclass == CACHED_CLASS(Color))
 				return Variant::COLOR;
 
 			if (tclass == CACHED_CLASS(Plane))
 				return Variant::PLANE;
+
+			if (mono_class_is_enum(tclass->get_raw()))
+				return Variant::INT;
 		} break;
 
 		case MONO_TYPE_ARRAY:
@@ -165,9 +168,12 @@ Variant::Type managed_to_variant_type(const ManagedType &p_type) {
 				return Variant::DICTIONARY;
 			}
 		} break;
+
+		default: {
+		} break;
 	}
 
-	// No error, the caller will decide what to do in this case
+	// Unknown
 	return Variant::NIL;
 }
 
@@ -291,14 +297,19 @@ MonoObject *variant_to_mono_object(const Variant *p_var, const ManagedType &p_ty
 			if (tclass == CACHED_CLASS(Transform))
 				RETURN_BOXED_STRUCT(Transform, p_var);
 
-			if (tclass == CACHED_CLASS(Rect3))
-				RETURN_BOXED_STRUCT(Rect3, p_var);
+			if (tclass == CACHED_CLASS(AABB))
+				RETURN_BOXED_STRUCT(AABB, p_var);
 
 			if (tclass == CACHED_CLASS(Color))
 				RETURN_BOXED_STRUCT(Color, p_var);
 
 			if (tclass == CACHED_CLASS(Plane))
 				RETURN_BOXED_STRUCT(Plane, p_var);
+
+			if (mono_class_is_enum(tclass->get_raw())) {
+				int val = p_var->operator signed int();
+				return BOX_ENUM(tclass->get_raw(), val);
+			}
 		} break;
 
 		case MONO_TYPE_ARRAY:
@@ -383,8 +394,8 @@ MonoObject *variant_to_mono_object(const Variant *p_var, const ManagedType &p_ty
 					RETURN_BOXED_STRUCT(Plane, p_var);
 				case Variant::QUAT:
 					RETURN_BOXED_STRUCT(Quat, p_var);
-				case Variant::RECT3:
-					RETURN_BOXED_STRUCT(Rect3, p_var);
+				case Variant::AABB:
+					RETURN_BOXED_STRUCT(AABB, p_var);
 				case Variant::BASIS:
 					RETURN_BOXED_STRUCT(Basis, p_var);
 				case Variant::TRANSFORM:
@@ -479,8 +490,9 @@ Variant mono_object_to_variant(MonoObject *p_obj, const ManagedType &p_type) {
 			return unbox<double>(p_obj);
 
 		case MONO_TYPE_STRING: {
-			String str = mono_string_to_godot((MonoString *)p_obj);
-			return str;
+			if (p_obj == NULL)
+				return Variant(); // NIL
+			return mono_string_to_godot_not_null((MonoString *)p_obj);
 		} break;
 
 		case MONO_TYPE_VALUETYPE: {
@@ -507,14 +519,17 @@ Variant mono_object_to_variant(MonoObject *p_obj, const ManagedType &p_type) {
 			if (tclass == CACHED_CLASS(Transform))
 				RETURN_UNBOXED_STRUCT(Transform, p_obj);
 
-			if (tclass == CACHED_CLASS(Rect3))
-				RETURN_UNBOXED_STRUCT(Rect3, p_obj);
+			if (tclass == CACHED_CLASS(AABB))
+				RETURN_UNBOXED_STRUCT(AABB, p_obj);
 
 			if (tclass == CACHED_CLASS(Color))
 				RETURN_UNBOXED_STRUCT(Color, p_obj);
 
 			if (tclass == CACHED_CLASS(Plane))
 				RETURN_UNBOXED_STRUCT(Plane, p_obj);
+
+			if (mono_class_is_enum(tclass->get_raw()))
+				return unbox<int32_t>(p_obj);
 		} break;
 
 		case MONO_TYPE_ARRAY:
@@ -586,7 +601,7 @@ MonoArray *Array_to_mono_array(const Array &p_array) {
 
 	for (int i = 0; i < p_array.size(); i++) {
 		MonoObject *boxed = variant_to_mono_object(p_array[i]);
-		mono_array_set(ret, MonoObject *, i, boxed);
+		mono_array_setref(ret, i, boxed);
 	}
 
 	return ret;

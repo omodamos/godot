@@ -41,7 +41,7 @@ void GDMonoField::set_value_raw(MonoObject *p_object, void *p_ptr) {
 void GDMonoField::set_value(MonoObject *p_object, const Variant &p_value) {
 #define SET_FROM_STRUCT_AND_BREAK(m_type)                \
 	{                                                    \
-		const m_type &val = p_value.operator m_type();   \
+		const m_type &val = p_value.operator ::m_type(); \
 		MARSHALLED_OUT(m_type, val, raw);                \
 		mono_field_set_value(p_object, mono_field, raw); \
 		break;                                           \
@@ -51,6 +51,7 @@ void GDMonoField::set_value(MonoObject *p_object, const Variant &p_value) {
 	{                                                     \
 		m_type val = p_value.operator m_type();           \
 		mono_field_set_value(p_object, mono_field, &val); \
+		break;                                            \
 	}
 
 #define SET_FROM_ARRAY_AND_BREAK(m_type)                                                       \
@@ -128,14 +129,17 @@ void GDMonoField::set_value(MonoObject *p_object, const Variant &p_value) {
 			if (tclass == CACHED_CLASS(Transform))
 				SET_FROM_STRUCT_AND_BREAK(Transform);
 
-			if (tclass == CACHED_CLASS(Rect3))
-				SET_FROM_STRUCT_AND_BREAK(Rect3);
+			if (tclass == CACHED_CLASS(AABB))
+				SET_FROM_STRUCT_AND_BREAK(AABB);
 
 			if (tclass == CACHED_CLASS(Color))
 				SET_FROM_STRUCT_AND_BREAK(Color);
 
 			if (tclass == CACHED_CLASS(Plane))
 				SET_FROM_STRUCT_AND_BREAK(Plane);
+
+			if (mono_class_is_enum(tclass->get_raw()))
+				SET_FROM_PRIMITIVE(signed int);
 
 			ERR_EXPLAIN(String() + "Attempted to set the value of a field of unmarshallable type: " + tclass->get_name());
 			ERR_FAIL();
@@ -179,19 +183,19 @@ void GDMonoField::set_value(MonoObject *p_object, const Variant &p_value) {
 			// GodotObject
 			if (CACHED_CLASS(GodotObject)->is_assignable_from(type_class)) {
 				MonoObject *managed = GDMonoUtils::unmanaged_get_managed(p_value.operator Object *());
-				mono_field_set_value(p_object, mono_field, &managed);
+				mono_field_set_value(p_object, mono_field, managed);
 				break;
 			}
 
 			if (CACHED_CLASS(NodePath) == type_class) {
 				MonoObject *managed = GDMonoUtils::create_managed_from(p_value.operator NodePath());
-				mono_field_set_value(p_object, mono_field, &managed);
+				mono_field_set_value(p_object, mono_field, managed);
 				break;
 			}
 
 			if (CACHED_CLASS(RID) == type_class) {
 				MonoObject *managed = GDMonoUtils::create_managed_from(p_value.operator RID());
-				mono_field_set_value(p_object, mono_field, &managed);
+				mono_field_set_value(p_object, mono_field, managed);
 				break;
 			}
 
@@ -200,8 +204,6 @@ void GDMonoField::set_value(MonoObject *p_object, const Variant &p_value) {
 		} break;
 
 		case MONO_TYPE_OBJECT: {
-			GDMonoClass *type_class = type.type_class;
-
 			// Variant
 			switch (p_value.get_type()) {
 				case Variant::BOOL: {
@@ -227,17 +229,17 @@ void GDMonoField::set_value(MonoObject *p_object, const Variant &p_value) {
 				case Variant::TRANSFORM2D: SET_FROM_STRUCT_AND_BREAK(Transform2D);
 				case Variant::PLANE: SET_FROM_STRUCT_AND_BREAK(Plane);
 				case Variant::QUAT: SET_FROM_STRUCT_AND_BREAK(Quat);
-				case Variant::RECT3: SET_FROM_STRUCT_AND_BREAK(Rect3);
+				case Variant::AABB: SET_FROM_STRUCT_AND_BREAK(AABB);
 				case Variant::BASIS: SET_FROM_STRUCT_AND_BREAK(Basis);
 				case Variant::TRANSFORM: SET_FROM_STRUCT_AND_BREAK(Transform);
 				case Variant::COLOR: SET_FROM_STRUCT_AND_BREAK(Color);
 				case Variant::NODE_PATH: {
 					MonoObject *managed = GDMonoUtils::create_managed_from(p_value.operator NodePath());
-					mono_field_set_value(p_object, mono_field, &managed);
+					mono_field_set_value(p_object, mono_field, managed);
 				} break;
 				case Variant::_RID: {
 					MonoObject *managed = GDMonoUtils::create_managed_from(p_value.operator RID());
-					mono_field_set_value(p_object, mono_field, &managed);
+					mono_field_set_value(p_object, mono_field, managed);
 				} break;
 				case Variant::OBJECT: {
 					MonoObject *managed = GDMonoUtils::unmanaged_get_managed(p_value.operator Object *());
@@ -246,7 +248,7 @@ void GDMonoField::set_value(MonoObject *p_object, const Variant &p_value) {
 				}
 				case Variant::DICTIONARY: {
 					MonoObject *managed = GDMonoMarshal::Dictionary_to_mono_object(p_value.operator Dictionary());
-					mono_field_set_value(p_object, mono_field, &managed);
+					mono_field_set_value(p_object, mono_field, managed);
 				} break;
 				case Variant::ARRAY: SET_FROM_ARRAY_AND_BREAK(Array);
 				case Variant::POOL_BYTE_ARRAY: SET_FROM_ARRAY_AND_BREAK(PoolByteArray);
@@ -264,7 +266,7 @@ void GDMonoField::set_value(MonoObject *p_object, const Variant &p_value) {
 		case MONO_TYPE_GENERICINST: {
 			if (CACHED_RAW_MONO_CLASS(Dictionary) == type.type_class->get_raw()) {
 				MonoObject *managed = GDMonoMarshal::Dictionary_to_mono_object(p_value.operator Dictionary());
-				mono_field_set_value(p_object, mono_field, &managed);
+				mono_field_set_value(p_object, mono_field, managed);
 				break;
 			}
 		} break;
@@ -288,7 +290,7 @@ int GDMonoField::get_int_value(MonoObject *p_object) {
 
 String GDMonoField::get_string_value(MonoObject *p_object) {
 	MonoObject *val = get_value(p_object);
-	return val ? GDMonoMarshal::mono_string_to_godot((MonoString *)val) : String();
+	return GDMonoMarshal::mono_string_to_godot((MonoString *)val);
 }
 
 bool GDMonoField::has_attribute(GDMonoClass *p_attr_class) {

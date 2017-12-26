@@ -42,7 +42,7 @@ namespace GDMonoUtils {
 
 typedef MonoObject *(*MarshalUtils_DictToArrays)(MonoObject *, MonoArray **, MonoArray **, MonoObject **);
 typedef MonoObject *(*MarshalUtils_ArraysToDict)(MonoArray *, MonoArray *, MonoObject **);
-typedef MonoObject *(*GodotObject__AwaitedSignalCallback)(MonoObject *, MonoArray **, MonoObject *, MonoObject **);
+typedef MonoObject *(*SignalAwaiter_SignalCallback)(MonoObject *, MonoArray **, MonoObject **);
 typedef MonoObject *(*SignalAwaiter_FailureCallback)(MonoObject *, MonoObject **);
 typedef MonoObject *(*GodotTaskScheduler_Activate)(MonoObject *, MonoObject **);
 
@@ -82,12 +82,13 @@ struct MonoCache {
 	GDMonoClass *class_Basis;
 	GDMonoClass *class_Quat;
 	GDMonoClass *class_Transform;
-	GDMonoClass *class_Rect3;
+	GDMonoClass *class_AABB;
 	GDMonoClass *class_Color;
 	GDMonoClass *class_Plane;
 	GDMonoClass *class_NodePath;
 	GDMonoClass *class_RID;
 	GDMonoClass *class_GodotObject;
+	GDMonoClass *class_GodotReference;
 	GDMonoClass *class_Node;
 	GDMonoClass *class_Control;
 	GDMonoClass *class_Spatial;
@@ -97,7 +98,6 @@ struct MonoCache {
 	GDMonoClass *class_ExportAttribute;
 	GDMonoField *field_ExportAttribute_hint;
 	GDMonoField *field_ExportAttribute_hint_string;
-	GDMonoField *field_ExportAttribute_usage;
 	GDMonoClass *class_ToolAttribute;
 	GDMonoClass *class_RemoteAttribute;
 	GDMonoClass *class_SyncAttribute;
@@ -113,7 +113,7 @@ struct MonoCache {
 
 	MarshalUtils_DictToArrays methodthunk_MarshalUtils_DictionaryToArrays;
 	MarshalUtils_ArraysToDict methodthunk_MarshalUtils_ArraysToDictionary;
-	GodotObject__AwaitedSignalCallback methodthunk_GodotObject__AwaitedSignalCallback;
+	SignalAwaiter_SignalCallback methodthunk_SignalAwaiter_SignalCallback;
 	SignalAwaiter_FailureCallback methodthunk_SignalAwaiter_FailureCallback;
 	GodotTaskScheduler_Activate methodthunk_GodotTaskScheduler_Activate;
 
@@ -149,6 +149,10 @@ void attach_current_thread();
 void detach_current_thread();
 MonoThread *get_current_thread();
 
+_FORCE_INLINE_ bool is_main_thread() {
+	return mono_domain_get() != NULL && mono_thread_get_main() == mono_thread_current();
+}
+
 GDMonoClass *get_object_class(MonoObject *p_object);
 GDMonoClass *type_get_proxy_class(const StringName &p_type);
 GDMonoClass *get_class_native_base(GDMonoClass *p_class);
@@ -162,9 +166,9 @@ MonoDomain *create_domain(const String &p_friendly_name);
 
 String get_exception_name_and_message(MonoObject *p_ex);
 
-} // GDMonoUtils
+} // namespace GDMonoUtils
 
-#define NATIVE_GDMONOCLASS_NAME(m_class) (GDMonoMarshal::mono_string_to_godot((MonoString *)m_class->get_field("nativeName")->get_value(NULL)))
+#define NATIVE_GDMONOCLASS_NAME(m_class) (GDMonoMarshal::mono_string_to_godot((MonoString *)m_class->get_field(BINDINGS_NATIVE_NAME_FIELD)->get_value(NULL)))
 
 #define CACHED_CLASS(m_class) (GDMonoUtils::mono_cache.class_##m_class)
 #define CACHED_CLASS_RAW(m_class) (GDMonoUtils::mono_cache.class_##m_class->get_raw())

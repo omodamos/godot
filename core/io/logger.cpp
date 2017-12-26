@@ -29,6 +29,7 @@
 /*************************************************************************/
 
 #include "logger.h"
+
 #include "os/dir_access.h"
 #include "os/os.h"
 #include "print_string.h"
@@ -110,7 +111,7 @@ void RotatedFileLogger::close_file() {
 void RotatedFileLogger::clear_old_backups() {
 	int max_backups = max_files - 1; // -1 for the current file
 
-	String basename = base_path.get_basename();
+	String basename = base_path.get_file().get_basename();
 	String extension = "." + base_path.get_extension();
 
 	DirAccess *da = DirAccess::open(base_path.get_base_dir());
@@ -122,7 +123,7 @@ void RotatedFileLogger::clear_old_backups() {
 	String f = da->get_next();
 	Set<String> backups;
 	while (f != String()) {
-		if (!da->current_is_dir() && f.begins_with(basename) && f.ends_with(extension) && f != base_path) {
+		if (!da->current_is_dir() && f.begins_with(basename) && f.ends_with(extension) && f != base_path.get_file()) {
 			backups.insert(f);
 		}
 		f = da->get_next();
@@ -149,7 +150,7 @@ void RotatedFileLogger::rotate_file() {
 			char timestamp[21];
 			OS::Date date = OS::get_singleton()->get_date();
 			OS::Time time = OS::get_singleton()->get_time();
-			sprintf(timestamp, "-%04d-%02d-%02d-%02d-%02d-%02d", date.year, date.month, date.day + 1, time.hour, time.min, time.sec);
+			sprintf(timestamp, "-%04d-%02d-%02d-%02d-%02d-%02d", date.year, date.month, date.day, time.hour, time.min, time.sec);
 
 			String backup_name = base_path.get_basename() + timestamp + "." + base_path.get_extension();
 
@@ -257,6 +258,10 @@ void CompositeLogger::log_error(const char *p_function, const char *p_file, int 
 	for (int i = 0; i < loggers.size(); ++i) {
 		loggers[i]->log_error(p_function, p_file, p_line, p_code, p_rationale, p_type);
 	}
+}
+
+void CompositeLogger::add_logger(Logger *p_logger) {
+	loggers.push_back(p_logger);
 }
 
 CompositeLogger::~CompositeLogger() {

@@ -233,7 +233,6 @@ void editor_register_and_generate_icons(Ref<Theme> p_theme, bool p_dark_theme = 
 	clock_t end_time = clock();
 
 	double time_d = (double)(end_time - begin_time) / CLOCKS_PER_SEC;
-	print_line("SVG_GENERATION TIME: " + rtos(time_d));
 #else
 	print_line("Sorry no icons for you");
 #endif
@@ -350,6 +349,7 @@ Ref<Theme> create_editor_theme(const Ref<Theme> p_theme) {
 	theme->set_color("contrast_color_2", "Editor", contrast_color_2);
 
 	theme->set_color("font_color", "Editor", font_color);
+	theme->set_color("highlighted_font_color", "Editor", font_color_hl);
 	theme->set_color("disabled_font_color", "Editor", font_color_disabled);
 
 	theme->set_color("mono_color", "Editor", mono_color);
@@ -391,7 +391,7 @@ Ref<Theme> create_editor_theme(const Ref<Theme> p_theme) {
 		editor_register_and_generate_icons(theme, dark_theme, thumb_size);
 	}
 	// thumbnail size has changed, so we regenerate the medium sizes
-	if (p_theme != NULL && fabs(p_theme->get_constant("thumb_size", "Editor") - thumb_size) > 0.00001) {
+	if (p_theme != NULL && fabs((double)p_theme->get_constant("thumb_size", "Editor") - thumb_size) > 0.00001) {
 		editor_register_and_generate_icons(p_theme, dark_theme, thumb_size, true);
 	}
 
@@ -568,6 +568,11 @@ Ref<Theme> create_editor_theme(const Ref<Theme> p_theme) {
 	theme->set_constant("modulate_arrow", "OptionButton", true);
 
 	// CheckButton
+	theme->set_stylebox("normal", "CheckButton", style_menu);
+	theme->set_stylebox("pressed", "CheckButton", style_menu);
+	theme->set_stylebox("disabled", "CheckButton", style_menu);
+	theme->set_stylebox("hover", "CheckButton", style_menu);
+
 	theme->set_icon("on", "CheckButton", theme->get_icon("GuiToggleOn", "EditorIcons"));
 	theme->set_icon("off", "CheckButton", theme->get_icon("GuiToggleOff", "EditorIcons"));
 
@@ -577,7 +582,20 @@ Ref<Theme> create_editor_theme(const Ref<Theme> p_theme) {
 	theme->set_color("font_color_disabled", "CheckButton", font_color_disabled);
 	theme->set_color("icon_color_hover", "CheckButton", font_color_hl);
 
+	theme->set_constant("hseparation", "CheckButton", 4 * EDSCALE);
+	theme->set_constant("check_vadjust", "CheckButton", 0 * EDSCALE);
+
 	// Checkbox
+	Ref<StyleBoxFlat> sb_checkbox = style_menu->duplicate();
+	sb_checkbox->set_default_margin(MARGIN_LEFT, default_margin_size * EDSCALE);
+	sb_checkbox->set_default_margin(MARGIN_RIGHT, default_margin_size * EDSCALE);
+	sb_checkbox->set_default_margin(MARGIN_TOP, default_margin_size * EDSCALE);
+	sb_checkbox->set_default_margin(MARGIN_BOTTOM, default_margin_size * EDSCALE);
+
+	theme->set_stylebox("normal", "CheckBox", sb_checkbox);
+	theme->set_stylebox("pressed", "CheckBox", sb_checkbox);
+	theme->set_stylebox("disabled", "CheckBox", sb_checkbox);
+	theme->set_stylebox("hover", "CheckBox", sb_checkbox);
 	theme->set_icon("checked", "CheckBox", theme->get_icon("GuiChecked", "EditorIcons"));
 	theme->set_icon("unchecked", "CheckBox", theme->get_icon("GuiUnchecked", "EditorIcons"));
 	theme->set_icon("radio_checked", "CheckBox", theme->get_icon("GuiRadioChecked", "EditorIcons"));
@@ -588,6 +606,9 @@ Ref<Theme> create_editor_theme(const Ref<Theme> p_theme) {
 	theme->set_color("font_color_pressed", "CheckBox", accent_color);
 	theme->set_color("font_color_disabled", "CheckBox", font_color_disabled);
 	theme->set_color("icon_color_hover", "CheckBox", font_color_hl);
+
+	theme->set_constant("hseparation", "CheckBox", 4 * EDSCALE);
+	theme->set_constant("check_vadjust", "CheckBox", 0 * EDSCALE);
 
 	// PopupMenu
 	Ref<StyleBoxFlat> style_popup_menu = style_popup;
@@ -602,6 +623,9 @@ Ref<Theme> create_editor_theme(const Ref<Theme> p_theme) {
 	theme->set_icon("radio_checked", "PopupMenu", theme->get_icon("GuiChecked", "EditorIcons"));
 	theme->set_icon("radio_unchecked", "PopupMenu", theme->get_icon("GuiUnchecked", "EditorIcons"));
 	theme->set_icon("submenu", "PopupMenu", theme->get_icon("ArrowRight", "EditorIcons"));
+	theme->set_icon("visibility_hidden", "PopupMenu", theme->get_icon("GuiVisibilityHidden", "EditorIcons"));
+	theme->set_icon("visibility_visible", "PopupMenu", theme->get_icon("GuiVisibilityVisible", "EditorIcons"));
+	theme->set_icon("visibility_xray", "PopupMenu", theme->get_icon("GuiVisibilityXray", "EditorIcons"));
 	theme->set_constant("vseparation", "PopupMenu", (extra_spacing + default_margin_size) * EDSCALE);
 
 	// Tree & ItemList background
@@ -715,6 +739,13 @@ Ref<Theme> create_editor_theme(const Ref<Theme> p_theme) {
 	theme->set_stylebox("button", "Tabs", style_menu);
 	theme->set_icon("increment", "TabContainer", theme->get_icon("GuiScrollArrowRight", "EditorIcons"));
 	theme->set_icon("decrement", "TabContainer", theme->get_icon("GuiScrollArrowLeft", "EditorIcons"));
+	theme->set_icon("increment", "Tabs", theme->get_icon("GuiScrollArrowRight", "EditorIcons"));
+	theme->set_icon("decrement", "Tabs", theme->get_icon("GuiScrollArrowLeft", "EditorIcons"));
+	theme->set_icon("increment_highlight", "Tabs", theme->get_icon("GuiScrollArrowRight", "EditorIcons"));
+	theme->set_icon("decrement_highlight", "Tabs", theme->get_icon("GuiScrollArrowLeft", "EditorIcons"));
+	theme->set_icon("increment_highlight", "TabContainer", theme->get_icon("GuiScrollArrowRight", "EditorIcons"));
+	theme->set_icon("decrement_highlight", "TabContainer", theme->get_icon("GuiScrollArrowLeft", "EditorIcons"));
+	theme->set_constant("hseparation", "Tabs", 4 * EDSCALE);
 
 	// Content of each tab
 	Ref<StyleBoxFlat> style_content_panel = style_default->duplicate();
@@ -763,6 +794,7 @@ Ref<Theme> create_editor_theme(const Ref<Theme> p_theme) {
 	// TextEdit
 	theme->set_stylebox("normal", "TextEdit", style_widget);
 	theme->set_stylebox("focus", "TextEdit", style_widget_hover);
+	theme->set_stylebox("read_only", "TextEdit", style_widget_disabled);
 	theme->set_constant("side_margin", "TabContainer", 0);
 	theme->set_icon("tab", "TextEdit", theme->get_icon("GuiTab", "EditorIcons"));
 	theme->set_color("font_color", "TextEdit", font_color);
@@ -801,6 +833,7 @@ Ref<Theme> create_editor_theme(const Ref<Theme> p_theme) {
 	theme->set_constant("close_h_ofs", "WindowDialog", 22 * EDSCALE);
 	theme->set_constant("close_v_ofs", "WindowDialog", 20 * EDSCALE);
 	theme->set_constant("title_height", "WindowDialog", 24 * EDSCALE);
+	theme->set_font("title_font", "WindowDialog", theme->get_font("title", "EditorFonts"));
 
 	// complex window, for now only Editor settings and Project settings
 	Ref<StyleBoxFlat> style_complex_window = style_window->duplicate();
@@ -939,6 +972,12 @@ Ref<Theme> create_editor_theme(const Ref<Theme> p_theme) {
 	theme->set_stylebox("commentfocus", "GraphNode", graphsbcommentselected);
 	theme->set_stylebox("breakpoint", "GraphNode", graphsbbreakpoint);
 	theme->set_stylebox("position", "GraphNode", graphsbposition);
+
+	Color default_node_color = Color(mv2, mv2, mv2);
+	theme->set_color("title_color", "GraphNode", default_node_color);
+	default_node_color.a = 0.7;
+	theme->set_color("close_color", "GraphNode", default_node_color);
+
 	theme->set_constant("port_offset", "GraphNode", 14 * EDSCALE);
 	theme->set_constant("title_h_offset", "GraphNode", -16 * EDSCALE);
 	theme->set_constant("close_h_offset", "GraphNode", 20 * EDSCALE);
@@ -966,13 +1005,19 @@ Ref<Theme> create_editor_theme(const Ref<Theme> p_theme) {
 
 	theme->set_icon("bg", "ColorPickerButton", theme->get_icon("GuiMiniCheckerboard", "EditorIcons"));
 
+	// Information on 3D viewport
+	Ref<StyleBoxFlat> style_info_3d_viewport = style_default->duplicate();
+	style_info_3d_viewport->set_bg_color(style_info_3d_viewport->get_bg_color() * Color(1, 1, 1, 0.5));
+	style_info_3d_viewport->set_border_width_all(0);
+	theme->set_stylebox("Information3dViewport", "EditorStyles", style_info_3d_viewport);
+
 	// adaptive script theme constants
 	// for comments and elements with lower relevance
 	const Color dim_color = Color(font_color.r, font_color.g, font_color.b, 0.5);
 
 	const float mono_value = mono_color.r;
-	const Color alpha1 = Color(mono_value, mono_value, mono_value, 0.1);
-	const Color alpha2 = Color(mono_value, mono_value, mono_value, 0.3);
+	const Color alpha1 = Color(mono_value, mono_value, mono_value, 0.07);
+	const Color alpha2 = Color(mono_value, mono_value, mono_value, 0.14);
 	const Color alpha3 = Color(mono_value, mono_value, mono_value, 0.5);
 	const Color alpha4 = Color(mono_value, mono_value, mono_value, 0.7);
 
@@ -997,7 +1042,7 @@ Ref<Theme> create_editor_theme(const Ref<Theme> p_theme) {
 	const Color caret_color = mono_color;
 	const Color caret_background_color = mono_color.inverted();
 	const Color text_selected_color = dark_color_3;
-	const Color selection_color = alpha3;
+	const Color selection_color = alpha2;
 	const Color brace_mismatch_color = error_color;
 	const Color current_line_color = alpha1;
 	const Color line_length_guideline_color = warning_color;
@@ -1007,6 +1052,7 @@ Ref<Theme> create_editor_theme(const Ref<Theme> p_theme) {
 	const Color member_variable_color = mono_color;
 	const Color mark_color = Color(error_color.r, error_color.g, error_color.b, 0.3);
 	const Color breakpoint_color = error_color;
+	const Color code_folding_color = alpha4;
 	const Color search_result_color = alpha1;
 	const Color search_result_border_color = alpha4;
 
@@ -1037,18 +1083,21 @@ Ref<Theme> create_editor_theme(const Ref<Theme> p_theme) {
 	theme->set_color("text_editor/theme/member_variable_color", "Editor", member_variable_color);
 	theme->set_color("text_editor/theme/mark_color", "Editor", mark_color);
 	theme->set_color("text_editor/theme/breakpoint_color", "Editor", breakpoint_color);
+	theme->set_color("text_editor/theme/code_folding_color", "Editor", code_folding_color);
 	theme->set_color("text_editor/theme/search_result_color", "Editor", search_result_color);
 	theme->set_color("text_editor/theme/search_result_border_color", "Editor", search_result_border_color);
 
 	return theme;
 }
 
-Ref<Theme> create_custom_theme() {
+Ref<Theme> create_custom_theme(const Ref<Theme> p_theme) {
 	Ref<Theme> theme;
 
 	String custom_theme = EditorSettings::get_singleton()->get("interface/theme/custom_theme");
 	if (custom_theme != "") {
 		theme = ResourceLoader::load(custom_theme);
+	} else {
+		theme = create_editor_theme(p_theme);
 	}
 
 	String global_font = EditorSettings::get_singleton()->get("interface/editor/custom_font");

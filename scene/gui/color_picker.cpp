@@ -40,12 +40,15 @@ void ColorPicker::_notification(int p_what) {
 	switch (p_what) {
 		case NOTIFICATION_THEME_CHANGED: {
 			//sample->set_texture(get_icon("color_sample"));
+			btn_pick->set_icon(get_icon("screen_picker", "ColorPicker"));
+			bt_add_preset->set_icon(get_icon("add_preset"));
 
 			_update_controls();
 		} break;
 
 		case NOTIFICATION_ENTER_TREE: {
 			btn_pick->set_icon(get_icon("screen_picker", "ColorPicker"));
+			bt_add_preset->set_icon(get_icon("add_preset"));
 
 			_update_color();
 		} break;
@@ -483,8 +486,8 @@ void ColorPicker::_bind_methods() {
 	ADD_SIGNAL(MethodInfo("color_changed", PropertyInfo(Variant::COLOR, "color")));
 }
 
-ColorPicker::ColorPicker()
-	: BoxContainer(true) {
+ColorPicker::ColorPicker() :
+		BoxContainer(true) {
 
 	updating = true;
 	edit_alpha = true;
@@ -601,7 +604,6 @@ ColorPicker::ColorPicker()
 	preset->connect("draw", this, "_update_presets");
 
 	bt_add_preset = memnew(Button);
-	bt_add_preset->set_icon(get_icon("add_preset"));
 	bt_add_preset->set_tooltip(TTR("Add current color as a preset"));
 	bt_add_preset->connect("pressed", this, "_add_preset_pressed");
 	bbc->add_child(bt_add_preset);
@@ -662,11 +664,16 @@ ColorPicker *ColorPickerButton::get_picker() {
 	return picker;
 }
 
+PopupPanel *ColorPickerButton::get_popup() {
+	return popup;
+}
+
 void ColorPickerButton::_bind_methods() {
 
 	ClassDB::bind_method(D_METHOD("set_pick_color", "color"), &ColorPickerButton::set_pick_color);
 	ClassDB::bind_method(D_METHOD("get_pick_color"), &ColorPickerButton::get_pick_color);
 	ClassDB::bind_method(D_METHOD("get_picker"), &ColorPickerButton::get_picker);
+	ClassDB::bind_method(D_METHOD("get_popup"), &ColorPickerButton::get_popup);
 	ClassDB::bind_method(D_METHOD("set_edit_alpha", "show"), &ColorPickerButton::set_edit_alpha);
 	ClassDB::bind_method(D_METHOD("is_editing_alpha"), &ColorPickerButton::is_editing_alpha);
 	ClassDB::bind_method(D_METHOD("_color_changed"), &ColorPickerButton::_color_changed);

@@ -511,8 +511,8 @@ protected:
 	static void _bind_methods();
 
 	//bind helpers
-	Object *_create_item(Object *p_parent) {
-		return create_item(Object::cast_to<TreeItem>(p_parent));
+	Object *_create_item(Object *p_parent, int p_idx = -1) {
+		return create_item(Object::cast_to<TreeItem>(p_parent), p_idx);
 	}
 
 	TreeItem *_get_next_selected(Object *p_item) {
@@ -532,7 +532,7 @@ public:
 
 	void clear();
 
-	TreeItem *create_item(TreeItem *p_parent = 0);
+	TreeItem *create_item(TreeItem *p_parent = 0, int p_idx = -1);
 	TreeItem *get_root();
 	TreeItem *get_last_item();
 
@@ -546,6 +546,8 @@ public:
 	int get_selected_column() const;
 	int get_pressed_button() const;
 	void set_select_mode(SelectMode p_mode);
+	void deselect_all();
+	bool is_anything_selected();
 
 	void set_columns(int p_columns);
 	int get_columns() const;
@@ -570,6 +572,7 @@ public:
 	TreeItem *search_item_text(const String &p_find, int *r_col = NULL, bool p_selectable = false);
 
 	Point2 get_scroll() const;
+	void scroll_to_item(TreeItem *p_item);
 
 	void set_cursor_can_exit_tree(bool p_enable);
 	bool can_cursor_exit_tree() const;

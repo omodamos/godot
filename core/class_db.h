@@ -49,10 +49,10 @@ struct MethodDefinition {
 	StringName name;
 	Vector<StringName> args;
 	MethodDefinition() {}
-	MethodDefinition(const char *p_name)
-		: name(p_name) {}
-	MethodDefinition(const StringName &p_name)
-		: name(p_name) {}
+	MethodDefinition(const char *p_name) :
+			name(p_name) {}
+	MethodDefinition(const StringName &p_name) :
+			name(p_name) {}
 };
 
 MethodDefinition D_METHOD(const char *p_name);
@@ -66,6 +66,7 @@ MethodDefinition D_METHOD(const char *p_name, const char *p_arg1, const char *p_
 MethodDefinition D_METHOD(const char *p_name, const char *p_arg1, const char *p_arg2, const char *p_arg3, const char *p_arg4, const char *p_arg5, const char *p_arg6, const char *p_arg7, const char *p_arg8);
 MethodDefinition D_METHOD(const char *p_name, const char *p_arg1, const char *p_arg2, const char *p_arg3, const char *p_arg4, const char *p_arg5, const char *p_arg6, const char *p_arg7, const char *p_arg8, const char *p_arg9);
 MethodDefinition D_METHOD(const char *p_name, const char *p_arg1, const char *p_arg2, const char *p_arg3, const char *p_arg4, const char *p_arg5, const char *p_arg6, const char *p_arg7, const char *p_arg8, const char *p_arg9, const char *p_arg10);
+MethodDefinition D_METHOD(const char *p_name, const char *p_arg1, const char *p_arg2, const char *p_arg3, const char *p_arg4, const char *p_arg5, const char *p_arg6, const char *p_arg7, const char *p_arg8, const char *p_arg9, const char *p_arg10, const char *p_arg11);
 
 #else
 
@@ -347,8 +348,6 @@ public:
 #endif
 
 	static StringName get_category(const StringName &p_node);
-
-	static bool get_setter_and_type_for_property(const StringName &p_class, const StringName &p_prop, StringName &r_class, StringName &r_setter);
 
 	static void set_class_enabled(StringName p_class, bool p_enable);
 	static bool is_class_enabled(StringName p_class);

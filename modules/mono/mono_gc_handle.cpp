@@ -36,7 +36,7 @@ uint32_t MonoGCHandle::make_strong_handle(MonoObject *p_object) {
 	return mono_gchandle_new(
 			p_object,
 			false /* do not pin the object */
-			);
+	);
 }
 
 uint32_t MonoGCHandle::make_weak_handle(MonoObject *p_object) {
@@ -44,7 +44,7 @@ uint32_t MonoGCHandle::make_weak_handle(MonoObject *p_object) {
 	return mono_gchandle_new_weakref(
 			p_object,
 			true /* track_resurrection: allows us to invoke _notification(NOTIFICATION_PREDELETE) while disposing */
-			);
+	);
 }
 
 Ref<MonoGCHandle> MonoGCHandle::create_strong(MonoObject *p_object) {
@@ -58,6 +58,10 @@ Ref<MonoGCHandle> MonoGCHandle::create_weak(MonoObject *p_object) {
 }
 
 void MonoGCHandle::release() {
+
+#ifdef DEBUG_ENABLED
+	CRASH_COND(GDMono::get_singleton() == NULL);
+#endif
 
 	if (!released && GDMono::get_singleton()->is_runtime_initialized()) {
 		mono_gchandle_free(handle);

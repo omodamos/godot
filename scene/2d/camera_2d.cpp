@@ -52,7 +52,11 @@ void Camera2D::_update_scroll() {
 		if (viewport) {
 			viewport->set_canvas_transform(xform);
 		}
-		get_tree()->call_group_flags(SceneTree::GROUP_CALL_REALTIME, group_name, "_camera_moved", xform);
+
+		Size2 screen_size = viewport->get_visible_rect().size;
+		Point2 screen_offset = (anchor_mode == ANCHOR_MODE_DRAG_CENTER ? (screen_size * 0.5) : Point2());
+
+		get_tree()->call_group_flags(SceneTree::GROUP_CALL_REALTIME, group_name, "_camera_moved", xform, screen_offset);
 	};
 }
 
@@ -735,8 +739,8 @@ void Camera2D::_bind_methods() {
 	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "editor_draw_limits"), "set_limit_drawing_enabled", "is_limit_drawing_enabled");
 	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "editor_draw_drag_margin"), "set_margin_drawing_enabled", "is_margin_drawing_enabled");
 
-	BIND_ENUM_CONSTANT(ANCHOR_MODE_DRAG_CENTER);
 	BIND_ENUM_CONSTANT(ANCHOR_MODE_FIXED_TOP_LEFT);
+	BIND_ENUM_CONSTANT(ANCHOR_MODE_DRAG_CENTER);
 }
 
 Camera2D::Camera2D() {
