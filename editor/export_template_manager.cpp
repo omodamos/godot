@@ -190,7 +190,7 @@ void ExportTemplateManager::_install_from_file(const String &p_file, bool p_use_
 	int ret = unzGoToFirstFile(pkg);
 
 	int fc = 0; //count them and find version
-	String version = "3.0-alpha";
+	String version = "3.0-beta";
 
 	while (ret == UNZ_OK) {
 
