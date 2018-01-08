@@ -259,10 +259,10 @@ int RichTextLabel::_process_line(ItemFrame *p_frame, const Vector2 &p_ofs, int &
 				if (p_mode == PROCESS_DRAW) {
 					color = _find_color(text, p_base_color);
 					underline = _find_underline(text);
-					if (_find_meta(text, &meta)) {
+					// if (_find_meta(text, &meta)) {
 
-						underline = true;
-					}
+					// 	underline = true;
+					// }
 
 				} else if (p_mode == PROCESS_CACHE) {
 					l.char_count += text->text.length();
