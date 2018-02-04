@@ -5,8 +5,8 @@
 /*                           GODOT ENGINE                                */
 /*                      https://godotengine.org                          */
 /*************************************************************************/
-/* Copyright (c) 2007-2017 Juan Linietsky, Ariel Manzur.                 */
-/* Copyright (c) 2014-2017 Godot Engine contributors (cf. AUTHORS.md)    */
+/* Copyright (c) 2007-2018 Juan Linietsky, Ariel Manzur.                 */
+/* Copyright (c) 2014-2018 Godot Engine contributors (cf. AUTHORS.md)    */
 /*                                                                       */
 /* Permission is hereby granted, free of charge, to any person obtaining */
 /* a copy of this software and associated documentation files (the       */
@@ -27,6 +27,7 @@
 /* TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE     */
 /* SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                */
 /*************************************************************************/
+
 #ifndef VISUAL_SERVER_H
 #define VISUAL_SERVER_H
 
@@ -504,6 +505,7 @@ public:
 	virtual RID particles_create() = 0;
 
 	virtual void particles_set_emitting(RID p_particles, bool p_emitting) = 0;
+	virtual bool particles_get_emitting(RID p_particles) = 0;
 	virtual void particles_set_amount(RID p_particles, int p_amount) = 0;
 	virtual void particles_set_lifetime(RID p_particles, float p_lifetime) = 0;
 	virtual void particles_set_one_shot(RID p_particles, bool p_one_shot) = 0;
@@ -846,7 +848,7 @@ public:
 	virtual void canvas_item_add_set_transform(RID p_item, const Transform2D &p_transform) = 0;
 	virtual void canvas_item_add_clip_ignore(RID p_item, bool p_ignore) = 0;
 	virtual void canvas_item_set_sort_children_by_y(RID p_item, bool p_enable) = 0;
-	virtual void canvas_item_set_z(RID p_item, int p_z) = 0;
+	virtual void canvas_item_set_z_index(RID p_item, int p_z) = 0;
 	virtual void canvas_item_set_z_as_relative_to_parent(RID p_item, bool p_enable) = 0;
 	virtual void canvas_item_set_copy_to_backbuffer(RID p_item, bool p_enable, const Rect2 &p_rect) = 0;
 

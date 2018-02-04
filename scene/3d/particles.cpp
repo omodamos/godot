@@ -5,8 +5,8 @@
 /*                           GODOT ENGINE                                */
 /*                      https://godotengine.org                          */
 /*************************************************************************/
-/* Copyright (c) 2007-2017 Juan Linietsky, Ariel Manzur.                 */
-/* Copyright (c) 2014-2017 Godot Engine contributors (cf. AUTHORS.md)    */
+/* Copyright (c) 2007-2018 Juan Linietsky, Ariel Manzur.                 */
+/* Copyright (c) 2014-2018 Godot Engine contributors (cf. AUTHORS.md)    */
 /*                                                                       */
 /* Permission is hereby granted, free of charge, to any person obtaining */
 /* a copy of this software and associated documentation files (the       */
@@ -27,6 +27,7 @@
 /* TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE     */
 /* SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                */
 /*************************************************************************/
+
 #include "particles.h"
 #include "scene/resources/surface_tool.h"
 #include "servers/visual_server.h"
@@ -42,8 +43,7 @@ PoolVector<Face3> Particles::get_faces(uint32_t p_usage_flags) const {
 
 void Particles::set_emitting(bool p_emitting) {
 
-	emitting = p_emitting;
-	VS::get_singleton()->particles_set_emitting(particles, emitting);
+	VS::get_singleton()->particles_set_emitting(particles, p_emitting);
 }
 
 void Particles::set_amount(int p_amount) {
@@ -63,7 +63,7 @@ void Particles::set_one_shot(bool p_one_shot) {
 
 	one_shot = p_one_shot;
 	VS::get_singleton()->particles_set_one_shot(particles, one_shot);
-	if (!one_shot && emitting)
+	if (!one_shot && is_emitting())
 		VisualServer::get_singleton()->particles_restart(particles);
 }
 
@@ -113,7 +113,7 @@ void Particles::set_speed_scale(float p_scale) {
 
 bool Particles::is_emitting() const {
 
-	return emitting;
+	return VS::get_singleton()->particles_get_emitting(particles);
 }
 int Particles::get_amount() const {
 
@@ -1597,4 +1597,21 @@ ParticlesMaterial::ParticlesMaterial() :
 }
 
 ParticlesMaterial::~ParticlesMaterial() {
+
+	if (material_mutex)
+		material_mutex->lock();
+
+	if (shader_map.has(current_key)) {
+		shader_map[current_key].users--;
+		if (shader_map[current_key].users == 0) {
+			//deallocate shader, as it's no longer in use
+			VS::get_singleton()->free(shader_map[current_key].shader);
+			shader_map.erase(current_key);
+		}
+
+		VS::get_singleton()->material_set_shader(_get_material(), RID());
+	}
+
+	if (material_mutex)
+		material_mutex->unlock();
 }

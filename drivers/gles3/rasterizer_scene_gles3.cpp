@@ -5,8 +5,8 @@
 /*                           GODOT ENGINE                                */
 /*                      https://godotengine.org                          */
 /*************************************************************************/
-/* Copyright (c) 2007-2017 Juan Linietsky, Ariel Manzur.                 */
-/* Copyright (c) 2014-2017 Godot Engine contributors (cf. AUTHORS.md)    */
+/* Copyright (c) 2007-2018 Juan Linietsky, Ariel Manzur.                 */
+/* Copyright (c) 2014-2018 Godot Engine contributors (cf. AUTHORS.md)    */
 /*                                                                       */
 /* Permission is hereby granted, free of charge, to any person obtaining */
 /* a copy of this software and associated documentation files (the       */
@@ -27,6 +27,7 @@
 /* TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE     */
 /* SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                */
 /*************************************************************************/
+
 #include "rasterizer_scene_gles3.h"
 #include "math_funcs.h"
 #include "os/os.h"
@@ -1541,7 +1542,19 @@ void RasterizerSceneGLES3::_render_geometry(RenderList::Element *e) {
 
 				if (c.texture.is_valid() && storage->texture_owner.owns(c.texture)) {
 
-					const RasterizerStorageGLES3::Texture *t = storage->texture_owner.get(c.texture);
+					RasterizerStorageGLES3::Texture *t = storage->texture_owner.get(c.texture);
+
+					t = t->get_ptr(); //resolve for proxies
+#ifdef TOOLS_ENABLED
+					if (t->detect_3d) {
+						t->detect_3d(t->detect_3d_ud);
+					}
+#endif
+
+					if (t->render_target) {
+						t->render_target->used_in_frame = true;
+					}
+
 					glActiveTexture(GL_TEXTURE0);
 					glBindTexture(t->target, t->tex_id);
 					restore_tex = true;
@@ -2217,7 +2230,7 @@ void RasterizerSceneGLES3::_add_geometry(RasterizerStorageGLES3::Geometry *p_geo
 
 void RasterizerSceneGLES3::_add_geometry_with_material(RasterizerStorageGLES3::Geometry *p_geometry, InstanceBase *p_instance, RasterizerStorageGLES3::GeometryOwner *p_owner, RasterizerStorageGLES3::Material *p_material, bool p_depth_pass, bool p_shadow_pass) {
 
-	bool has_base_alpha = (p_material->shader->spatial.uses_alpha && !p_material->shader->spatial.uses_alpha_scissor) || p_material->shader->spatial.uses_screen_texture;
+	bool has_base_alpha = (p_material->shader->spatial.uses_alpha && !p_material->shader->spatial.uses_alpha_scissor) || p_material->shader->spatial.uses_screen_texture || p_material->shader->spatial.uses_depth_texture;
 	bool has_blend_alpha = p_material->shader->spatial.blend_mode != RasterizerStorageGLES3::Shader::Spatial::BLEND_MODE_MIX;
 	bool has_alpha = has_base_alpha || has_blend_alpha;
 
@@ -2241,7 +2254,7 @@ void RasterizerSceneGLES3::_add_geometry_with_material(RasterizerStorageGLES3::G
 
 	if (p_depth_pass) {
 
-		if (has_blend_alpha || (has_base_alpha && p_material->shader->spatial.depth_draw_mode != RasterizerStorageGLES3::Shader::Spatial::DEPTH_DRAW_ALPHA_PREPASS))
+		if (has_blend_alpha || p_material->shader->spatial.uses_depth_texture || (has_base_alpha && p_material->shader->spatial.depth_draw_mode != RasterizerStorageGLES3::Shader::Spatial::DEPTH_DRAW_ALPHA_PREPASS))
 			return; //bye
 
 		if (!p_material->shader->spatial.uses_alpha_scissor && !p_material->shader->spatial.writes_modelview_or_projection && !p_material->shader->spatial.uses_vertex && !p_material->shader->spatial.uses_discard && p_material->shader->spatial.depth_draw_mode != RasterizerStorageGLES3::Shader::Spatial::DEPTH_DRAW_ALPHA_PREPASS) {

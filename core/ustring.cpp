@@ -5,8 +5,8 @@
 /*                           GODOT ENGINE                                */
 /*                      https://godotengine.org                          */
 /*************************************************************************/
-/* Copyright (c) 2007-2017 Juan Linietsky, Ariel Manzur.                 */
-/* Copyright (c) 2014-2017 Godot Engine contributors (cf. AUTHORS.md)    */
+/* Copyright (c) 2007-2018 Juan Linietsky, Ariel Manzur.                 */
+/* Copyright (c) 2014-2018 Godot Engine contributors (cf. AUTHORS.md)    */
 /*                                                                       */
 /* Permission is hereby granted, free of charge, to any person obtaining */
 /* a copy of this software and associated documentation files (the       */
@@ -27,6 +27,7 @@
 /* TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE     */
 /* SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                */
 /*************************************************************************/
+
 #include "ustring.h"
 
 #include "color.h"
@@ -56,6 +57,40 @@
 #define IS_DIGIT(m_d) ((m_d) >= '0' && (m_d) <= '9')
 #define IS_HEX_DIGIT(m_d) (((m_d) >= '0' && (m_d) <= '9') || ((m_d) >= 'a' && (m_d) <= 'f') || ((m_d) >= 'A' && (m_d) <= 'F'))
 
+bool is_symbol(CharType c) {
+	return c != '_' && ((c >= '!' && c <= '/') || (c >= ':' && c <= '@') || (c >= '[' && c <= '`') || (c >= '{' && c <= '~') || c == '\t' || c == ' ');
+}
+
+bool select_word(const String &p_s, int p_col, int &r_beg, int &r_end) {
+
+	const String &s = p_s;
+	int beg = CLAMP(p_col, 0, s.length());
+	int end = beg;
+
+	if (s[beg] > 32 || beg == s.length()) {
+
+		bool symbol = beg < s.length() && is_symbol(s[beg]);
+
+		while (beg > 0 && s[beg - 1] > 32 && (symbol == is_symbol(s[beg - 1]))) {
+			beg--;
+		}
+		while (end < s.length() && s[end + 1] > 32 && (symbol == is_symbol(s[end + 1]))) {
+			end++;
+		}
+
+		if (end < s.length())
+			end += 1;
+
+		r_beg = beg;
+		r_end = end;
+
+		return true;
+	} else {
+
+		return false;
+	}
+}
+
 /** STRING **/
 
 bool CharString::operator<(const CharString &p_right) const {
@@ -64,26 +99,7 @@ bool CharString::operator<(const CharString &p_right) const {
 		return p_right.length() != 0;
 	}
 
-	const char *this_str = get_data();
-	const char *that_str = p_right.get_data();
-	while (true) {
-
-		if (*that_str == 0 && *this_str == 0)
-			return false; //this can't be equal, sadly
-		else if (*this_str == 0)
-			return true; //if this is empty, and the other one is not, then we're less.. I think?
-		else if (*that_str == 0)
-			return false; //otherwise the other one is smaller..
-		else if (*this_str < *that_str) //more than
-			return true;
-		else if (*this_str > *that_str) //less than
-			return false;
-
-		this_str++;
-		that_str++;
-	}
-
-	return false; //should never reach here anyway
+	return is_str_less(get_data(), p_right.get_data());
 }
 
 const char *CharString::get_data() const {
@@ -372,25 +388,7 @@ bool String::operator<(const CharType *p_str) const {
 	if (empty())
 		return true;
 
-	const CharType *this_str = c_str();
-	while (true) {
-
-		if (*p_str == 0 && *this_str == 0)
-			return false; //this can't be equal, sadly
-		else if (*this_str == 0)
-			return true; //if this is empty, and the other one is not, then we're less.. I think?
-		else if (*p_str == 0)
-			return false; //otherwise the other one is smaller..
-		else if (*this_str < *p_str) //more than
-			return true;
-		else if (*this_str > *p_str) //less than
-			return false;
-
-		this_str++;
-		p_str++;
-	}
-
-	return false; //should never reach here anyway
+	return is_str_less(c_str(), p_str);
 }
 
 bool String::operator<=(const String &p_str) const {
@@ -405,25 +403,7 @@ bool String::operator<(const char *p_str) const {
 	if (empty())
 		return true;
 
-	const CharType *this_str = c_str();
-	while (true) {
-
-		if (*p_str == 0 && *this_str == 0)
-			return false; //this can't be equal, sadly
-		else if (*this_str == 0)
-			return true; //if this is empty, and the other one is not, then we're less.. I think?
-		else if (*p_str == 0)
-			return false; //otherwise the other one is smaller..
-		else if (*this_str < *p_str) //more than
-			return true;
-		else if (*this_str > *p_str) //less than
-			return false;
-
-		this_str++;
-		p_str++;
-	}
-
-	return false; //should never reach here anyway
+	return is_str_less(c_str(), p_str);
 }
 
 bool String::operator<(const String &p_str) const {
@@ -706,6 +686,9 @@ Vector<String> String::split_spaces() const {
 	int from = 0;
 	int i = 0;
 	int len = length();
+	if (len == 0)
+		return ret;
+
 	bool inside = false;
 
 	while (true) {
@@ -1118,9 +1101,8 @@ String String::num(double p_num, int p_decimals) {
 String String::num_int64(int64_t p_num, int base, bool capitalize_hex) {
 
 	bool sign = p_num < 0;
-	int64_t num = ABS(p_num);
 
-	int64_t n = num;
+	int64_t n = p_num;
 
 	int chars = 0;
 	do {
@@ -1134,9 +1116,9 @@ String String::num_int64(int64_t p_num, int base, bool capitalize_hex) {
 	s.resize(chars + 1);
 	CharType *c = s.ptrw();
 	c[chars] = 0;
-	n = num;
+	n = p_num;
 	do {
-		int mod = n % base;
+		int mod = ABS(n % base);
 		if (mod >= 10) {
 			char a = (capitalize_hex ? 'A' : 'a');
 			c[--chars] = a + (mod - 10);
@@ -2281,7 +2263,7 @@ int String::find(const String &p_str, int p_from) const {
 	const int len = length();
 
 	if (src_len == 0 || len == 0)
-		return -1; //wont find anything!
+		return -1; // won't find anything!
 
 	const CharType *src = c_str();
 	const CharType *str = p_str.c_str();
@@ -2320,7 +2302,7 @@ int String::find(const char *p_str, int p_from) const {
 	const int len = length();
 
 	if (len == 0)
-		return -1; //wont find anything!
+		return -1; // won't find anything!
 
 	const CharType *src = c_str();
 
@@ -2381,7 +2363,7 @@ int String::findmk(const Vector<String> &p_keys, int p_from, int *r_key) const {
 	int len = length();
 
 	if (len == 0)
-		return -1; //wont find anything!
+		return -1; // won't find anything!
 
 	const CharType *src = c_str();
 
@@ -2430,7 +2412,7 @@ int String::findn(const String &p_str, int p_from) const {
 	int src_len = p_str.length();
 
 	if (src_len == 0 || length() == 0)
-		return -1; //wont find anything!
+		return -1; // won't find anything!
 
 	const CharType *srcd = c_str();
 
@@ -2526,7 +2508,7 @@ int String::rfindn(const String &p_str, int p_from) const {
 	int len = length();
 
 	if (src_len == 0 || len == 0)
-		return -1; //wont find anything!
+		return -1; // won't find anything!
 
 	const CharType *src = c_str();
 
@@ -3231,7 +3213,7 @@ String String::http_unescape() const {
 			if ((ord1 >= '0' && ord1 <= '9') || (ord1 >= 'A' && ord1 <= 'Z')) {
 				CharType ord2 = ord_at(i + 2);
 				if ((ord2 >= '0' && ord2 <= '9') || (ord2 >= 'A' && ord2 <= 'Z')) {
-					char bytes[2] = { ord1, ord2 };
+					char bytes[2] = { (char)ord1, (char)ord2 };
 					res += (char)strtol(bytes, NULL, 16);
 					i += 2;
 				}
