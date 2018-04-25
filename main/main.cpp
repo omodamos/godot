@@ -127,6 +127,7 @@ static bool disable_render_loop = false;
 static int fixed_fps = -1;
 static bool auto_build_solutions = false;
 static bool auto_quit = false;
+static bool print_fps = false;
 
 static OS::ProcessID allow_focus_steal_pid = 0;
 
@@ -255,6 +256,7 @@ void Main::print_help(const char *p_binary) {
 	OS::get_singleton()->print("  --disable-render-loop            Disable render loop so rendering only occurs when called explicitly from script.\n");
 	OS::get_singleton()->print("  --disable-crash-handler          Disable crash handler when supported by the platform code.\n");
 	OS::get_singleton()->print("  --fixed-fps <fps>                Force a fixed number of frames per second. This setting disables real-time synchronization.\n");
+	OS::get_singleton()->print("  --print-fps                      Print the frames per second to the stdout.\n");
 	OS::get_singleton()->print("\n");
 
 	OS::get_singleton()->print("Standalone tools:\n");
@@ -665,6 +667,8 @@ Error Main::setup(const char *execpath, int argc, char *argv[], bool p_second_ph
 				OS::get_singleton()->print("Missing fixed-fps argument, aborting.\n");
 				goto error;
 			}
+		} else if (I->get() == "--print-fps") {
+			print_fps = true;
 		} else if (I->get() == "--disable-crash-handler") {
 			OS::get_singleton()->disable_crash_handler();
 		} else {
@@ -953,7 +957,7 @@ Error Main::setup(const char *execpath, int argc, char *argv[], bool p_second_ph
 	Engine::get_singleton()->set_iterations_per_second(GLOBAL_DEF("physics/common/physics_fps", 60));
 	Engine::get_singleton()->set_target_fps(GLOBAL_DEF("debug/settings/fps/force_fps", 0));
 
-	GLOBAL_DEF("debug/settings/stdout/print_fps", OS::get_singleton()->is_stdout_verbose());
+	GLOBAL_DEF("debug/settings/stdout/print_fps", false);
 
 	if (!OS::get_singleton()->_verbose_stdout) //overridden
 		OS::get_singleton()->_verbose_stdout = GLOBAL_DEF("debug/settings/stdout/verbose_stdout", false);
@@ -1308,7 +1312,7 @@ bool Main::start() {
 		DocData docsrc;
 		Map<String, String> doc_data_classes;
 		Set<String> checked_paths;
-		print_line("Loading docs..");
+		print_line("Loading docs...");
 
 		for (int i = 0; i < _doc_data_class_path_count; i++) {
 			String path = doc_tool.plus_file(_doc_data_class_paths[i].path);
@@ -1326,14 +1330,14 @@ bool Main::start() {
 		checked_paths.insert(index_path);
 		print_line("Loading docs from: " + index_path);
 
-		print_line("Merging docs..");
+		print_line("Merging docs...");
 		doc.merge_from(docsrc);
 		for (Set<String>::Element *E = checked_paths.front(); E; E = E->next()) {
 			print_line("Erasing old docs at: " + E->get());
 			DocData::erase_classes(E->get());
 		}
 
-		print_line("Generating new docs..");
+		print_line("Generating new docs...");
 		doc.save_classes(index_path, doc_data_classes);
 
 		return false;
@@ -1508,7 +1512,7 @@ bool Main::start() {
 			bool snap_controls = GLOBAL_DEF("gui/common/snap_controls_to_pixels", true);
 			sml->get_root()->set_snap_controls_to_pixels(snap_controls);
 
-			bool font_oversampling = GLOBAL_DEF("rendering/quality/dynamic_fonts/use_oversampling", false);
+			bool font_oversampling = GLOBAL_DEF("rendering/quality/dynamic_fonts/use_oversampling", true);
 			sml->set_use_font_oversampling(font_oversampling);
 
 		} else {
@@ -1521,7 +1525,7 @@ bool Main::start() {
 			sml->set_auto_accept_quit(GLOBAL_DEF("application/config/auto_accept_quit", true));
 			sml->set_quit_on_go_back(GLOBAL_DEF("application/config/quit_on_go_back", true));
 			GLOBAL_DEF("gui/common/snap_controls_to_pixels", true);
-			GLOBAL_DEF("rendering/quality/dynamic_fonts/use_oversampling", false);
+			GLOBAL_DEF("rendering/quality/dynamic_fonts/use_oversampling", true);
 		}
 
 		String local_game_path;
@@ -1826,9 +1830,13 @@ bool Main::iteration() {
 
 	if (frame > 1000000) {
 
-		if (GLOBAL_DEF("debug/settings/stdout/print_fps", OS::get_singleton()->is_stdout_verbose()) && !editor) {
-			print_line("FPS: " + itos(frames));
-		};
+		if (editor || project_manager) {
+			if (print_fps) {
+				print_line("Editor FPS: " + itos(frames));
+			}
+		} else if (GLOBAL_GET("debug/settings/stdout/print_fps") || print_fps) {
+			print_line("Game FPS: " + itos(frames));
+		}
 
 		Engine::get_singleton()->_fps = frames;
 		performance->set_process_time(USEC_TO_SEC(idle_process_max));

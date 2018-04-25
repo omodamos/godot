@@ -5,8 +5,8 @@
 /*                           GODOT ENGINE                                */
 /*                      https://godotengine.org                          */
 /*************************************************************************/
-/* Copyright (c) 2007-2017 Juan Linietsky, Ariel Manzur.                 */
-/* Copyright (c) 2014-2017 Godot Engine contributors (cf. AUTHORS.md)    */
+/* Copyright (c) 2007-2018 Juan Linietsky, Ariel Manzur.                 */
+/* Copyright (c) 2014-2018 Godot Engine contributors (cf. AUTHORS.md)    */
 /*                                                                       */
 /* Permission is hereby granted, free of charge, to any person obtaining */
 /* a copy of this software and associated documentation files (the       */
@@ -872,9 +872,9 @@ ShaderCompilerGLES2::ShaderCompilerGLES2() {
 	actions[VS::SHADER_PARTICLES].renames["EMISSION_TRANSFORM"] = "emission_transform";
 	actions[VS::SHADER_PARTICLES].renames["RANDOM_SEED"] = "random_seed";
 
-	actions[VS::SHADER_SPATIAL].render_mode_defines["disable_force"] = "#define DISABLE_FORCE\n";
-	actions[VS::SHADER_SPATIAL].render_mode_defines["disable_velocity"] = "#define DISABLE_VELOCITY\n";
-	actions[VS::SHADER_SPATIAL].render_mode_defines["keep_data"] = "#define ENABLE_KEEP_DATA\n";
+	actions[VS::SHADER_PARTICLES].render_mode_defines["disable_force"] = "#define DISABLE_FORCE\n";
+	actions[VS::SHADER_PARTICLES].render_mode_defines["disable_velocity"] = "#define DISABLE_VELOCITY\n";
+	actions[VS::SHADER_PARTICLES].render_mode_defines["keep_data"] = "#define ENABLE_KEEP_DATA\n";
 
 	vertex_name = "vertex";
 	fragment_name = "fragment";

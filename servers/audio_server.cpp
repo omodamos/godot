@@ -101,6 +101,18 @@ int AudioDriver::get_total_channels_by_speaker_mode(AudioDriver::SpeakerMode p_m
 	ERR_FAIL_V(2);
 }
 
+Array AudioDriver::get_device_list() {
+	Array list;
+
+	list.push_back("Default");
+
+	return list;
+}
+
+String AudioDriver::get_device() {
+	return "Default";
+}
+
 AudioDriver::AudioDriver() {
 
 	_last_mix_time = 0;
@@ -171,6 +183,12 @@ AudioDriver *AudioDriverManager::get_driver(int p_driver) {
 void AudioServer::_driver_process(int p_frames, int32_t *p_buffer) {
 
 	int todo = p_frames;
+
+	if (channel_count != get_channel_count()) {
+		// Amount of channels changed due to a device change
+		// reinitialize the buses channels and buffers
+		init_channels_and_buffers();
+	}
 
 	while (todo) {
 
@@ -485,8 +503,8 @@ void AudioServer::set_bus_count(int p_count) {
 		}
 
 		buses[i] = memnew(Bus);
-		buses[i]->channels.resize(get_channel_count());
-		for (int j = 0; j < get_channel_count(); j++) {
+		buses[i]->channels.resize(channel_count);
+		for (int j = 0; j < channel_count; j++) {
 			buses[i]->channels[j].buffer.resize(buffer_size);
 		}
 		buses[i]->name = attempt;
@@ -557,8 +575,8 @@ void AudioServer::add_bus(int p_at_pos) {
 	}
 
 	Bus *bus = memnew(Bus);
-	bus->channels.resize(get_channel_count());
-	for (int j = 0; j < get_channel_count(); j++) {
+	bus->channels.resize(channel_count);
+	for (int j = 0; j < channel_count; j++) {
 		bus->channels[j].buffer.resize(buffer_size);
 	}
 	bus->name = attempt;
@@ -860,17 +878,29 @@ bool AudioServer::is_bus_channel_active(int p_bus, int p_channel) const {
 	return buses[p_bus]->channels[p_channel].active;
 }
 
+void AudioServer::init_channels_and_buffers() {
+	channel_count = get_channel_count();
+	temp_buffer.resize(channel_count);
+
+	for (int i = 0; i < temp_buffer.size(); i++) {
+		temp_buffer[i].resize(buffer_size);
+	}
+
+	for (int i = 0; i < buses.size(); i++) {
+		buses[i]->channels.resize(channel_count);
+		for (int j = 0; j < channel_count; j++) {
+			buses[i]->channels[j].buffer.resize(buffer_size);
+		}
+	}
+}
+
 void AudioServer::init() {
 
 	channel_disable_threshold_db = GLOBAL_DEF("audio/channel_disable_threshold_db", -60.0);
 	channel_disable_frames = float(GLOBAL_DEF("audio/channel_disable_time", 2.0)) * get_mix_rate();
 	buffer_size = 1024; //hardcoded for now
 
-	temp_buffer.resize(get_channel_count());
-
-	for (int i = 0; i < temp_buffer.size(); i++) {
-		temp_buffer[i].resize(buffer_size);
-	}
+	init_channels_and_buffers();
 
 	mix_count = 0;
 	set_bus_count(1);
@@ -1052,8 +1082,8 @@ void AudioServer::set_bus_layout(const Ref<AudioBusLayout> &p_bus_layout) {
 		bus_map[bus->name] = bus;
 		buses[i] = bus;
 
-		buses[i]->channels.resize(get_channel_count());
-		for (int j = 0; j < get_channel_count(); j++) {
+		buses[i]->channels.resize(channel_count);
+		for (int j = 0; j < channel_count; j++) {
 			buses[i]->channels[j].buffer.resize(buffer_size);
 		}
 		_update_bus_effects(i);
@@ -1088,6 +1118,21 @@ Ref<AudioBusLayout> AudioServer::generate_bus_layout() const {
 	}
 
 	return state;
+}
+
+Array AudioServer::get_device_list() {
+
+	return AudioDriver::get_singleton()->get_device_list();
+}
+
+String AudioServer::get_device() {
+
+	return AudioDriver::get_singleton()->get_device();
+}
+
+void AudioServer::set_device(String device) {
+
+	AudioDriver::get_singleton()->set_device(device);
 }
 
 void AudioServer::_bind_methods() {
@@ -1136,6 +1181,9 @@ void AudioServer::_bind_methods() {
 
 	ClassDB::bind_method(D_METHOD("get_speaker_mode"), &AudioServer::get_speaker_mode);
 	ClassDB::bind_method(D_METHOD("get_mix_rate"), &AudioServer::get_mix_rate);
+	ClassDB::bind_method(D_METHOD("get_device_list"), &AudioServer::get_device_list);
+	ClassDB::bind_method(D_METHOD("get_device"), &AudioServer::get_device);
+	ClassDB::bind_method(D_METHOD("set_device"), &AudioServer::set_device);
 
 	ClassDB::bind_method(D_METHOD("set_bus_layout", "bus_layout"), &AudioServer::set_bus_layout);
 	ClassDB::bind_method(D_METHOD("generate_bus_layout"), &AudioServer::generate_bus_layout);
@@ -1154,6 +1202,7 @@ AudioServer::AudioServer() {
 	audio_data_max_mem = 0;
 	audio_data_lock = Mutex::create();
 	mix_frames = 0;
+	channel_count = 0;
 	to_mix = 0;
 }
 

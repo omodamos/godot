@@ -125,6 +125,7 @@ int RichTextLabel::_process_line(ItemFrame *p_frame, const Vector2 &p_ofs, int &
 		l.descent_caches.clear();
 		l.char_count = 0;
 		l.minimum_width = 0;
+		l.maximum_width = 0;
 	}
 
 	int wofs = margin;
@@ -200,7 +201,8 @@ int RichTextLabel::_process_line(ItemFrame *p_frame, const Vector2 &p_ofs, int &
 
 #define ENSURE_WIDTH(m_width)                                                                                                                                   \
 	if (p_mode == PROCESS_CACHE) {                                                                                                                              \
-		l.minimum_width = MAX(l.minimum_width, wofs + m_width);                                                                                                 \
+		l.maximum_width = MAX(l.maximum_width, MIN(p_width, wofs + m_width));                                                                                   \
+		l.minimum_width = MAX(l.minimum_width, m_width);                                                                                                        \
 	}                                                                                                                                                           \
 	if (wofs + m_width > p_width) {                                                                                                                             \
 		if (p_mode == PROCESS_CACHE) {                                                                                                                          \
@@ -469,6 +471,7 @@ int RichTextLabel::_process_line(ItemFrame *p_frame, const Vector2 &p_ofs, int &
 					//set minimums to zero
 					for (int i = 0; i < table->columns.size(); i++) {
 						table->columns[i].min_width = 0;
+						table->columns[i].max_width = 0;
 						table->columns[i].width = 0;
 					}
 					//compute minimum width for each cell
@@ -486,6 +489,7 @@ int RichTextLabel::_process_line(ItemFrame *p_frame, const Vector2 &p_ofs, int &
 
 							_process_line(frame, Point2(), ly, available_width, i, PROCESS_CACHE, cfont, Color());
 							table->columns[column].min_width = MAX(table->columns[column].min_width, frame->lines[i].minimum_width);
+							table->columns[column].max_width = MAX(table->columns[column].max_width, frame->lines[i].maximum_width);
 						}
 						idx++;
 					}
@@ -498,17 +502,51 @@ int RichTextLabel::_process_line(ItemFrame *p_frame, const Vector2 &p_ofs, int &
 
 					for (int i = 0; i < table->columns.size(); i++) {
 						remaining_width -= table->columns[i].min_width;
+						if (table->columns[i].max_width > table->columns[i].min_width)
+							table->columns[i].expand = true;
 						if (table->columns[i].expand)
 							total_ratio += table->columns[i].expand_ratio;
 					}
 
 					//assign actual widths
-
 					for (int i = 0; i < table->columns.size(); i++) {
 						table->columns[i].width = table->columns[i].min_width;
 						if (table->columns[i].expand)
 							table->columns[i].width += table->columns[i].expand_ratio * remaining_width / total_ratio;
 						table->total_width += table->columns[i].width + hseparation;
+					}
+
+					//resize to max_width if needed and distribute the remaining space
+					bool table_need_fit = true;
+					while (table_need_fit) {
+						table_need_fit = false;
+						//fit slim
+						for (int i = 0; i < table->columns.size(); i++) {
+							if (!table->columns[i].expand)
+								continue;
+							int dif = table->columns[i].width - table->columns[i].max_width;
+							if (dif > 0) {
+								table_need_fit = true;
+								table->columns[i].width = table->columns[i].max_width;
+								table->total_width -= dif;
+								total_ratio -= table->columns[i].expand_ratio;
+							}
+						}
+						//grow
+						remaining_width = available_width - table->total_width;
+						if (remaining_width > 0 && total_ratio > 0) {
+							for (int i = 0; i < table->columns.size(); i++) {
+								if (table->columns[i].expand) {
+									int dif = table->columns[i].max_width - table->columns[i].width;
+									if (dif > 0) {
+										int slice = table->columns[i].expand_ratio * remaining_width / total_ratio;
+										int incr = MIN(dif, slice);
+										table->columns[i].width += incr;
+										table->total_width += incr;
+									}
+								}
+							}
+						}
 					}
 
 					//compute caches properly again with the right width
@@ -1633,7 +1671,7 @@ Error RichTextLabel::append_bbcode(const String &p_bbcode) {
 			tag_stack.push_front(tag);
 		} else if (tag.begins_with("cell=")) {
 
-			int ratio = tag.substr(6, tag.length()).to_int();
+			int ratio = tag.substr(5, tag.length()).to_int();
 			if (ratio < 1)
 				ratio = 1;
 			//use monospace font
