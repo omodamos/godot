@@ -193,7 +193,7 @@ void ExportTemplateManager::_install_from_file(const String &p_file, bool p_use_
 	int ret = unzGoToFirstFile(pkg);
 
 	int fc = 0; //count them and find version
-	String version = "3.0-beta";
+	String version;
 
 	while (ret == UNZ_OK) {
 
@@ -203,40 +203,20 @@ void ExportTemplateManager::_install_from_file(const String &p_file, bool p_use_
 
 		String file = fname;
 
-		// if (file.ends_with("version.txt")) {
+		if (file.ends_with("version.txt")) {
 
-		// 	Vector<uint8_t> data;
-		// 	data.resize(info.uncompressed_size);
+			Vector<uint8_t> data;
+			data.resize(info.uncompressed_size);
 
-		// 	//read
-		// 	unzOpenCurrentFile(pkg);
-		// 	ret = unzReadCurrentFile(pkg, data.ptrw(), data.size());
-		// 	unzCloseCurrentFile(pkg);
+			//read
+			unzOpenCurrentFile(pkg);
+			ret = unzReadCurrentFile(pkg, data.ptrw(), data.size());
+			unzCloseCurrentFile(pkg);
 
-		// 	String data_str;
-		// 	data_str.parse_utf8((const char *)data.ptr(), data.size());
-		// 	data_str = data_str.strip_edges();
+			String data_str;
+			data_str.parse_utf8((const char *)data.ptr(), data.size());
+			data_str = data_str.strip_edges();
 
-		// 	if (data_str.get_slice_count("-") != 2 || data_str.get_slice_count(".") != 2) {
-		// 		EditorNode::get_singleton()->show_warning(TTR("Invalid version.txt format inside templates."));
-		// 		unzClose(pkg);
-		// 		return;
-		// 	}
-
-		// 	String ver = data_str.get_slice("-", 0);
-
-		// 	int major = ver.get_slice(".", 0).to_int();
-		// 	int minor = ver.get_slice(".", 1).to_int();
-		// 	String rev = data_str.get_slice("-", 1);
-
-		// 	if (!rev.is_valid_identifier()) {
-		// 		EditorNode::get_singleton()->show_warning(TTR("Invalid version.txt format inside templates. Revision is not a valid identifier."));
-		// 		unzClose(pkg);
-		// 		return;
-		// 	}
-
-		// 	version = itos(major) + "." + itos(minor) + "-" + rev;
-		// }
 			// Version number should be of the form major.minor[.patch].status[.module_config]
 			// so it can in theory have 3 or more slices.
 			if (data_str.get_slice_count(".") < 3) {
