@@ -126,6 +126,7 @@ int RichTextLabel::_process_line(ItemFrame *p_frame, const Vector2 &p_ofs, int &
 		l.char_count = 0;
 		l.minimum_width = 0;
 		l.maximum_width = 0;
+		l.max_line_width = 0;
 	}
 
 	int wofs = margin;
@@ -203,6 +204,7 @@ int RichTextLabel::_process_line(ItemFrame *p_frame, const Vector2 &p_ofs, int &
 	if (p_mode == PROCESS_CACHE) {                                                                                                                              \
 		l.maximum_width = MAX(l.maximum_width, MIN(p_width, wofs + m_width));                                                                                   \
 		l.minimum_width = MAX(l.minimum_width, m_width);                                                                                                        \
+		l.max_line_width = MAX(l.max_line_width, wofs + m_width);                                                                                              \
 	}                                                                                                                                                           \
 	if (wofs + m_width > p_width) {                                                                                                                             \
 		if (p_mode == PROCESS_CACHE) {                                                                                                                          \
@@ -1857,11 +1859,11 @@ int RichTextLabel::get_text_height() {
 }
 
 int RichTextLabel::get_text_width() {
-    if (main->lines.size()) {
-        return main->lines[main->lines.size() - 1].minimum_width;
-    } else {
-        return 0;
-    }
+	if (main->lines.size()) {
+		return main->lines[0].max_line_width;
+	} else {
+		return 0;
+	}
 }
 
 void RichTextLabel::set_selection_enabled(bool p_enabled) {
@@ -2112,7 +2114,7 @@ void RichTextLabel::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("get_line_count"), &RichTextLabel::get_line_count);
 	ClassDB::bind_method(D_METHOD("get_visible_line_count"), &RichTextLabel::get_visible_line_count);
 	ClassDB::bind_method(D_METHOD("get_text_height"), &RichTextLabel::get_text_height);
-    ClassDB::bind_method(D_METHOD("get_text_width"), &RichTextLabel::get_text_width);
+	ClassDB::bind_method(D_METHOD("get_text_width"), &RichTextLabel::get_text_width);
 
 	ADD_GROUP("BBCode", "bbcode_");
 	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "bbcode_enabled"), "set_use_bbcode", "is_using_bbcode");
