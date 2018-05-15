@@ -910,7 +910,8 @@ static int remapKey(unsigned int key) {
 
 	CFDataRef layoutData = (CFDataRef)TISGetInputSourceProperty(currentKeyboard, kTISPropertyUnicodeKeyLayoutData);
 	if (!layoutData)
-		return nil;
+		return 0;
+		// return nil;
 
 	const UCKeyboardLayout *keyboardLayout = (const UCKeyboardLayout *)CFDataGetBytePtr(layoutData);
 
@@ -1690,7 +1691,8 @@ String OS_OSX::get_godot_dir_name() const {
 
 String OS_OSX::get_system_dir(SystemDir p_dir) const {
 
-	NSSearchPathDirectory id = 0;
+	// NSSearchPathDirectory id = 0;
+	NSSearchPathDirectory id;
 
 	switch (p_dir) {
 		case SYSTEM_DIR_DESKTOP: {

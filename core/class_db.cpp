@@ -1297,18 +1297,18 @@ void ClassDB::set_class_enabled(StringName p_class, bool p_enable) {
 }
 
 bool ClassDB::is_class_enabled(StringName p_class) {
+	return true;
+	// OBJTYPE_RLOCK;
 
-	OBJTYPE_RLOCK;
+	// ClassInfo *ti = classes.getptr(p_class);
+	// if (!ti || !ti->creation_func) {
+	// 	if (compat_classes.has(p_class)) {
+	// 		ti = classes.getptr(compat_classes[p_class]);
+	// 	}
+	// }
 
-	ClassInfo *ti = classes.getptr(p_class);
-	if (!ti || !ti->creation_func) {
-		if (compat_classes.has(p_class)) {
-			ti = classes.getptr(compat_classes[p_class]);
-		}
-	}
-
-	ERR_FAIL_COND_V(!ti, false);
-	return !ti->disabled;
+	// ERR_FAIL_COND_V(!ti, false);
+	// return !ti->disabled;
 }
 
 bool ClassDB::is_class_exposed(StringName p_class) {
