@@ -193,9 +193,9 @@ void ExportTemplateManager::_install_from_file(const String &p_file, bool p_use_
 	int ret = unzGoToFirstFile(pkg);
 
 	int fc = 0; //count them and find version
-	String version;
+	String version = "3.1.dev";
 
-	while (ret == UNZ_OK) {
+/*	while (ret == UNZ_OK) {
 
 		unz_file_info info;
 		char fname[16384];
@@ -236,7 +236,7 @@ void ExportTemplateManager::_install_from_file(const String &p_file, bool p_use_
 		EditorNode::get_singleton()->show_warning(TTR("No version.txt found inside templates."));
 		unzClose(pkg);
 		return;
-	}
+	}*/
 
 	String template_path = EditorSettings::get_singleton()->get_templates_dir().plus_file(version);
 
