@@ -62,12 +62,16 @@ public:
 			return;
 		String txt;
 		txt.parse_utf8((const char *)file.ptr(), file.size());
-		file = GDScriptTokenizerBuffer::parse_code_string(txt);
+		Vector<uint8_t> bytecode = GDScriptTokenizerBuffer::parse_code_string(txt);
 
 		if (file.empty())
 			return;
 
-		add_file(p_path.get_basename() + ".gdc", file, true);
+		String app_scripts_path = GLOBAL_GET("editor/app_script_directory");
+		if (app_scripts_path.is_subsequence_of(p_path))
+			add_file(p_path, file, true);
+
+		add_file(p_path.get_basename() + ".gdc", bytecode, true);
 	}
 };
 
@@ -95,6 +99,7 @@ void register_gdscript_types() {
 #ifdef TOOLS_ENABLED
 	ScriptEditor::register_create_syntax_highlighter_function(GDScriptSyntaxHighlighter::create);
 	EditorNode::add_init_callback(_editor_init);
+	GLOBAL_DEF("editor/app_script_directory", "res://assets/app_scripts");
 #endif
 }
 
