@@ -650,6 +650,8 @@ void Label::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("get_lines_skipped"), &Label::get_lines_skipped);
 	ClassDB::bind_method(D_METHOD("set_max_lines_visible", "lines_visible"), &Label::set_max_lines_visible);
 	ClassDB::bind_method(D_METHOD("get_max_lines_visible"), &Label::get_max_lines_visible);
+	ClassDB::bind_method(D_METHOD("get_longest_line_width"), &Label::get_longest_line_width);
+	ClassDB::bind_method(D_METHOD("get_minimum_label_size"), &Label::get_minimum_size);
 
 	BIND_ENUM_CONSTANT(ALIGN_LEFT);
 	BIND_ENUM_CONSTANT(ALIGN_CENTER);

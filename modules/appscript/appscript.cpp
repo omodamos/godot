@@ -28,8 +28,9 @@ Variant AppScript::call(const StringName &p_method, const Variant **p_args, int 
 	for (int i = 0; i < p_argcount; i++) {
 		str_args.push_back(Variant(*p_args[i]));
 	}
+	Variant ret = Object::call(p_method, p_args, p_argcount, r_error);
 	emit_signal("call_method", get_name(), str_method, str_args);
-	return Object::call(p_method, p_args, p_argcount, r_error);
+	return ret;
 }
 
 void AppScript::_bind_methods() {
