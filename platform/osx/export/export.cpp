@@ -29,18 +29,18 @@
 /*************************************************************************/
 
 #include "export.h"
+#include "core/io/marshalls.h"
+#include "core/io/resource_saver.h"
+#include "core/io/zip_io.h"
+#include "core/os/file_access.h"
+#include "core/os/os.h"
+#include "core/project_settings.h"
+#include "core/version.h"
 #include "editor/editor_export.h"
 #include "editor/editor_node.h"
 #include "editor/editor_settings.h"
-#include "io/marshalls.h"
-#include "io/resource_saver.h"
-#include "io/zip_io.h"
-#include "os/file_access.h"
-#include "os/os.h"
 #include "platform/osx/logo.gen.h"
-#include "project_settings.h"
 #include "string.h"
-#include "version.h"
 #include <sys/stat.h>
 
 class EditorExportPlatformOSX : public EditorExportPlatform {
@@ -86,6 +86,9 @@ public:
 		r_features->push_back("OSX");
 	}
 
+	virtual void resolve_platform_feature_priorities(const Ref<EditorExportPreset> &p_preset, Set<String> &p_features) {
+	}
+
 	EditorExportPlatformOSX();
 	~EditorExportPlatformOSX();
 };
@@ -106,14 +109,14 @@ void EditorExportPlatformOSX::get_preset_features(const Ref<EditorExportPreset> 
 
 void EditorExportPlatformOSX::get_export_options(List<ExportOption> *r_options) {
 
-	r_options->push_back(ExportOption(PropertyInfo(Variant::STRING, "custom_package/debug", PROPERTY_HINT_GLOBAL_FILE, "zip"), ""));
-	r_options->push_back(ExportOption(PropertyInfo(Variant::STRING, "custom_package/release", PROPERTY_HINT_GLOBAL_FILE, "zip"), ""));
+	r_options->push_back(ExportOption(PropertyInfo(Variant::STRING, "custom_package/debug", PROPERTY_HINT_GLOBAL_FILE, "*.zip"), ""));
+	r_options->push_back(ExportOption(PropertyInfo(Variant::STRING, "custom_package/release", PROPERTY_HINT_GLOBAL_FILE, "*.zip"), ""));
 
-	r_options->push_back(ExportOption(PropertyInfo(Variant::STRING, "application/name"), ""));
+	r_options->push_back(ExportOption(PropertyInfo(Variant::STRING, "application/name", PROPERTY_HINT_PLACEHOLDER_TEXT, "Game Name"), ""));
 	r_options->push_back(ExportOption(PropertyInfo(Variant::STRING, "application/info"), "Made with Godot Engine"));
-	r_options->push_back(ExportOption(PropertyInfo(Variant::STRING, "application/icon", PROPERTY_HINT_FILE, "png"), ""));
-	r_options->push_back(ExportOption(PropertyInfo(Variant::STRING, "application/identifier"), "org.godotengine.macgame"));
-	r_options->push_back(ExportOption(PropertyInfo(Variant::STRING, "application/signature"), "godotmacgame"));
+	r_options->push_back(ExportOption(PropertyInfo(Variant::STRING, "application/icon", PROPERTY_HINT_FILE, "*.png"), ""));
+	r_options->push_back(ExportOption(PropertyInfo(Variant::STRING, "application/identifier", PROPERTY_HINT_PLACEHOLDER_TEXT, "com.example.game"), ""));
+	r_options->push_back(ExportOption(PropertyInfo(Variant::STRING, "application/signature"), ""));
 	r_options->push_back(ExportOption(PropertyInfo(Variant::STRING, "application/short_version"), "1.0"));
 	r_options->push_back(ExportOption(PropertyInfo(Variant::STRING, "application/version"), "1.0"));
 	r_options->push_back(ExportOption(PropertyInfo(Variant::STRING, "application/copyright"), ""));
@@ -137,10 +140,10 @@ void EditorExportPlatformOSX::_make_icon(const Ref<Image> &p_icon, Vector<uint8_
 	Vector<uint8_t> data;
 
 	data.resize(8);
-	data[0] = 'i';
-	data[1] = 'c';
-	data[2] = 'n';
-	data[3] = 's';
+	data.write[0] = 'i';
+	data.write[1] = 'c';
+	data.write[2] = 'n';
+	data.write[3] = 's';
 
 	const char *name[] = { "ic09", "ic08", "ic07", "icp6", "icp5", "icp4" };
 	int index = 0;
@@ -160,19 +163,19 @@ void EditorExportPlatformOSX::_make_icon(const Ref<Image> &p_icon, Vector<uint8_
 		int ofs = data.size();
 		uint32_t len = f->get_len();
 		data.resize(data.size() + len + 8);
-		f->get_buffer(&data[ofs + 8], len);
+		f->get_buffer(&data.write[ofs + 8], len);
 		memdelete(f);
 		len += 8;
 		len = BSWAP32(len);
-		copymem(&data[ofs], name[index], 4);
-		encode_uint32(len, &data[ofs + 4]);
+		copymem(&data.write[ofs], name[index], 4);
+		encode_uint32(len, &data.write[ofs + 4]);
 		index++;
 		size /= 2;
 	}
 
 	uint32_t total_len = data.size();
 	total_len = BSWAP32(total_len);
-	encode_uint32(total_len, &data[4]);
+	encode_uint32(total_len, &data.write[4]);
 
 	p_data = data;
 }
@@ -210,7 +213,7 @@ void EditorExportPlatformOSX::_fix_plist(const Ref<EditorExportPreset> &p_preset
 	CharString cs = strnew.utf8();
 	plist.resize(cs.size() - 1);
 	for (int i = 0; i < cs.size() - 1; i++) {
-		plist[i] = cs[i];
+		plist.write[i] = cs[i];
 	}
 }
 
@@ -377,7 +380,6 @@ Error EditorExportPlatformOSX::export_project(const Ref<EditorExportPreset> &p_p
 
 		String file = fname;
 
-		print_line("READ: " + file);
 		Vector<uint8_t> data;
 		data.resize(info.uncompressed_size);
 
@@ -391,7 +393,6 @@ Error EditorExportPlatformOSX::export_project(const Ref<EditorExportPreset> &p_p
 		file = file.replace_first("osx_template.app/", "");
 
 		if (file == "Contents/Info.plist") {
-			print_line("parse plist");
 			_fix_plist(p_preset, data, pkg_name);
 		}
 
@@ -412,13 +413,12 @@ Error EditorExportPlatformOSX::export_project(const Ref<EditorExportPreset> &p_p
 				iconpath = p_preset->get("application/icon");
 			else
 				iconpath = ProjectSettings::get_singleton()->get("application/config/icon");
-			print_line("icon? " + iconpath);
+
 			if (iconpath != "") {
 				Ref<Image> icon;
 				icon.instance();
 				icon->load(iconpath);
 				if (!icon->empty()) {
-					print_line("loaded?");
 					_make_icon(icon, data);
 				}
 			}
@@ -472,9 +472,7 @@ Error EditorExportPlatformOSX::export_project(const Ref<EditorExportPreset> &p_p
 						Z_DEFLATED,
 						Z_DEFAULT_COMPRESSION);
 
-				print_line("OPEN ERR: " + itos(zerr));
 				zerr = zipWriteInFileInZip(dst_pkg_zip, data.ptr(), data.size());
-				print_line("WRITE ERR: " + itos(zerr));
 				zipCloseFileInZip(dst_pkg_zip);
 			}
 		}

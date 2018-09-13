@@ -31,8 +31,8 @@
 #include "light_occluder_2d_editor_plugin.h"
 
 #include "canvas_item_editor_plugin.h"
+#include "core/os/file_access.h"
 #include "editor/editor_settings.h"
-#include "os/file_access.h"
 
 void LightOccluder2DEditor::_notification(int p_what) {
 
@@ -255,7 +255,7 @@ bool LightOccluder2DEditor::forward_gui_input(const Ref<InputEvent> &p_event) {
 							//apply
 
 							ERR_FAIL_INDEX_V(edited_point, poly.size(), false);
-							poly[edited_point] = edited_point_pos;
+							poly.write[edited_point] = edited_point_pos;
 							undo_redo->create_action(TTR("Edit Poly"));
 							undo_redo->add_do_method(node->get_occluder_polygon().ptr(), "set_polygon", poly);
 							undo_redo->add_undo_method(node->get_occluder_polygon().ptr(), "set_polygon", pre_move_edit);

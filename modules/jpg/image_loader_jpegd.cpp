@@ -30,8 +30,8 @@
 
 #include "image_loader_jpegd.h"
 
-#include "os/os.h"
-#include "print_string.h"
+#include "core/os/os.h"
+#include "core/print_string.h"
 
 #include <jpgd.h>
 #include <string.h>
@@ -121,9 +121,7 @@ static Ref<Image> _jpegd_mem_loader_func(const uint8_t *p_png, int p_size) {
 	Ref<Image> img;
 	img.instance();
 	Error err = jpeg_load_image_from_buffer(img.ptr(), p_png, p_size);
-	if (err)
-		ERR_PRINT("Couldn't initialize ImageLoaderJPG with the given resource.");
-
+	ERR_FAIL_COND_V(err, Ref<Image>());
 	return img;
 }
 

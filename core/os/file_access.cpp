@@ -32,8 +32,8 @@
 
 #include "core/io/file_access_pack.h"
 #include "core/io/marshalls.h"
-#include "os/os.h"
-#include "project_settings.h"
+#include "core/os/os.h"
+#include "core/project_settings.h"
 
 #include "thirdparty/misc/md5.h"
 #include "thirdparty/misc/sha256.h"
@@ -262,15 +262,14 @@ String FileAccess::get_token() const {
 	while (!eof_reached()) {
 
 		if (c <= ' ') {
-			if (!token.empty())
+			if (token.length())
 				break;
 		} else {
-			token.push_back(c);
+			token += c;
 		}
 		c = get_8();
 	}
 
-	token.push_back(0);
 	return String::utf8(token.get_data());
 }
 
@@ -293,7 +292,7 @@ class CharBuffer {
 
 			for (int i = 0; i < written; i++) {
 
-				vector[i] = stack_buffer[i];
+				vector.write[i] = stack_buffer[i];
 			}
 		}
 

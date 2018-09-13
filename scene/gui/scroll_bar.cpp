@@ -30,9 +30,9 @@
 
 #include "scroll_bar.h"
 
-#include "os/keyboard.h"
-#include "os/os.h"
-#include "print_string.h"
+#include "core/os/keyboard.h"
+#include "core/os/os.h"
+#include "core/print_string.h"
 
 bool ScrollBar::focus_by_default = false;
 
@@ -257,9 +257,7 @@ void ScrollBar::_notification(int p_what) {
 
 		Point2 ofs;
 
-		VisualServer *vs = VisualServer::get_singleton();
-
-		vs->canvas_item_add_texture_rect(ci, Rect2(Point2(), decr->get_size()), decr->get_rid());
+		decr->draw(ci, Point2());
 
 		if (orientation == HORIZONTAL)
 			ofs.x += decr->get_width();
@@ -280,7 +278,7 @@ void ScrollBar::_notification(int p_what) {
 		else
 			ofs.height += area.height;
 
-		vs->canvas_item_add_texture_rect(ci, Rect2(ofs, decr->get_size()), incr->get_rid());
+		incr->draw(ci, ofs);
 		Rect2 grabber_rect;
 
 		if (orientation == HORIZONTAL) {

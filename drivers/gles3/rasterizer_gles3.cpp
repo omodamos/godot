@@ -30,10 +30,10 @@
 
 #include "rasterizer_gles3.h"
 
+#include "core/os/os.h"
+#include "core/project_settings.h"
 #include "gl_context/context_gl.h"
-#include "os/os.h"
-#include "project_settings.h"
-#include <string.h>
+
 RasterizerStorage *RasterizerGLES3::get_storage() {
 
 	return storage;
@@ -111,8 +111,6 @@ static void GLAPIENTRY _gl_debug_print(GLenum source, GLenum type, GLuint id, GL
 		strcpy(debType, "Portability");
 	else if (type == _EXT_DEBUG_TYPE_PERFORMANCE_ARB)
 		strcpy(debType, "Performance");
-	else if (type == _EXT_DEBUG_TYPE_OTHER_ARB)
-		strcpy(debType, "Other");
 
 	if (severity == _EXT_DEBUG_SEVERITY_HIGH_ARB)
 		strcpy(debSev, "High");
@@ -136,30 +134,32 @@ typedef void (*DEBUGPROCARB)(GLenum source,
 
 typedef void (*DebugMessageCallbackARB)(DEBUGPROCARB callback, const void *userParam);
 
-void RasterizerGLES3::initialize() {
-
-	if (OS::get_singleton()->is_stdout_verbose()) {
-		print_line("Using GLES3 video driver");
-	}
+Error RasterizerGLES3::is_viable() {
 
 #ifdef GLAD_ENABLED
 	if (!gladLoadGL()) {
 		ERR_PRINT("Error initializing GLAD");
+		return ERR_UNAVAILABLE;
 	}
 
 // GLVersion seems to be used for both GL and GL ES, so we need different version checks for them
 #ifdef OPENGL_ENABLED // OpenGL 3.3 Core Profile required
-	if (GLVersion.major < 3 && GLVersion.minor < 3) {
+	if (GLVersion.major < 3 || (GLVersion.major == 3 && GLVersion.minor < 3)) {
 #else // OpenGL ES 3.0
 	if (GLVersion.major < 3) {
 #endif
-		ERR_PRINT("Your system's graphic drivers seem not to support OpenGL 3.3 / OpenGL ES 3.0, sorry :(\n"
-				  "Try a drivers update, buy a new GPU or try software rendering on Linux; Godot will now crash with a segmentation fault.");
-		OS::get_singleton()->alert("Your system's graphic drivers seem not to support OpenGL 3.3 / OpenGL ES 3.0, sorry :(\n"
-								   "Godot Engine will self-destruct as soon as you acknowledge this error message.",
-				"Fatal error: Insufficient OpenGL / GLES driver support");
+		return ERR_UNAVAILABLE;
 	}
 
+#endif // GLAD_ENABLED
+	return OK;
+}
+
+void RasterizerGLES3::initialize() {
+
+	print_verbose("Using GLES3 video driver");
+
+#ifdef GLAD_ENABLED
 	if (OS::get_singleton()->is_stdout_verbose()) {
 		if (GLAD_GL_ARB_debug_output) {
 			glEnable(_EXT_DEBUG_OUTPUT_SYNCHRONOUS_ARB);
@@ -169,7 +169,6 @@ void RasterizerGLES3::initialize() {
 			print_line("OpenGL debugging not supported!");
 		}
 	}
-
 #endif // GLAD_ENABLED
 
 	/* // For debugging
@@ -194,21 +193,14 @@ void RasterizerGLES3::initialize() {
 	scene->initialize();
 }
 
-void RasterizerGLES3::begin_frame() {
+void RasterizerGLES3::begin_frame(double frame_step) {
 
-	uint64_t tick = OS::get_singleton()->get_ticks_usec();
+	time_total += frame_step;
 
-	double delta = double(tick - prev_ticks) / 1000000.0;
-	delta *= Engine::get_singleton()->get_time_scale();
-
-	time_total += delta;
-
-	if (delta == 0) {
+	if (frame_step == 0) {
 		//to avoid hiccups
-		delta = 0.001;
+		frame_step = 0.001;
 	}
-
-	prev_ticks = tick;
 
 	double time_roll_over = GLOBAL_GET("rendering/limits/time/time_rollover_secs");
 	if (time_total > time_roll_over)
@@ -219,9 +211,7 @@ void RasterizerGLES3::begin_frame() {
 	storage->frame.time[2] = Math::fmod(time_total, 900);
 	storage->frame.time[3] = Math::fmod(time_total, 60);
 	storage->frame.count++;
-	storage->frame.delta = delta;
-
-	storage->frame.prev_tick = tick;
+	storage->frame.delta = frame_step;
 
 	storage->update_dirty_resources();
 
@@ -236,7 +226,7 @@ void RasterizerGLES3::set_current_render_target(RID p_render_target) {
 	if (!p_render_target.is_valid() && storage->frame.current_rt && storage->frame.clear_request) {
 		//handle pending clear request, if the framebuffer was not cleared
 		glBindFramebuffer(GL_FRAMEBUFFER, storage->frame.current_rt->fbo);
-		print_line("unbind clear of: " + storage->frame.clear_request_color);
+
 		glClearColor(
 				storage->frame.clear_request_color.r,
 				storage->frame.clear_request_color.g,
@@ -283,7 +273,7 @@ void RasterizerGLES3::set_boot_image(const Ref<Image> &p_image, const Color &p_c
 	if (p_image.is_null() || p_image->empty())
 		return;
 
-	begin_frame();
+	begin_frame(0.0);
 
 	int window_w = OS::get_singleton()->get_video_mode(0).width;
 	int window_h = OS::get_singleton()->get_video_mode(0).height;
@@ -292,12 +282,16 @@ void RasterizerGLES3::set_boot_image(const Ref<Image> &p_image, const Color &p_c
 	glViewport(0, 0, window_w, window_h);
 	glDisable(GL_BLEND);
 	glDepthMask(GL_FALSE);
-	glClearColor(p_color.r, p_color.g, p_color.b, 1.0);
+	if (OS::get_singleton()->get_window_per_pixel_transparency_enabled()) {
+		glClearColor(0.0, 0.0, 0.0, 0.0);
+	} else {
+		glClearColor(p_color.r, p_color.g, p_color.b, 1.0);
+	}
 	glClear(GL_COLOR_BUFFER_BIT);
 	canvas->canvas_begin();
 
 	RID texture = storage->texture_create();
-	storage->texture_allocate(texture, p_image->get_width(), p_image->get_height(), p_image->get_format(), VS::TEXTURE_FLAG_FILTER);
+	storage->texture_allocate(texture, p_image->get_width(), p_image->get_height(), 0, p_image->get_format(), VS::TEXTURE_TYPE_2D, VS::TEXTURE_FLAG_FILTER);
 	storage->texture_set_data(texture, p_image);
 
 	Rect2 imgrect(0, 0, p_image->get_width(), p_image->get_height());
@@ -331,7 +325,7 @@ void RasterizerGLES3::set_boot_image(const Ref<Image> &p_image, const Color &p_c
 
 	storage->free(texture); // free since it's only one frame that stays there
 
-	OS::get_singleton()->swap_buffers();
+	end_frame(true);
 }
 
 void RasterizerGLES3::blit_render_target_to_screen(RID p_render_target, const Rect2 &p_screen_rect, int p_screen) {
@@ -366,6 +360,27 @@ void RasterizerGLES3::blit_render_target_to_screen(RID p_render_target, const Re
 }
 
 void RasterizerGLES3::end_frame(bool p_swap_buffers) {
+
+	if (OS::get_singleton()->is_layered_allowed()) {
+		if (OS::get_singleton()->get_window_per_pixel_transparency_enabled()) {
+#if (defined WINDOWS_ENABLED) && !(defined UWP_ENABLED)
+			Size2 wndsize = OS::get_singleton()->get_layered_buffer_size();
+			uint8_t *data = OS::get_singleton()->get_layered_buffer_data();
+			if (data) {
+				glReadPixels(0, 0, wndsize.x, wndsize.y, GL_BGRA, GL_UNSIGNED_BYTE, data);
+				OS::get_singleton()->swap_layered_buffer();
+
+				return;
+			}
+#endif
+		} else {
+			//clear alpha
+			glColorMask(false, false, false, true);
+			glClearColor(0, 0, 0, 1);
+			glClear(GL_COLOR_BUFFER_BIT);
+			glColorMask(true, true, true, true);
+		}
+	}
 
 	if (p_swap_buffers)
 		OS::get_singleton()->swap_buffers();
@@ -407,7 +422,6 @@ RasterizerGLES3::RasterizerGLES3() {
 	scene->storage = storage;
 	storage->scene = scene;
 
-	prev_ticks = 0;
 	time_total = 0;
 }
 

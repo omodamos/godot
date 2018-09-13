@@ -30,9 +30,9 @@
 
 #include "translation.h"
 
-#include "io/resource_loader.h"
-#include "os/os.h"
-#include "project_settings.h"
+#include "core/io/resource_loader.h"
+#include "core/os/os.h"
+#include "core/project_settings.h"
 
 // ISO 639-1 language codes, with the addition of glibc locales with their
 // regional identifiers. This list must match the language names (in English)
@@ -1098,7 +1098,6 @@ bool TranslationServer::_load_translations(const String &p_from) {
 
 			for (int i = 0; i < tcount; i++) {
 
-				//print_line( "Loading translation from " + r[i] );
 				Ref<Translation> tr = ResourceLoader::load(r[i]);
 				if (tr.is_valid())
 					add_translation(tr);
@@ -1171,13 +1170,11 @@ void TranslationServer::_bind_methods() {
 void TranslationServer::load_translations() {
 
 	String locale = get_locale();
-	bool found = _load_translations("locale/translations"); //all
+	_load_translations("locale/translations"); //all
+	_load_translations("locale/translations_" + locale.substr(0, 2));
 
-	if (_load_translations("locale/translations_" + locale.substr(0, 2)))
-		found = true;
 	if (locale.substr(0, 2) != locale) {
-		if (_load_translations("locale/translations_" + locale))
-			found = true;
+		_load_translations("locale/translations_" + locale);
 	}
 }
 

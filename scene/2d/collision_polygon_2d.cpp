@@ -31,7 +31,7 @@
 #include "collision_polygon_2d.h"
 
 #include "collision_object_2d.h"
-#include "engine.h"
+#include "core/engine.h"
 #include "scene/resources/concave_polygon_shape_2d.h"
 #include "scene/resources/convex_polygon_shape_2d.h"
 
@@ -102,11 +102,11 @@ Vector<Vector<Vector2> > CollisionPolygon2D::_decompose_in_convex() {
 
 		TriangulatorPoly &tp = I->get();
 
-		decomp[idx].resize(tp.GetNumPoints());
+		decomp.write[idx].resize(tp.GetNumPoints());
 
 		for (int i = 0; i < tp.GetNumPoints(); i++) {
 
-			decomp[idx][i] = tp.GetPoint(i);
+			decomp.write[idx].write[i] = tp.GetPoint(i);
 		}
 
 		idx++;

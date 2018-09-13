@@ -30,7 +30,7 @@
 
 #include "sprite.h"
 #include "core/core_string_names.h"
-#include "os/os.h"
+#include "core/os/os.h"
 #include "scene/main/viewport.h"
 #include "scene/scene_string_names.h"
 
@@ -63,36 +63,43 @@ Rect2 Sprite::_edit_get_rect() const {
 }
 
 bool Sprite::_edit_use_rect() const {
+	if (texture.is_null())
+		return false;
+
 	return true;
+}
+
+Rect2 Sprite::get_anchorable_rect() const {
+	return get_rect();
 }
 
 void Sprite::_get_rects(Rect2 &r_src_rect, Rect2 &r_dst_rect, bool &r_filter_clip) const {
 
-	Size2 s;
-	r_filter_clip = false;
+	Rect2 base_rect;
 
 	if (region) {
-
-		s = region_rect.size;
-		r_src_rect = region_rect;
 		r_filter_clip = region_filter_clip;
+		base_rect = region_rect;
 	} else {
-		s = Size2(texture->get_size());
-		s = s / Size2(hframes, vframes);
-
-		r_src_rect.size = s;
-		r_src_rect.position.x = float(frame % hframes) * s.x;
-		r_src_rect.position.y = float(frame / hframes) * s.y;
+		r_filter_clip = false;
+		base_rect = Rect2(0, 0, texture->get_width(), texture->get_height());
 	}
 
-	Point2 ofs = offset;
+	Size2 frame_size = base_rect.size / Size2(hframes, vframes);
+	Point2 frame_offset = Point2(frame % hframes, frame / hframes);
+	frame_offset *= frame_size;
+
+	r_src_rect.size = frame_size;
+	r_src_rect.position = base_rect.position + frame_offset;
+
+	Point2 dest_offset = offset;
 	if (centered)
-		ofs -= s / 2;
+		dest_offset -= frame_size / 2;
 	if (Engine::get_singleton()->get_use_pixel_snap()) {
-		ofs = ofs.floor();
+		dest_offset = dest_offset.floor();
 	}
 
-	r_dst_rect = Rect2(ofs, s);
+	r_dst_rect = Rect2(dest_offset, frame_size);
 
 	if (hflip)
 		r_dst_rect.size.x = -r_dst_rect.size.x;
@@ -291,6 +298,11 @@ int Sprite::get_hframes() const {
 
 bool Sprite::_edit_is_selected_on_click(const Point2 &p_point, double p_tolerance) const {
 
+	return is_pixel_opaque(p_point);
+}
+
+bool Sprite::is_pixel_opaque(const Point2 &p_point) const {
+
 	if (texture.is_null())
 		return false;
 
@@ -308,32 +320,6 @@ bool Sprite::_edit_is_selected_on_click(const Point2 &p_point, double p_toleranc
 	if (vflip)
 		q.y = 1.0f - q.y;
 	q = q * src_rect.size + src_rect.position;
-
-	Ref<Image> image;
-	Ref<AtlasTexture> atlasTexture = texture;
-	if (atlasTexture.is_null()) {
-		image = texture->get_data();
-	} else {
-		ERR_FAIL_COND_V(atlasTexture->get_atlas().is_null(), false);
-
-		image = atlasTexture->get_atlas()->get_data();
-
-		Rect2 region = atlasTexture->get_region();
-		Rect2 margin = atlasTexture->get_margin();
-
-		q -= margin.position;
-
-		if ((q.x > region.size.width) || (q.y > region.size.height)) {
-			return false;
-		}
-
-		q += region.position;
-	}
-
-	ERR_FAIL_COND_V(image.is_null(), false);
-	if (image->is_compressed()) {
-		return dst_rect.has_point(p_point);
-	}
 
 	bool is_repeat = texture->get_flags() & Texture::FLAG_REPEAT;
 	bool is_mirrored_repeat = texture->get_flags() & Texture::FLAG_MIRRORED_REPEAT;
@@ -356,31 +342,24 @@ bool Sprite::_edit_is_selected_on_click(const Point2 &p_point, double p_toleranc
 		q.x = MIN(q.x, texture->get_size().width - 1);
 		q.y = MIN(q.y, texture->get_size().height - 1);
 	}
-	image->lock();
-	const Color c = image->get_pixel((int)q.x, (int)q.y);
-	image->unlock();
 
-	return c.a > 0.01;
+	return texture->is_pixel_opaque((int)q.x, (int)q.y);
 }
 
 Rect2 Sprite::get_rect() const {
 
 	if (texture.is_null())
 		return Rect2(0, 0, 1, 1);
-	/*
-	if (texture.is_null())
-		return CanvasItem::_edit_get_rect();
-	*/
 
 	Size2i s;
 
 	if (region) {
-
 		s = region_rect.size;
 	} else {
 		s = texture->get_size();
-		s = s / Point2(hframes, vframes);
 	}
+
+	s = s / Point2(hframes, vframes);
 
 	Point2 ofs = offset;
 	if (centered)
@@ -433,6 +412,8 @@ void Sprite::_bind_methods() {
 
 	ClassDB::bind_method(D_METHOD("set_region", "enabled"), &Sprite::set_region);
 	ClassDB::bind_method(D_METHOD("is_region"), &Sprite::is_region);
+
+	ClassDB::bind_method(D_METHOD("is_pixel_opaque", "pos"), &Sprite::is_pixel_opaque);
 
 	ClassDB::bind_method(D_METHOD("set_region_rect", "rect"), &Sprite::set_region_rect);
 	ClassDB::bind_method(D_METHOD("get_region_rect"), &Sprite::get_region_rect);

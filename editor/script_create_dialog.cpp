@@ -30,13 +30,13 @@
 
 #include "script_create_dialog.h"
 
+#include "core/io/resource_saver.h"
+#include "core/os/file_access.h"
+#include "core/project_settings.h"
+#include "core/script_language.h"
 #include "editor/editor_node.h"
 #include "editor/editor_scale.h"
 #include "editor_file_system.h"
-#include "io/resource_saver.h"
-#include "os/file_access.h"
-#include "project_settings.h"
-#include "script_language.h"
 
 void ScriptCreateDialog::_notification(int p_what) {
 
@@ -56,6 +56,7 @@ void ScriptCreateDialog::config(const String &p_base_name, const String &p_base_
 	class_name->deselect();
 	parent_name->set_text(p_base_name);
 	parent_name->deselect();
+
 	if (p_base_path != "") {
 		initial_bp = p_base_path.get_basename();
 		file_path->set_text(initial_bp + "." + ScriptServer::get_language(language_menu->get_selected())->get_extension());
@@ -359,10 +360,16 @@ void ScriptCreateDialog::_path_changed(const String &p_path) {
 
 	is_path_valid = false;
 	is_new_script_created = true;
-	String p = p_path;
+	String p = p_path.strip_edges();
 
 	if (p == "") {
 		_msg_path_valid(false, TTR("Path is empty"));
+		_update_dialog();
+		return;
+	}
+
+	if (p.get_file().get_basename() == "") {
+		_msg_path_valid(false, TTR("Filename is empty"));
 		_update_dialog();
 		return;
 	}
@@ -582,6 +589,9 @@ void ScriptCreateDialog::_bind_methods() {
 	ClassDB::bind_method("_path_changed", &ScriptCreateDialog::_path_changed);
 	ClassDB::bind_method("_path_entered", &ScriptCreateDialog::_path_entered);
 	ClassDB::bind_method("_template_changed", &ScriptCreateDialog::_template_changed);
+
+	ClassDB::bind_method(D_METHOD("config", "inherits", "path"), &ScriptCreateDialog::config);
+
 	ADD_SIGNAL(MethodInfo("script_created", PropertyInfo(Variant::OBJECT, "script", PROPERTY_HINT_RESOURCE_TYPE, "Script")));
 }
 

@@ -32,20 +32,16 @@
 
 #ifdef UNIX_ENABLED
 
-#include "servers/visual_server.h"
-
 #include "core/os/thread_dummy.h"
-#include "mutex_posix.h"
-#include "rw_lock_posix.h"
-#include "semaphore_posix.h"
-#include "thread_posix.h"
-
-//#include "core/io/file_access_buffered_fa.h"
-#include "dir_access_unix.h"
-#include "file_access_unix.h"
-#include "packet_peer_udp_posix.h"
-#include "stream_peer_tcp_posix.h"
-#include "tcp_server_posix.h"
+#include "core/project_settings.h"
+#include "drivers/unix/dir_access_unix.h"
+#include "drivers/unix/file_access_unix.h"
+#include "drivers/unix/mutex_posix.h"
+#include "drivers/unix/net_socket_posix.h"
+#include "drivers/unix/rw_lock_posix.h"
+#include "drivers/unix/semaphore_posix.h"
+#include "drivers/unix/thread_posix.h"
+#include "servers/visual_server.h"
 
 #ifdef __APPLE__
 #include <mach-o/dyld.h>
@@ -55,7 +51,7 @@
 #include <sys/param.h>
 #include <sys/sysctl.h>
 #endif
-#include "project_settings.h"
+
 #include <assert.h>
 #include <dlfcn.h>
 #include <errno.h>
@@ -72,6 +68,23 @@ void OS_Unix::debug_break() {
 
 	assert(false);
 };
+
+static void handle_interrupt(int sig) {
+	if (ScriptDebugger::get_singleton() == NULL)
+		return;
+
+	ScriptDebugger::get_singleton()->set_depth(-1);
+	ScriptDebugger::get_singleton()->set_lines_left(1);
+}
+
+void OS_Unix::initialize_debugging() {
+
+	if (ScriptDebugger::get_singleton() != NULL) {
+		struct sigaction action;
+		action.sa_handler = handle_interrupt;
+		sigaction(SIGINT, &action, NULL);
+	}
+}
 
 int OS_Unix::unix_initialize_audio(int p_audio_driver) {
 
@@ -109,9 +122,7 @@ void OS_Unix::initialize_core() {
 	DirAccess::make_default<DirAccessUnix>(DirAccess::ACCESS_FILESYSTEM);
 
 #ifndef NO_NETWORK
-	TCPServerPosix::make_default();
-	StreamPeerTCPPosix::make_default();
-	PacketPeerUDPPosix::make_default();
+	NetSocketPosix::make_default();
 	IP_Unix::make_default();
 #endif
 
@@ -227,7 +238,7 @@ OS::TimeZoneInfo OS_Unix::get_time_zone_info() const {
 
 void OS_Unix::delay_usec(uint32_t p_usec) const {
 
-	struct timespec rem = { p_usec / 1000000, (p_usec % 1000000) * 1000 };
+	struct timespec rem = { static_cast<time_t>(p_usec / 1000000), static_cast<long>((p_usec % 1000000) * 1000) };
 	while (nanosleep(&rem, &rem) == EINTR) {
 	}
 }
@@ -348,6 +359,12 @@ String OS_Unix::get_locale() const {
 Error OS_Unix::open_dynamic_library(const String p_path, void *&p_library_handle, bool p_also_set_library_path) {
 
 	String path = p_path;
+
+	if (FileAccess::exists(path) && path.is_rel_path()) {
+		// dlopen expects a slash, in this case a leading ./ for it to be interpreted as a relative path,
+		//  otherwise it will end up searching various system directories for the lib instead and finally failing.
+		path = "./" + path;
+	}
 
 	if (!FileAccess::exists(path)) {
 		//this code exists so gdnative can load .so files from within the executable path

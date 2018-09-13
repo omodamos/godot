@@ -31,21 +31,21 @@
 #ifndef NATIVE_SCRIPT_H
 #define NATIVE_SCRIPT_H
 
+#include "core/io/resource_loader.h"
+#include "core/io/resource_saver.h"
+#include "core/oa_hash_map.h"
+#include "core/ordered_hash_map.h"
+#include "core/os/thread_safe.h"
 #include "core/resource.h"
 #include "core/script_language.h"
 #include "core/self_list.h"
-#include "io/resource_loader.h"
-#include "io/resource_saver.h"
-#include "oa_hash_map.h"
-#include "ordered_hash_map.h"
-#include "os/thread_safe.h"
 #include "scene/main/node.h"
 
 #include "modules/gdnative/gdnative.h"
 #include <nativescript/godot_nativescript.h>
 
 #ifndef NO_THREADS
-#include "os/mutex.h"
+#include "core/os/mutex.h"
 #endif
 
 struct NativeScriptDesc {
@@ -118,6 +118,9 @@ class NativeScript : public Script {
 
 	String class_name;
 
+	String script_class_name;
+	String script_class_icon_path;
+
 #ifndef NO_THREADS
 	Mutex *owners_lock;
 #endif
@@ -134,6 +137,11 @@ public:
 
 	void set_library(Ref<GDNativeLibrary> p_library);
 	Ref<GDNativeLibrary> get_library() const;
+
+	void set_script_class_name(String p_type);
+	String get_script_class_name() const;
+	void set_script_class_icon_path(String p_icon_path);
+	String get_script_class_icon_path() const;
 
 	virtual bool can_instance() const;
 
@@ -181,6 +189,9 @@ class NativeScriptInstance : public ScriptInstance {
 
 	Object *owner;
 	Ref<NativeScript> script;
+#ifdef DEBUG_ENABLED
+	StringName current_method_call;
+#endif
 
 	void _ml_call_reversed(NativeScriptDesc *script_data, const StringName &p_method, const Variant **p_args, int p_argcount);
 
@@ -196,8 +207,8 @@ public:
 	virtual Variant call(const StringName &p_method, const Variant **p_args, int p_argcount, Variant::CallError &r_error);
 	virtual void notification(int p_notification);
 	virtual Ref<Script> get_script() const;
-	virtual RPCMode get_rpc_mode(const StringName &p_method) const;
-	virtual RPCMode get_rset_mode(const StringName &p_variable) const;
+	virtual MultiplayerAPI::RPCMode get_rpc_mode(const StringName &p_method) const;
+	virtual MultiplayerAPI::RPCMode get_rset_mode(const StringName &p_variable) const;
 	virtual ScriptLanguage *get_language();
 
 	virtual void call_multilevel(const StringName &p_method, const Variant **p_args, int p_argcount);
@@ -242,6 +253,22 @@ private:
 	Set<Vector<void *> *> binding_instances;
 
 	Map<int, HashMap<StringName, const void *> > global_type_tags;
+
+	struct ProfileData {
+		StringName signature;
+		uint64_t call_count;
+		uint64_t self_time;
+		uint64_t total_time;
+		uint64_t frame_call_count;
+		uint64_t frame_self_time;
+		uint64_t frame_total_time;
+		uint64_t last_frame_call_count;
+		uint64_t last_frame_self_time;
+		uint64_t last_frame_total_time;
+	};
+
+	Map<StringName, ProfileData> profile_data;
+	bool profiling;
 
 public:
 	// These two maps must only be touched on the main thread
@@ -292,7 +319,7 @@ public:
 	virtual void get_comment_delimiters(List<String> *p_delimiters) const;
 	virtual void get_string_delimiters(List<String> *p_delimiters) const;
 	virtual Ref<Script> get_template(const String &p_class_name, const String &p_base_class_name) const;
-	virtual bool validate(const String &p_script, int &r_line_error, int &r_col_error, String &r_test_error, const String &p_path, List<String> *r_functions) const;
+	virtual bool validate(const String &p_script, int &r_line_error, int &r_col_error, String &r_test_error, const String &p_path, List<String> *r_functions, List<ScriptLanguage::Warning> *r_warnings = NULL, Set<int> *r_safe_lines = NULL) const;
 	virtual Script *create_script() const;
 	virtual bool has_named_classes() const;
 	virtual bool supports_builtin_mode() const;
@@ -326,9 +353,16 @@ public:
 
 	virtual void *alloc_instance_binding_data(Object *p_object);
 	virtual void free_instance_binding_data(void *p_data);
+	virtual void refcount_incremented_instance_binding(Object *p_object);
+	virtual bool refcount_decremented_instance_binding(Object *p_object);
 
 	void set_global_type_tag(int p_idx, StringName p_class_name, const void *p_type_tag);
 	const void *get_global_type_tag(int p_idx, StringName p_class_name) const;
+
+	virtual bool handles_global_class_type(const String &p_type) const;
+	virtual String get_global_class_name(const String &p_path, String *r_base_type, String *r_icon_path) const;
+
+	void profiling_add_data(StringName p_signature, uint64_t p_time);
 };
 
 inline NativeScriptDesc *NativeScript::get_script_desc() const {

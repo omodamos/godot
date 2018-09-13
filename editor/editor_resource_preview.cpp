@@ -30,13 +30,13 @@
 
 #include "editor_resource_preview.h"
 
+#include "core/io/resource_loader.h"
+#include "core/io/resource_saver.h"
+#include "core/message_queue.h"
+#include "core/os/file_access.h"
+#include "core/project_settings.h"
 #include "editor_scale.h"
 #include "editor_settings.h"
-#include "io/resource_loader.h"
-#include "io/resource_saver.h"
-#include "message_queue.h"
-#include "os/file_access.h"
-#include "project_settings.h"
 
 bool EditorResourcePreviewGenerator::handles(const String &p_type) const {
 
@@ -46,7 +46,7 @@ bool EditorResourcePreviewGenerator::handles(const String &p_type) const {
 	ERR_EXPLAIN("EditorResourcePreviewGenerator::handles needs to be overridden");
 	ERR_FAIL_V(false);
 }
-Ref<Texture> EditorResourcePreviewGenerator::generate(const RES &p_from) {
+Ref<Texture> EditorResourcePreviewGenerator::generate(const RES &p_from) const {
 
 	if (get_script_instance() && get_script_instance()->has_method("generate")) {
 		return get_script_instance()->call("generate", p_from);
@@ -55,7 +55,7 @@ Ref<Texture> EditorResourcePreviewGenerator::generate(const RES &p_from) {
 	ERR_FAIL_V(Ref<Texture>());
 }
 
-Ref<Texture> EditorResourcePreviewGenerator::generate_from_path(const String &p_path) {
+Ref<Texture> EditorResourcePreviewGenerator::generate_from_path(const String &p_path) const {
 
 	if (get_script_instance() && get_script_instance()->has_method("generate_from_path")) {
 		return get_script_instance()->call("generate_from_path", p_path);
@@ -152,8 +152,6 @@ Ref<Texture> EditorResourcePreview::_generate_preview(const QueueItem &p_item, c
 			f->store_line(itos(FileAccess::get_modified_time(p_item.path)));
 			f->store_line(FileAccess::get_md5(p_item.path));
 			memdelete(f);
-		} else {
-			//print_line("was not generated");
 		}
 	}
 

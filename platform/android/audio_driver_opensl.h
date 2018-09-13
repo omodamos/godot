@@ -31,7 +31,7 @@
 #ifndef AUDIO_DRIVER_OPENSL_H
 #define AUDIO_DRIVER_OPENSL_H
 
-#include "os/mutex.h"
+#include "core/os/mutex.h"
 #include "servers/audio_server.h"
 
 #include <SLES/OpenSLES.h>
@@ -74,7 +74,8 @@ class AudioDriverOpenSL : public AudioDriver {
 			/*   SLuint32 eventFlags,
 	    const void * pBuffer,
 	    SLuint32 bufferSize,
-	    SLuint32 dataUsed*/);
+	    SLuint32 dataUsed*/
+	);
 
 	static void _buffer_callbacks(
 			SLAndroidSimpleBufferQueueItf queueItf,

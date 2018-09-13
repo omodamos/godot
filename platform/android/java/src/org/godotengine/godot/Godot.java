@@ -32,6 +32,7 @@ package org.godotengine.godot;
 
 import android.R;
 import android.app.Activity;
+import android.content.pm.ConfigurationInfo;
 import android.os.Bundle;
 import android.view.MotionEvent;
 import android.view.View;
@@ -57,6 +58,9 @@ import android.content.*;
 import android.content.pm.PackageManager.NameNotFoundException;
 import android.net.Uri;
 import android.media.MediaPlayer;
+
+import android.content.ClipboardManager;
+import android.content.ClipData;
 
 import java.lang.reflect.Method;
 import java.util.List;
@@ -102,6 +106,7 @@ public class Godot extends Activity implements SensorEventListener, IDownloaderC
 	private TextView mAverageSpeed;
 	private TextView mTimeRemaining;
 	private ProgressBar mPB;
+	private ClipboardManager mClipboard;
 
 	private View mDashboard;
 	private View mCellMessage;
@@ -246,9 +251,11 @@ public class Godot extends Activity implements SensorEventListener, IDownloaderC
 		}
 	};
 
-	public void onVideoInit(boolean use_gl2) {
+	public void onVideoInit() {
 
-		//mView = new GodotView(getApplication(),io,use_gl2);
+		boolean use_gl3 = getGLESVersionCode() >= 0x00030000;
+
+		//mView = new GodotView(getApplication(),io,use_gl3);
 		//setContentView(mView);
 
 		layout = new FrameLayout(this);
@@ -261,7 +268,7 @@ public class Godot extends Activity implements SensorEventListener, IDownloaderC
 		// ...add to FrameLayout
 		layout.addView(edittext);
 
-		mView = new GodotView(getApplication(), io, use_gl2, use_32_bits, this);
+		mView = new GodotView(getApplication(), io, use_gl3, use_32_bits, this);
 		layout.addView(mView, new LayoutParams(LayoutParams.FILL_PARENT, LayoutParams.FILL_PARENT));
 		edittext.setView(mView);
 		io.setEdit(edittext);
@@ -294,7 +301,7 @@ public class Godot extends Activity implements SensorEventListener, IDownloaderC
 				runOnUiThread(new Runnable() {
 					@Override
 					public void run() {
-						view.setKeepScreenOn("True".equals(GodotLib.getGlobal("display/driver/keep_screen_on")));
+						view.setKeepScreenOn("True".equals(GodotLib.getGlobal("display/window/energy_saving/keep_screen_on")));
 					}
 				});
 			}
@@ -336,6 +343,12 @@ public class Godot extends Activity implements SensorEventListener, IDownloaderC
 
 	public static Godot getInstance() {
 		return Godot._self;
+	}
+
+	public int getGLESVersionCode() {
+		ActivityManager am = (ActivityManager)Godot.getInstance().getSystemService(Context.ACTIVITY_SERVICE);
+		ConfigurationInfo deviceInfo = am.getDeviceConfigurationInfo();
+		return deviceInfo.reqGlEsVersion;
 	}
 
 	private String[] getCommandLine() {
@@ -432,6 +445,7 @@ public class Godot extends Activity implements SensorEventListener, IDownloaderC
 		Window window = getWindow();
 		//window.addFlags(WindowManager.LayoutParams.FLAG_TURN_SCREEN_ON | WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
 		window.addFlags(WindowManager.LayoutParams.FLAG_TURN_SCREEN_ON);
+		mClipboard = (ClipboardManager)getSystemService(Context.CLIPBOARD_SERVICE);
 
 		//check for apk expansion API
 		if (true) {
@@ -596,6 +610,24 @@ public class Godot extends Activity implements SensorEventListener, IDownloaderC
 		for (int i = 0; i < singleton_count; i++) {
 			singletons[i].onMainPause();
 		}
+	}
+
+	public String getClipboard() {
+
+		String copiedText = "";
+
+		if (mClipboard.getPrimaryClip() != null) {
+			ClipData.Item item = mClipboard.getPrimaryClip().getItemAt(0);
+			copiedText = item.getText().toString();
+		}
+
+		return copiedText;
+	}
+
+	public void setClipboard(String p_text) {
+
+		ClipData clip = ClipData.newPlainText("myLabel", p_text);
+		mClipboard.setPrimaryClip(clip);
 	}
 
 	@Override

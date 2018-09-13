@@ -32,7 +32,7 @@
 #define TILE_SET_H
 
 #include "core/array.h"
-#include "resource.h"
+#include "core/resource.h"
 #include "scene/2d/light_occluder_2d.h"
 #include "scene/2d/navigation_polygon.h"
 #include "scene/resources/shape_2d.h"
@@ -56,6 +56,7 @@ public:
 
 	enum BitmaskMode {
 		BITMASK_2X2,
+		BITMASK_3X3_MINIMAL,
 		BITMASK_3X3
 	};
 
@@ -74,7 +75,7 @@ public:
 	enum TileMode {
 		SINGLE_TILE,
 		AUTO_TILE,
-		ANIMATED_TILE
+		ATLAS_TILE
 	};
 
 	struct AutotileData {
@@ -113,11 +114,13 @@ private:
 		Color modulate;
 		TileMode tile_mode;
 		AutotileData autotile_data;
+		int z_index;
 
 		// Default modulate for back-compat
 		explicit TileData() :
 				tile_mode(SINGLE_TILE),
-				modulate(1, 1, 1) {}
+				modulate(1, 1, 1),
+				z_index(0) {}
 	};
 
 	Map<int, TileData> tile_map;
@@ -219,6 +222,9 @@ public:
 	void autotile_set_navigation_polygon(int p_id, const Ref<NavigationPolygon> &p_navigation_polygon, const Vector2 &p_coord);
 	Ref<NavigationPolygon> autotile_get_navigation_polygon(int p_id, const Vector2 &p_coord) const;
 	const Map<Vector2, Ref<NavigationPolygon> > &autotile_get_navigation_map(int p_id) const;
+
+	void tile_set_z_index(int p_id, int p_z_index);
+	int tile_get_z_index(int p_id) const;
 
 	void remove_tile(int p_id);
 

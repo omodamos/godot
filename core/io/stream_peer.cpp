@@ -29,7 +29,8 @@
 /*************************************************************************/
 
 #include "stream_peer.h"
-#include "io/marshalls.h"
+
+#include "core/io/marshalls.h"
 
 Error StreamPeer::_put_data(const PoolVector<uint8_t> &p_data) {
 
@@ -331,7 +332,7 @@ String StreamPeer::get_string(int p_bytes) {
 	ERR_FAIL_COND_V(err != OK, String());
 	err = get_data((uint8_t *)&buf[0], p_bytes);
 	ERR_FAIL_COND_V(err != OK, String());
-	buf[p_bytes] = 0;
+	buf.write[p_bytes] = 0;
 	return buf.ptr();
 }
 String StreamPeer::get_utf8_string(int p_bytes) {

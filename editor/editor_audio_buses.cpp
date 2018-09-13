@@ -30,10 +30,10 @@
 
 #include "editor_audio_buses.h"
 
+#include "core/io/resource_saver.h"
+#include "core/os/keyboard.h"
 #include "editor_node.h"
 #include "filesystem_dock.h"
-#include "io/resource_saver.h"
-#include "os/keyboard.h"
 #include "servers/audio_server.h"
 
 void EditorAudioBus::_notification(int p_what) {
@@ -482,10 +482,8 @@ void EditorAudioBus::drop_data(const Point2 &p_point, const Variant &p_data) {
 
 Variant EditorAudioBus::get_drag_data_fw(const Point2 &p_point, Control *p_from) {
 
-	print_line("drag fw");
 	TreeItem *item = effects->get_item_at_position(p_point);
 	if (!item) {
-		print_line("no item");
 		return Variant();
 	}
 

@@ -7,7 +7,7 @@
 		Plugins are used by the editor to extend functionality. The most common types of plugins are those which edit a given node or resource type, import plugins and export plugins.
 	</description>
 	<tutorials>
-		http://docs.godotengine.org/en/3.0/development/plugins/index.html
+		<link>http://docs.godotengine.org/en/3.0/development/plugins/index.html</link>
 	</tutorials>
 	<demos>
 	</demos>
@@ -81,7 +81,7 @@
 		<method name="add_export_plugin">
 			<return type="void">
 			</return>
-			<argument index="0" name="exporter" type="EditorExportPlugin">
+			<argument index="0" name="plugin" type="EditorExportPlugin">
 			</argument>
 			<description>
 			</description>
@@ -90,6 +90,14 @@
 			<return type="void">
 			</return>
 			<argument index="0" name="importer" type="EditorImportPlugin">
+			</argument>
+			<description>
+			</description>
+		</method>
+		<method name="add_inspector_plugin">
+			<return type="void">
+			</return>
+			<argument index="0" name="plugin" type="EditorInspectorPlugin">
 			</argument>
 			<description>
 			</description>
@@ -114,7 +122,7 @@
 			<argument index="3" name="ud" type="Variant" default="null">
 			</argument>
 			<description>
-				Adds a custom menu to 'Project > Tools' as [code]name[/code] that calls [code]callback[/code] on an instance of [code]handler[/code] with a parameter [code]ud[/code] when user activates it.
+				Adds a custom menu to 'Project &gt; Tools' as [code]name[/code] that calls [code]callback[/code] on an instance of [code]handler[/code] with a parameter [code]ud[/code] when user activates it.
 			</description>
 		</method>
 		<method name="add_tool_submenu_item">
@@ -135,20 +143,17 @@
 				This is used, for example, in shader editors to let the plugin know that it must apply the shader code being written by the user to the object.
 			</description>
 		</method>
+		<method name="build" qualifiers="virtual">
+			<return type="bool">
+			</return>
+			<description>
+			</description>
+		</method>
 		<method name="clear" qualifiers="virtual">
 			<return type="void">
 			</return>
 			<description>
 				Clear all the state and reset the object being edited to zero. This ensures your plugin does not keep editing a currently existing node, or a node from the wrong scene.
-			</description>
-		</method>
-		<method name="create_spatial_gizmo" qualifiers="virtual">
-			<return type="EditorSpatialGizmo">
-			</return>
-			<argument index="0" name="for_spatial" type="Spatial">
-			</argument>
-			<description>
-				This is used for plugins that create gizmos used by the spatial editor. Just check that the node passed in the "for_spatial" argument matches your plugin.
 			</description>
 		</method>
 		<method name="edit" qualifiers="virtual">
@@ -219,6 +224,13 @@
 			<return type="String">
 			</return>
 			<description>
+			</description>
+		</method>
+		<method name="get_script_create_dialog">
+			<return type="ScriptCreateDialog">
+			</return>
+			<description>
+				Gets the Editor's dialogue used for making scripts. Note that users can configure it before use.
 			</description>
 		</method>
 		<method name="get_state" qualifiers="virtual">
@@ -341,7 +353,7 @@
 		<method name="remove_export_plugin">
 			<return type="void">
 			</return>
-			<argument index="0" name="exporter" type="EditorExportPlugin">
+			<argument index="0" name="plugin" type="EditorExportPlugin">
 			</argument>
 			<description>
 			</description>
@@ -350,6 +362,14 @@
 			<return type="void">
 			</return>
 			<argument index="0" name="importer" type="EditorImportPlugin">
+			</argument>
+			<description>
+			</description>
+		</method>
+		<method name="remove_inspector_plugin">
+			<return type="void">
+			</return>
+			<argument index="0" name="plugin" type="EditorInspectorPlugin">
 			</argument>
 			<description>
 			</description>
@@ -368,7 +388,7 @@
 			<argument index="0" name="name" type="String">
 			</argument>
 			<description>
-				Removes a menu [code]name[/code] from 'Project > Tools'.
+				Removes a menu [code]name[/code] from 'Project &gt; Tools'.
 			</description>
 		</method>
 		<method name="save_external_data" qualifiers="virtual">
@@ -424,8 +444,14 @@
 				Emitted when user change main screen view (2D, 3D, Script, AssetLib). Works also with screens which are defined by plugins.
 			</description>
 		</signal>
+		<signal name="resource_saved">
+			<argument index="0" name="resource" type="Resource">
+			</argument>
+			<description>
+			</description>
+		</signal>
 		<signal name="scene_changed">
-			<argument index="0" name="scene_root" type="Object">
+			<argument index="0" name="scene_root" type="Node">
 			</argument>
 			<description>
 				Emitted when user change scene. The argument is a root node of freshly opened scene.
@@ -444,17 +470,21 @@
 		</constant>
 		<constant name="CONTAINER_SPATIAL_EDITOR_MENU" value="1" enum="CustomControlContainer">
 		</constant>
-		<constant name="CONTAINER_SPATIAL_EDITOR_SIDE" value="2" enum="CustomControlContainer">
+		<constant name="CONTAINER_SPATIAL_EDITOR_SIDE_LEFT" value="2" enum="CustomControlContainer">
 		</constant>
-		<constant name="CONTAINER_SPATIAL_EDITOR_BOTTOM" value="3" enum="CustomControlContainer">
+		<constant name="CONTAINER_SPATIAL_EDITOR_SIDE_RIGHT" value="3" enum="CustomControlContainer">
 		</constant>
-		<constant name="CONTAINER_CANVAS_EDITOR_MENU" value="4" enum="CustomControlContainer">
+		<constant name="CONTAINER_SPATIAL_EDITOR_BOTTOM" value="4" enum="CustomControlContainer">
 		</constant>
-		<constant name="CONTAINER_CANVAS_EDITOR_SIDE" value="5" enum="CustomControlContainer">
+		<constant name="CONTAINER_CANVAS_EDITOR_MENU" value="5" enum="CustomControlContainer">
 		</constant>
-		<constant name="CONTAINER_CANVAS_EDITOR_BOTTOM" value="6" enum="CustomControlContainer">
+		<constant name="CONTAINER_CANVAS_EDITOR_SIDE_LEFT" value="6" enum="CustomControlContainer">
 		</constant>
-		<constant name="CONTAINER_PROPERTY_EDITOR_BOTTOM" value="7" enum="CustomControlContainer">
+		<constant name="CONTAINER_CANVAS_EDITOR_SIDE_RIGHT" value="7" enum="CustomControlContainer">
+		</constant>
+		<constant name="CONTAINER_CANVAS_EDITOR_BOTTOM" value="8" enum="CustomControlContainer">
+		</constant>
+		<constant name="CONTAINER_PROPERTY_EDITOR_BOTTOM" value="9" enum="CustomControlContainer">
 		</constant>
 		<constant name="DOCK_SLOT_LEFT_UL" value="0" enum="DockSlot">
 		</constant>

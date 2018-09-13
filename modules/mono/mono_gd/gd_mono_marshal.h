@@ -31,9 +31,9 @@
 #ifndef GDMONOMARSHAL_H
 #define GDMONOMARSHAL_H
 
+#include "core/variant.h"
 #include "gd_mono.h"
 #include "gd_mono_utils.h"
-#include "variant.h"
 
 namespace GDMonoMarshal {
 
@@ -142,11 +142,6 @@ PoolVector2Array mono_array_to_PoolVector2Array(MonoArray *p_array);
 
 MonoArray *PoolVector3Array_to_mono_array(const PoolVector3Array &p_array);
 PoolVector3Array mono_array_to_PoolVector3Array(MonoArray *p_array);
-
-// Dictionary
-
-MonoObject *Dictionary_to_mono_object(const Dictionary &p_dict);
-Dictionary mono_object_to_Dictionary(MonoObject *p_dict);
 
 #ifdef YOLO_COPY
 #define MARSHALLED_OUT(m_t, m_in, m_out) m_t *m_out = (m_t *)&m_in;

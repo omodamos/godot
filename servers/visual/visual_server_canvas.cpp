@@ -30,6 +30,7 @@
 
 #include "visual_server_canvas.h"
 #include "visual_server_global.h"
+#include "visual_server_raster.h"
 #include "visual_server_viewport.h"
 
 void VisualServerCanvas::_render_canvas_item_tree(Item *p_canvas_item, const Transform2D &p_transform, const Rect2 &p_clip_rect, const Color &p_modulate, RasterizerCanvas::Light *p_lights) {
@@ -117,6 +118,10 @@ void VisualServerCanvas::_render_canvas_item(Item *p_canvas_item, const Transfor
 	if (ci->copy_back_buffer) {
 
 		ci->copy_back_buffer->screen_rect = xform.xform(ci->copy_back_buffer->rect).clip(p_clip_rect);
+	}
+
+	if (ci->update_when_visible) {
+		VisualServerRaster::redraw_request();
 	}
 
 	if ((!ci->commands.empty() && p_clip_rect.intersects(global_rect)) || ci->vp_render || ci->copy_back_buffer) {
@@ -220,7 +225,7 @@ void VisualServerCanvas::render_canvas(Canvas *p_canvas, const Transform2D &p_tr
 
 		for (int i = 0; i < l; i++) {
 
-			Canvas::ChildItem &ci = p_canvas->child_items[i];
+			const Canvas::ChildItem &ci = p_canvas->child_items[i];
 			_render_canvas_item_tree(ci.item, p_transform, p_clip_rect, p_canvas->modulate, p_lights);
 
 			//mirroring (useful for scrolling backgrounds)
@@ -263,7 +268,7 @@ void VisualServerCanvas::canvas_set_item_mirroring(RID p_canvas, RID p_item, con
 
 	int idx = canvas->find_item(canvas_item);
 	ERR_FAIL_COND(idx == -1);
-	canvas->child_items[idx].mirror = p_mirroring;
+	canvas->child_items.write[idx].mirror = p_mirroring;
 }
 void VisualServerCanvas::canvas_set_modulate(RID p_canvas, const Color &p_color) {
 
@@ -390,6 +395,14 @@ void VisualServerCanvas::canvas_item_set_draw_behind_parent(RID p_item, bool p_e
 	canvas_item->behind = p_enable;
 }
 
+void VisualServerCanvas::canvas_item_set_update_when_visible(RID p_item, bool p_update) {
+
+	Item *canvas_item = canvas_item_owner.getornull(p_item);
+	ERR_FAIL_COND(!canvas_item);
+
+	canvas_item->update_when_visible = p_update;
+}
+
 void VisualServerCanvas::canvas_item_add_line(RID p_item, const Point2 &p_from, const Point2 &p_to, const Color &p_color, float p_width, bool p_antialiased) {
 
 	Item *canvas_item = canvas_item_owner.getornull(p_item);
@@ -468,21 +481,21 @@ void VisualServerCanvas::canvas_item_add_polyline(RID p_item, const Vector<Point
 			Vector2 tangent = ((t + prev_t).normalized()) * p_width * 0.5;
 
 			if (p_antialiased) {
-				pline->lines[i] = p_points[i] + tangent;
-				pline->lines[p_points.size() * 2 - i - 1] = p_points[i] - tangent;
+				pline->lines.write[i] = p_points[i] + tangent;
+				pline->lines.write[p_points.size() * 2 - i - 1] = p_points[i] - tangent;
 				if (pline->line_colors.size() > 1) {
-					pline->line_colors[i] = p_colors[i];
-					pline->line_colors[p_points.size() * 2 - i - 1] = p_colors[i];
+					pline->line_colors.write[i] = p_colors[i];
+					pline->line_colors.write[p_points.size() * 2 - i - 1] = p_colors[i];
 				}
 			}
 
-			pline->triangles[i * 2 + 0] = p_points[i] + tangent;
-			pline->triangles[i * 2 + 1] = p_points[i] - tangent;
+			pline->triangles.write[i * 2 + 0] = p_points[i] + tangent;
+			pline->triangles.write[i * 2 + 1] = p_points[i] - tangent;
 
 			if (pline->triangle_colors.size() > 1) {
 
-				pline->triangle_colors[i * 2 + 0] = p_colors[i];
-				pline->triangle_colors[i * 2 + 1] = p_colors[i];
+				pline->triangle_colors.write[i * 2 + 0] = p_colors[i];
+				pline->triangle_colors.write[i * 2 + 1] = p_colors[i];
 			}
 
 			prev_t = t;
@@ -669,7 +682,7 @@ void VisualServerCanvas::canvas_item_add_polygon(RID p_item, const Vector<Point2
 	int color_size = p_colors.size();
 	int uv_size = p_uvs.size();
 	ERR_FAIL_COND(color_size != 0 && color_size != 1 && color_size != pointcount);
-	ERR_FAIL_COND(uv_size != 0 && (uv_size != pointcount || !p_texture.is_valid()));
+	ERR_FAIL_COND(uv_size != 0 && (uv_size != pointcount));
 #endif
 	Vector<int> indices = Geometry::triangulate_polygon(p_points);
 
@@ -694,7 +707,7 @@ void VisualServerCanvas::canvas_item_add_polygon(RID p_item, const Vector<Point2
 	canvas_item->commands.push_back(polygon);
 }
 
-void VisualServerCanvas::canvas_item_add_triangle_array(RID p_item, const Vector<int> &p_indices, const Vector<Point2> &p_points, const Vector<Color> &p_colors, const Vector<Point2> &p_uvs, RID p_texture, int p_count, RID p_normal_map) {
+void VisualServerCanvas::canvas_item_add_triangle_array(RID p_item, const Vector<int> &p_indices, const Vector<Point2> &p_points, const Vector<Color> &p_colors, const Vector<Point2> &p_uvs, const Vector<int> &p_bones, const Vector<float> &p_weights, RID p_texture, int p_count, RID p_normal_map) {
 
 	Item *canvas_item = canvas_item_owner.getornull(p_item);
 	ERR_FAIL_COND(!canvas_item);
@@ -702,6 +715,8 @@ void VisualServerCanvas::canvas_item_add_triangle_array(RID p_item, const Vector
 	int ps = p_points.size();
 	ERR_FAIL_COND(!p_colors.empty() && p_colors.size() != ps && p_colors.size() != 1);
 	ERR_FAIL_COND(!p_uvs.empty() && p_uvs.size() != ps);
+	ERR_FAIL_COND(!p_bones.empty() && p_bones.size() != ps * 4);
+	ERR_FAIL_COND(!p_weights.empty() && p_weights.size() != ps * 4);
 
 	Vector<int> indices = p_indices;
 
@@ -726,6 +741,8 @@ void VisualServerCanvas::canvas_item_add_triangle_array(RID p_item, const Vector
 	polygon->points = p_points;
 	polygon->uvs = p_uvs;
 	polygon->colors = p_colors;
+	polygon->bones = p_bones;
+	polygon->weights = p_weights;
 	polygon->indices = indices;
 	polygon->count = count;
 	polygon->antialiased = false;

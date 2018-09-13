@@ -31,7 +31,7 @@
 #include "collision_shape_2d.h"
 
 #include "collision_object_2d.h"
-#include "engine.h"
+#include "core/engine.h"
 #include "scene/resources/capsule_shape_2d.h"
 #include "scene/resources/circle_shape_2d.h"
 #include "scene/resources/concave_polygon_shape_2d.h"
@@ -119,7 +119,7 @@ void CollisionShape2D::_notification(int p_what) {
 
 			Color draw_col = get_tree()->get_debug_collisions_color();
 			if (disabled) {
-				float g = draw_col.gray();
+				float g = draw_col.get_v();
 				draw_col.r = g;
 				draw_col.g = g;
 				draw_col.b = g;

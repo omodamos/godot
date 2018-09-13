@@ -29,9 +29,8 @@
 /*************************************************************************/
 
 #include "button.h"
-#include "print_string.h"
+#include "core/translation.h"
 #include "servers/visual_server.h"
-#include "translation.h"
 
 Size2 Button::get_minimum_size() const {
 
@@ -75,8 +74,6 @@ void Button::_notification(int p_what) {
 		Size2 size = get_size();
 		Color color;
 		Color color_icon(1, 1, 1, 1);
-
-		//print_line(get_text()+": "+itos(is_flat())+" hover "+itos(get_draw_mode()));
 
 		Ref<StyleBox> style = get_stylebox("normal");
 
