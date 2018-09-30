@@ -59,25 +59,10 @@ void ScriptEditorBase::_bind_methods() {
 	ADD_SIGNAL(MethodInfo("search_in_files_requested", PropertyInfo(Variant::STRING, "text")));
 }
 
-static bool _can_open_in_editor(Script *p_script) {
-
+static bool _is_built_in_script(Script *p_script) {
 	String path = p_script->get_path();
 
-	if (path.find("::") != -1) {
-		//refuse handling this if it can't be edited
-
-		bool valid = false;
-		for (int i = 0; i < EditorNode::get_singleton()->get_editor_data().get_edited_scene_count(); i++) {
-			if (path.begins_with(EditorNode::get_singleton()->get_editor_data().get_scene_path(i))) {
-				valid = true;
-				break;
-			}
-		}
-
-		return valid;
-	}
-
-	return true;
+	return path.find("::") != -1;
 }
 
 class EditorScriptCodeCompletionCache : public ScriptCodeCompletionCache {
@@ -812,7 +797,7 @@ bool ScriptEditor::_test_script_times_on_disk(RES p_for_script) {
 		if (se) {
 
 			RES edited_res = se->get_edited_resource();
-			if (edited_res.is_valid() && p_for_script != edited_res)
+			if (p_for_script.is_valid() && edited_res.is_valid() && p_for_script != edited_res)
 				continue;
 
 			if (edited_res->get_path() == "" || edited_res->get_path().find("local://") != -1 || edited_res->get_path().find("::") != -1)
@@ -2736,7 +2721,7 @@ void ScriptEditor::set_scene_root_script(Ref<Script> p_script) {
 	if (bool(EditorSettings::get_singleton()->get("text_editor/external/use_external_editor")))
 		return;
 
-	if (open_dominant && p_script.is_valid() && _can_open_in_editor(p_script.ptr())) {
+	if (open_dominant && p_script.is_valid()) {
 		edit(p_script);
 	}
 }
@@ -3028,7 +3013,7 @@ ScriptEditor::ScriptEditor(EditorNode *p_editor) {
 	file_menu->get_popup()->add_shortcut(ED_SHORTCUT("script_editor/show_in_file_system", TTR("Show In File System")), SHOW_IN_FILE_SYSTEM);
 	file_menu->get_popup()->add_separator();
 
-	file_menu->get_popup()->add_shortcut(ED_SHORTCUT("script_editor/history_previous", TTR("History Prev"), KEY_MASK_ALT | KEY_LEFT), WINDOW_PREV);
+	file_menu->get_popup()->add_shortcut(ED_SHORTCUT("script_editor/history_previous", TTR("History Previous"), KEY_MASK_ALT | KEY_LEFT), WINDOW_PREV);
 	file_menu->get_popup()->add_shortcut(ED_SHORTCUT("script_editor/history_next", TTR("History Next"), KEY_MASK_ALT | KEY_RIGHT), WINDOW_NEXT);
 	file_menu->get_popup()->add_separator();
 
@@ -3075,7 +3060,7 @@ ScriptEditor::ScriptEditor(EditorNode *p_editor) {
 	debug_menu->get_popup()->add_separator();
 	//debug_menu->get_popup()->add_check_item("Show Debugger",DEBUG_SHOW);
 	debug_menu->get_popup()->add_check_shortcut(ED_SHORTCUT("debugger/keep_debugger_open", TTR("Keep Debugger Open")), DEBUG_SHOW_KEEP_OPEN);
-	debug_menu->get_popup()->add_check_shortcut(ED_SHORTCUT("debugger/debug_with_exteral_editor", TTR("Debug with external editor")), DEBUG_WITH_EXTERNAL_EDITOR);
+	debug_menu->get_popup()->add_check_shortcut(ED_SHORTCUT("debugger/debug_with_external_editor", TTR("Debug with External Editor")), DEBUG_WITH_EXTERNAL_EDITOR);
 	debug_menu->get_popup()->connect("id_pressed", this, "_menu_option");
 
 	debug_menu->get_popup()->set_item_disabled(debug_menu->get_popup()->get_item_index(DEBUG_NEXT), true);
@@ -3148,7 +3133,6 @@ ScriptEditor::ScriptEditor(EditorNode *p_editor) {
 
 	error_dialog = memnew(AcceptDialog);
 	add_child(error_dialog);
-	error_dialog->get_ok()->set_text(TTR("OK"));
 
 	debugger = memnew(ScriptEditorDebugger(editor));
 	debugger->connect("goto_script_line", this, "_goto_script_line");
@@ -3232,7 +3216,17 @@ ScriptEditor::~ScriptEditor() {
 void ScriptEditorPlugin::edit(Object *p_object) {
 
 	if (Object::cast_to<Script>(p_object)) {
-		script_editor->edit(Object::cast_to<Script>(p_object));
+
+		Script *p_script = Object::cast_to<Script>(p_object);
+		String scene_path = p_script->get_path().get_slice("::", 0);
+
+		if (_is_built_in_script(p_script) && !EditorNode::get_singleton()->is_scene_open(scene_path)) {
+			EditorNode::get_singleton()->load_scene(scene_path);
+
+			script_editor->call_deferred("edit", p_script);
+		} else {
+			script_editor->edit(p_script);
+		}
 	}
 
 	if (Object::cast_to<TextFile>(p_object)) {
@@ -3247,13 +3241,7 @@ bool ScriptEditorPlugin::handles(Object *p_object) const {
 	}
 
 	if (Object::cast_to<Script>(p_object)) {
-
-		bool valid = _can_open_in_editor(Object::cast_to<Script>(p_object));
-
-		if (!valid) { //user tried to open it by clicking
-			EditorNode::get_singleton()->show_warning(TTR("Built-in scripts can only be edited when the scene they belong to is loaded"));
-		}
-		return valid;
+		return true;
 	}
 
 	return p_object->is_class("Script");

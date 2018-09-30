@@ -30,6 +30,7 @@
 
 #include "script_editor_debugger.h"
 
+#include "core/io/marshalls.h"
 #include "core/project_settings.h"
 #include "core/ustring.h"
 #include "editor_node.h"
@@ -428,8 +429,9 @@ void ScriptEditorDebugger::_parse_message(const String &p_msg, const Array &p_da
 			ObjectID id = ObjectID(p_data[i + 3]);
 
 			it->set_text(0, p_data[i + 1]);
-			if (has_icon(p_data[i + 2], "EditorIcons"))
-				it->set_icon(0, get_icon(p_data[i + 2], "EditorIcons"));
+			Ref<Texture> icon = EditorNode::get_singleton()->get_class_icon(p_data[i + 2], "");
+			if (icon.is_valid())
+				it->set_icon(0, icon);
 			it->set_metadata(0, id);
 
 			if (id == inspected_object_id) {
@@ -491,15 +493,21 @@ void ScriptEditorDebugger::_parse_message(const String &p_msg, const Array &p_da
 			pinfo.usage = PropertyUsageFlags(int(prop[4]));
 			Variant var = prop[5];
 
-			String hint_string = pinfo.hint_string;
-			if (hint_string.begins_with("RES:") && hint_string != "RES:") {
-				String path = hint_string.substr(4, hint_string.length());
-				var = ResourceLoader::load(path);
-			}
-
 			if (is_new_object) {
 				//don't update.. it's the same, instead refresh
 				debugObj->prop_list.push_back(pinfo);
+			}
+
+			if (var.get_type() == Variant::STRING) {
+				String str = var;
+				var = str.substr(4, str.length());
+
+				if (str.begins_with("PATH")) {
+					if (String(var).empty())
+						var = RES();
+					else
+						var = ResourceLoader::load(var);
+				}
 			}
 
 			debugObj->prop_values[pinfo.name] = var;
@@ -572,14 +580,10 @@ void ScriptEditorDebugger::_parse_message(const String &p_msg, const Array &p_da
 			PropertyHint h = PROPERTY_HINT_NONE;
 			String hs = String();
 
-			if (n.begins_with("*")) {
-
-				n = n.substr(1, n.length());
+			if (v.get_type() == Variant::OBJECT) {
+				v = Object::cast_to<EncodedObjectAsID>(v)->get_object_id();
 				h = PROPERTY_HINT_OBJECT_ID;
-				String s = v;
-				s = s.replace("[", "");
-				hs = s.get_slice(":", 0);
-				v = s.get_slice(":", 1).to_int();
+				hs = "Object";
 			}
 
 			variables->add_property("Locals/" + n, v, h, hs);
@@ -595,14 +599,10 @@ void ScriptEditorDebugger::_parse_message(const String &p_msg, const Array &p_da
 			PropertyHint h = PROPERTY_HINT_NONE;
 			String hs = String();
 
-			if (n.begins_with("*")) {
-
-				n = n.substr(1, n.length());
+			if (v.get_type() == Variant::OBJECT) {
+				v = Object::cast_to<EncodedObjectAsID>(v)->get_object_id();
 				h = PROPERTY_HINT_OBJECT_ID;
-				String s = v;
-				s = s.replace("[", "");
-				hs = s.get_slice(":", 0);
-				v = s.get_slice(":", 1).to_int();
+				hs = "Object";
 			}
 
 			variables->add_property("Members/" + n, v, h, hs);
@@ -618,14 +618,10 @@ void ScriptEditorDebugger::_parse_message(const String &p_msg, const Array &p_da
 			PropertyHint h = PROPERTY_HINT_NONE;
 			String hs = String();
 
-			if (n.begins_with("*")) {
-
-				n = n.substr(1, n.length());
+			if (v.get_type() == Variant::OBJECT) {
+				v = Object::cast_to<EncodedObjectAsID>(v)->get_object_id();
 				h = PROPERTY_HINT_OBJECT_ID;
-				String s = v;
-				s = s.replace("[", "");
-				hs = s.get_slice(":", 0);
-				v = s.get_slice(":", 1).to_int();
+				hs = "Object";
 			}
 
 			variables->add_property("Globals/" + n, v, h, hs);
@@ -1717,6 +1713,32 @@ void ScriptEditorDebugger::_error_selected() {
 	emit_signal("goto_script_line", s, int(meta[1]) - 1);
 }
 
+void ScriptEditorDebugger::_expand_errors_list() {
+
+	TreeItem *root = error_tree->get_root();
+	if (!root)
+		return;
+
+	TreeItem *item = root->get_children();
+	while (item) {
+		item->set_collapsed(false);
+		item = item->get_next();
+	}
+}
+
+void ScriptEditorDebugger::_collapse_errors_list() {
+
+	TreeItem *root = error_tree->get_root();
+	if (!root)
+		return;
+
+	TreeItem *item = root->get_children();
+	while (item) {
+		item->set_collapsed(true);
+		item = item->get_next();
+	}
+}
+
 void ScriptEditorDebugger::set_hide_on_stop(bool p_hide) {
 
 	hide_on_stop = p_hide;
@@ -1861,6 +1883,8 @@ void ScriptEditorDebugger::_bind_methods() {
 
 	ClassDB::bind_method(D_METHOD("_error_selected"), &ScriptEditorDebugger::_error_selected);
 	ClassDB::bind_method(D_METHOD("_error_activated"), &ScriptEditorDebugger::_error_activated);
+	ClassDB::bind_method(D_METHOD("_expand_errors_list"), &ScriptEditorDebugger::_expand_errors_list);
+	ClassDB::bind_method(D_METHOD("_collapse_errors_list"), &ScriptEditorDebugger::_collapse_errors_list);
 	ClassDB::bind_method(D_METHOD("_profiler_activate"), &ScriptEditorDebugger::_profiler_activate);
 	ClassDB::bind_method(D_METHOD("_profiler_seeked"), &ScriptEditorDebugger::_profiler_seeked);
 	ClassDB::bind_method(D_METHOD("_clear_errors_list"), &ScriptEditorDebugger::_clear_errors_list);
@@ -1999,8 +2023,31 @@ ScriptEditorDebugger::ScriptEditorDebugger(EditorNode *p_editor) {
 	}
 
 	{ //errors
+		VBoxContainer *errvb = memnew(VBoxContainer);
+		errvb->set_name(TTR("Errors"));
+
 		HBoxContainer *errhb = memnew(HBoxContainer);
-		errhb->set_name(TTR("Errors"));
+		errvb->add_child(errhb);
+
+		Button *expand_all = memnew(Button);
+		expand_all->set_text(TTR("Expand All"));
+		expand_all->connect("pressed", this, "_expand_errors_list");
+		errhb->add_child(expand_all);
+
+		Button *collapse_all = memnew(Button);
+		collapse_all->set_text(TTR("Collapse All"));
+		collapse_all->connect("pressed", this, "_collapse_errors_list");
+		errhb->add_child(collapse_all);
+
+		Control *space = memnew(Control);
+		space->set_h_size_flags(SIZE_EXPAND_FILL);
+		errhb->add_child(space);
+
+		clearbutton = memnew(Button);
+		clearbutton->set_text(TTR("Clear"));
+		clearbutton->set_h_size_flags(0);
+		clearbutton->connect("pressed", this, "_clear_errors_list");
+		errhb->add_child(clearbutton);
 
 		error_tree = memnew(Tree);
 		error_tree->set_columns(2);
@@ -2012,22 +2059,16 @@ ScriptEditorDebugger::ScriptEditorDebugger(EditorNode *p_editor) {
 
 		error_tree->set_select_mode(Tree::SELECT_ROW);
 		error_tree->set_hide_root(true);
-		error_tree->set_h_size_flags(SIZE_EXPAND_FILL);
+		error_tree->set_v_size_flags(SIZE_EXPAND_FILL);
 		error_tree->set_allow_rmb_select(true);
 		error_tree->connect("item_rmb_selected", this, "_error_tree_item_rmb_selected");
-		errhb->add_child(error_tree);
+		errvb->add_child(error_tree);
 
 		item_menu = memnew(PopupMenu);
 		item_menu->connect("id_pressed", this, "_item_menu_id_pressed");
 		error_tree->add_child(item_menu);
 
-		clearbutton = memnew(Button);
-		clearbutton->set_text(TTR("Clear"));
-		clearbutton->set_v_size_flags(0);
-		clearbutton->connect("pressed", this, "_clear_errors_list");
-		errhb->add_child(clearbutton);
-
-		tabs->add_child(errhb);
+		tabs->add_child(errvb);
 	}
 
 	{ // remote scene tree

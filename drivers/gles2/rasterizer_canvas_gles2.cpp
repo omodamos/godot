@@ -565,7 +565,7 @@ void RasterizerCanvasGLES2::_canvas_item_render_commands(Item *p_item, Item *cur
 					buffer[(1 * 4 * 4) + 14] = (source.position.x + source.size.x) * texpixel_size.x;
 					buffer[(1 * 4 * 4) + 15] = (source.position.y + np->margin[MARGIN_TOP]) * texpixel_size.y;
 
-					// thrid row
+					// third row
 
 					buffer[(2 * 4 * 4) + 0] = np->rect.position.x;
 					buffer[(2 * 4 * 4) + 1] = np->rect.position.y + np->rect.size.y - np->margin[MARGIN_BOTTOM];
@@ -810,8 +810,6 @@ void RasterizerCanvasGLES2::canvas_render_items(Item *p_item_list, int p_z, cons
 	RasterizerStorageGLES2::Shader *shader_cache = NULL;
 
 	bool rebind_shader = true;
-
-	Size2 rt_size = Size2(storage->frame.current_rt->width, storage->frame.current_rt->height);
 
 	state.current_tex = RID();
 	state.current_tex_ptr = NULL;

@@ -1,5 +1,5 @@
 /*************************************************************************/
-/*  editor_initialize_ssl.h                                              */
+/*  osx_utils.h                                                          */
 /*************************************************************************/
 /*                       This file is part of:                           */
 /*                           GODOT ENGINE                                */
@@ -28,9 +28,14 @@
 /* SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                */
 /*************************************************************************/
 
-#ifndef EDITOR_INITIALIZE_SSL_H
-#define EDITOR_INITIALIZE_SSL_H
+#include "core/ustring.h"
 
-void editor_initialize_certificates();
+#ifndef OSX_UTILS_H
 
-#endif // EDITOR_INITIALIZE_SSL_H
+#ifdef OSX_ENABLED
+
+bool osx_is_app_bundle_installed(const String &p_bundle_id);
+
+#endif
+
+#endif // OSX_UTILS_H

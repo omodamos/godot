@@ -209,6 +209,7 @@ public:
 
 	virtual void material_set_param(RID p_material, const StringName &p_param, const Variant &p_value) = 0;
 	virtual Variant material_get_param(RID p_material, const StringName &p_param) const = 0;
+	virtual Variant material_get_param_default(RID p_material, const StringName &p_param) const = 0;
 
 	virtual void material_set_render_priority(RID p_material, int priority) = 0;
 
@@ -489,6 +490,7 @@ public:
 	virtual void reflection_probe_set_enable_box_projection(RID p_probe, bool p_enable) = 0;
 	virtual void reflection_probe_set_enable_shadows(RID p_probe, bool p_enable) = 0;
 	virtual void reflection_probe_set_cull_mask(RID p_probe, uint32_t p_layers) = 0;
+	virtual void reflection_probe_set_resolution(RID p_probe, int p_resolution) = 0;
 
 	/* GI PROBE API */
 
@@ -1034,6 +1036,8 @@ public:
 	virtual void set_debug_generate_wireframes(bool p_generate) = 0;
 
 	virtual void call_set_use_vsync(bool p_enable) = 0;
+
+	virtual bool is_low_end() const = 0;
 
 	VisualServer();
 	virtual ~VisualServer();

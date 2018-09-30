@@ -1174,7 +1174,7 @@ bool CSharpInstance::set(const StringName &p_name, const Variant &p_value) {
 		GDMonoProperty *property = script->script_class->get_property(p_name);
 
 		if (property) {
-			property->set_value(mono_object, GDMonoMarshal::variant_to_mono_object(p_value));
+			property->set_value(mono_object, GDMonoMarshal::variant_to_mono_object(p_value, property->get_type()));
 			return true;
 		}
 
@@ -1541,18 +1541,20 @@ MultiplayerAPI::RPCMode CSharpInstance::_member_get_rpc_mode(GDMonoClassMember *
 
 	if (p_member->has_attribute(CACHED_CLASS(RemoteAttribute)))
 		return MultiplayerAPI::RPC_MODE_REMOTE;
-	if (p_member->has_attribute(CACHED_CLASS(SyncAttribute)))
-		return MultiplayerAPI::RPC_MODE_SYNC;
 	if (p_member->has_attribute(CACHED_CLASS(MasterAttribute)))
 		return MultiplayerAPI::RPC_MODE_MASTER;
+	if (p_member->has_attribute(CACHED_CLASS(PuppetAttribute)))
+		return MultiplayerAPI::RPC_MODE_PUPPET;
 	if (p_member->has_attribute(CACHED_CLASS(SlaveAttribute)))
-		return MultiplayerAPI::RPC_MODE_SLAVE;
+		return MultiplayerAPI::RPC_MODE_PUPPET;
 	if (p_member->has_attribute(CACHED_CLASS(RemoteSyncAttribute)))
+		return MultiplayerAPI::RPC_MODE_REMOTESYNC;
+	if (p_member->has_attribute(CACHED_CLASS(SyncAttribute)))
 		return MultiplayerAPI::RPC_MODE_REMOTESYNC;
 	if (p_member->has_attribute(CACHED_CLASS(MasterSyncAttribute)))
 		return MultiplayerAPI::RPC_MODE_MASTERSYNC;
-	if (p_member->has_attribute(CACHED_CLASS(SlaveSyncAttribute)))
-		return MultiplayerAPI::RPC_MODE_SLAVESYNC;
+	if (p_member->has_attribute(CACHED_CLASS(PuppetSyncAttribute)))
+		return MultiplayerAPI::RPC_MODE_PUPPETSYNC;
 
 	return MultiplayerAPI::RPC_MODE_DISABLED;
 }

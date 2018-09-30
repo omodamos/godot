@@ -267,11 +267,6 @@ void EditorProperty::_notification(int p_what) {
 		} else {
 			keying_rect = Rect2();
 		}
-
-		//int vs = get_constant("vseparation", "Tree");
-		Color guide_color = get_color("guide_color", "Tree");
-		int vs_height = get_size().height; // vs / 2;
-		//	draw_line(Point2(0, vs_height), Point2(get_size().width, vs_height), guide_color);
 	}
 }
 
@@ -1423,10 +1418,7 @@ void EditorInspector::update_tree() {
 			category_vbox = NULL; //reset
 
 			String type = p.name;
-			if (has_icon(type, "EditorIcons"))
-				category->icon = get_icon(type, "EditorIcons");
-			else
-				category->icon = get_icon("Object", "EditorIcons");
+			category->icon = EditorNode::get_singleton()->get_class_icon(type, "Object");
 			category->label = type;
 
 			category->bg_color = get_color("prop_category", "Editor");
@@ -1456,6 +1448,9 @@ void EditorInspector::update_tree() {
 
 		} else if (!(p.usage & PROPERTY_USAGE_EDITOR))
 			continue;
+
+		if (p.usage & PROPERTY_USAGE_HIGH_END_GFX && VS::get_singleton()->is_low_end())
+			continue; //do not show this property in low end gfx
 
 		if (p.name == "script" && (hide_script || bool(object->call("_hide_script_from_inspector")))) {
 			continue;
@@ -1742,7 +1737,7 @@ void EditorInspector::edit(Object *p_object) {
 	if (object) {
 		update_scroll_request = 0; //reset
 		if (scroll_cache.has(object->get_instance_id())) { //if exists, set something else
-			update_scroll_request = scroll_cache[object->get_instance_id()]; //done this way because wait until full size is accomodated
+			update_scroll_request = scroll_cache[object->get_instance_id()]; //done this way because wait until full size is accommodated
 		}
 		object->add_change_receptor(this);
 		update_tree();

@@ -203,6 +203,7 @@ public:
 
 	BIND3(material_set_param, RID, const StringName &, const Variant &)
 	BIND2RC(Variant, material_get_param, RID, const StringName &)
+	BIND2RC(Variant, material_get_param_default, RID, const StringName &)
 
 	BIND2(material_set_render_priority, RID, int)
 	BIND2(material_set_line_width, RID, float)
@@ -336,6 +337,7 @@ public:
 	BIND2(reflection_probe_set_enable_box_projection, RID, bool)
 	BIND2(reflection_probe_set_enable_shadows, RID, bool)
 	BIND2(reflection_probe_set_cull_mask, RID, uint32_t)
+	BIND2(reflection_probe_set_resolution, RID, int)
 
 	/* BAKED LIGHT API */
 
@@ -687,6 +689,8 @@ public:
 	virtual void set_debug_generate_wireframes(bool p_generate);
 
 	virtual void call_set_use_vsync(bool p_enable);
+
+	virtual bool is_low_end() const;
 
 	VisualServerRaster();
 	~VisualServerRaster();
